@@ -30,12 +30,13 @@ library
       Paths_translato
   hs-source-dirs:
       src
-  default-extensions: DerivingStrategies DeriveGeneric DeriveAnyClass OverloadedStrings TypeSynonymInstances FlexibleInstances FlexibleContexts
+  default-extensions: DerivingStrategies DeriveGeneric DeriveAnyClass OverloadedStrings TypeSynonymInstances FlexibleInstances FlexibleContexts OverloadedLabels
   build-depends:
       aeson
     , base
     , comonad
     , containers
+    , generic-lens
     , lens
     , optparse-generic
     , relude
@@ -51,13 +52,14 @@ executable translato-exe
       Paths_translato
   hs-source-dirs:
       app
-  default-extensions: DerivingStrategies DeriveGeneric DeriveAnyClass OverloadedStrings TypeSynonymInstances FlexibleInstances FlexibleContexts
+  default-extensions: DerivingStrategies DeriveGeneric DeriveAnyClass OverloadedStrings TypeSynonymInstances FlexibleInstances FlexibleContexts OverloadedLabels
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
     , base
     , comonad
     , containers
+    , generic-lens
     , lens
     , optparse-generic
     , relude
@@ -75,13 +77,14 @@ test-suite translato-test
       Paths_translato
   hs-source-dirs:
       test
-  default-extensions: DerivingStrategies DeriveGeneric DeriveAnyClass OverloadedStrings TypeSynonymInstances FlexibleInstances FlexibleContexts
+  default-extensions: DerivingStrategies DeriveGeneric DeriveAnyClass OverloadedStrings TypeSynonymInstances FlexibleInstances FlexibleContexts OverloadedLabels
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
     , base
     , comonad
     , containers
+    , generic-lens
     , lens
     , optparse-generic
     , relude

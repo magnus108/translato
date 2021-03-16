@@ -1,10 +1,18 @@
+{-# LANGUAGE AllowAmbiguousTypes       #-}
+{-# LANGUAGE DataKinds                 #-}
+{-# LANGUAGE DeriveGeneric             #-}
+{-# LANGUAGE DuplicateRecordFields     #-}
+{-# LANGUAGE FlexibleContexts          #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE TypeApplications          #-}
+
 module Main where
 
 import qualified Lib
 
-
 import           Safe                           ( atMay )
-import qualified Control.Lens                  as Lens
+import Data.Generics.Labels
+import           Control.Lens                   ( (^.) )
 import           Options.Generic
 import           Data.Aeson
 
@@ -21,86 +29,58 @@ import qualified Data.Map.Strict               as M
 
 
 -------------------------------------------------------------------------------
-data Config = Config { _port :: Int }
+data Config = Config { port :: Int }
+    deriving Generic
+    deriving anyclass ParseRecord
+
+data Style = Translating | Normal
     deriving Show
     deriving Generic
     deriving anyclass (FromJSON, ToJSON)
-    deriving anyclass ParseRecord
 
-
--------------------------------------------------------------------------------
-
-translations :: M.Map String String
-translations = M.fromList [("lol", "fuck"), ("loller", "lollo")]
-
-lookup :: Store String (Maybe String)
-lookup = store (\translation -> M.lookup translation translations) "lol"
-
-lookup3 :: M.Map String String -> String -> Store String (Maybe String)
-lookup3 translations' = store (\translation -> M.lookup translation translations')
-
-lookup2
-    :: (ComonadStore String w, ComonadEnv Style w)
-    => w (Maybe String)
-    -> Maybe String
-lookup2 = extract
-
-lookup4
-    :: (ComonadStore String w)
-    => w (Maybe String)
-    -> Maybe String
-lookup4 w = Store.seek "loller" w & extract
--------------------------------------------------------------------------------
-
-translations' :: EnvT Style (Store String) (Maybe String)
-translations' = EnvT Normal lookup
-
--------------------------------------------------------------------------------
-data Style = Translating | Normal -- Der er altid 1 i focus
+data Translations = Translations { unTranslations :: M.Map String String }
+    deriving Show
     deriving Generic
     deriving anyclass (FromJSON, ToJSON)
 
-
-data Translations = Translations { _unTranslation :: EnvT Style (Store String) (Maybe String) }
+data State = State { style :: Style
+                   , position :: String
+                   }
+    deriving Show
     deriving Generic
+    deriving anyclass (FromJSON, ToJSON)
 
-instance ToJSON Translations where
-    toJSON (Translations p) =
-        object
-            $ [ "style" .= style p
-              , "position" .= position p
-              , "map" .= translations
-              ]
-
-instance FromJSON Translations where
-    parseJSON = withObject "translation" $ \o -> do
-        style    <- o .: "style"
-        position <- o .: "position"
-        map <- o .: "map"
-        return $ Translations $ EnvT style $ lookup3 map position
+data Run = Run { unRun :: EnvT Style (Store String) (Maybe String) }
 
 -------------------------------------------------------------------------------
-position :: (ComonadStore String w) => w a -> String
-position = Store.pos
+{-
+getPosition :: (ComonadStore String w) => w a -> String
+getPosition = Store.pos
 
-style :: (ComonadEnv Style w) => w a -> Style
-style = Env.ask
+getStyle :: (ComonadEnv Style w) => w a -> Style
+getStyle = Env.ask
+-}
 -------------------------------------------------------------------------------
 
 main :: IO ()
 main = do
+    Config (port) <- getRecord "Run"
 
-    let gg   = translations'
-    let enco = encode (Translations gg)
-    let haha = decode (enco) :: Maybe Translations
-    putStrLn (show (isJust haha))
-    let ggg = lookup2 gg
-    putStrLn (show ggg)
-    putStrLn (show enco)
+    let (Translations translations) =
+            Translations $ M.fromList [("lol", "fuck"), ("loller", "lollo")]
+    let state = State Normal "lol"
 
-    Config (_port) <- getRecord "Run"
-    Lib.run _port
+    let (Run run) = Run $ EnvT
+            (state ^. #style)
+            (store (\translation -> M.lookup translation translations)
+                   (state ^. #position)
+            )
 
+    Lib.run port
+
+-------------------------------------------------------------------------------
+lookup :: (ComonadStore String w) => w (Maybe String) -> Maybe String
+lookup w = Store.seek "loller" w & extract
 
 -------------------------------------------------------------------------------
 format' :: String -> [String] -> String

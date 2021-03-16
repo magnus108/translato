@@ -27,6 +27,7 @@ default-extensions:
 - TypeSynonymInstances
 - FlexibleInstances
 - FlexibleContexts
+- OverloadedLabels
 
 dependencies:
 - name: base
@@ -35,6 +36,7 @@ dependencies:
   mixin: (Relude as Prelude)
 - name: aeson
 - name: optparse-generic
+- name: generic-lens
 - name: lens
 - name: comonad
 - name: containers
