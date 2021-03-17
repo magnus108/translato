@@ -52,15 +52,6 @@ data State = State { style :: Style
 
 data Run = Run { unRun :: EnvT Style (Store String) (Maybe String) }
 
--------------------------------------------------------------------------------
-{-
-getPosition :: (ComonadStore String w) => w a -> String
-getPosition = Store.pos
-
-getStyle :: (ComonadEnv Style w) => w a -> Style
-getStyle = Env.ask
--}
--------------------------------------------------------------------------------
 
 main :: IO ()
 main = do
