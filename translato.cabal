@@ -41,6 +41,7 @@ library
     , optparse-generic
     , relude
     , safe
+    , threepenny-gui
   mixins:
       base hiding (Prelude)
     , relude (Relude as Prelude)
@@ -64,6 +65,7 @@ executable translato-exe
     , optparse-generic
     , relude
     , safe
+    , threepenny-gui
     , translato
   mixins:
       base hiding (Prelude)
@@ -89,6 +91,7 @@ test-suite translato-test
     , optparse-generic
     , relude
     , safe
+    , threepenny-gui
     , translato
   mixins:
       base hiding (Prelude)

@@ -6,12 +6,15 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE TypeApplications          #-}
 
+{-# LANGUAGE RecursiveDo #-}
+
 module Main where
 
 import qualified Lib
 
-import           Safe                           ( atMay )
 import Data.Generics.Labels
+
+import           Safe                           ( atMay )
 import           Control.Lens                   ( (^.) )
 import           Options.Generic
 import           Data.Aeson
@@ -27,6 +30,8 @@ import qualified Control.Comonad.Env.Class     as Env
 
 import qualified Data.Map.Strict               as M
 
+import qualified Graphics.UI.Threepenny as UI
+import Graphics.UI.Threepenny.Core
 
 -------------------------------------------------------------------------------
 data Config = Config { port :: Int }
@@ -50,28 +55,56 @@ data State = State { style :: Style
     deriving Generic
     deriving anyclass (FromJSON, ToJSON)
 
-data Run = Run { unRun :: EnvT Style (Store String) (Maybe String) }
+data Run = Run { unRun :: EnvT Style (Store String) String }
 
 
 main :: IO ()
 main = do
     Config (port) <- getRecord "Run"
 
+    let static    = "static"
+    let index     = "index.html"
+
     let (Translations translations) =
-            Translations $ M.fromList [("lol", "fuck"), ("loller", "lollo")]
+            Translations $ M.fromList [("title", "Translations!"), ("lol", "fuck"), ("loller", "lollo")]
+
     let state = State Normal "lol"
 
     let (Run run) = Run $ EnvT
             (state ^. #style)
-            (store (\translation -> M.lookup translation translations)
+            (store (\translation -> M.findWithDefault translation translation translations)
                    (state ^. #position)
             )
+
+    startGUI defaultConfig { jsWindowReloadOnDisconnect = False
+                           , jsPort                     = Just port
+                           , jsStatic                   = Just static
+                           , jsCustomHTML               = Just index
+                           , jsCallBufferMode           = NoBuffering
+                           } $ setup (Run run)
 
     Lib.run port
 
 -------------------------------------------------------------------------------
-lookup :: (ComonadStore String w) => w (Maybe String) -> Maybe String
-lookup w = Store.seek "loller" w & extract
+setup :: Run -> Window -> UI ()
+setup (Run run) window = void $ mdo
+    return window # set title (lookup "title" run)
+
+    translationEntry <- UI.entry bTranslation
+
+    getBody window #+ [ grid
+        [[row [string "Translation:", element translationEntry]]
+        ]]
+
+    bTranslation <- stepper "" . rumors $ UI.userText translationEntry
+
+
+
+    return ()
+
+-------------------------------------------------------------------------------
+lookup :: (ComonadStore String w) => String -> w String -> String
+lookup k w = Store.seek k w & extract
 
 -------------------------------------------------------------------------------
 format' :: String -> [String] -> String

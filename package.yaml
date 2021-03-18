@@ -41,6 +41,7 @@ dependencies:
 - name: comonad
 - name: containers
 - name: safe
+- name: threepenny-gui
 
 library:
   source-dirs: src
