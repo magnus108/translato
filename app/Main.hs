@@ -14,12 +14,14 @@ import qualified Lib
 
 import Data.Generics.Labels
 
+import qualified Data.List.NonEmpty as NE
 import           Safe                           ( atMay )
 import           Control.Lens                   ( (^.) )
+import qualified Control.Lens                  as Lens
 import           Options.Generic
 import           Data.Aeson
 
-import           Control.Comonad
+import           Control.Comonad hiding ((<@>))
 import           Control.Comonad.Trans.Store
 import           Control.Comonad.Trans.Env
 import           Control.Comonad.Store.Class
@@ -48,9 +50,16 @@ data Translations = Translations { unTranslations :: M.Map String String }
     deriving Generic
     deriving anyclass (FromJSON, ToJSON)
 
-data State = State { style :: Style
+data Status = Status { style :: Style
                    , position :: String
+                   , language :: Language
                    }
+    deriving Show
+    deriving Generic
+    deriving anyclass (FromJSON, ToJSON)
+
+
+data Language = Danish | English
     deriving Show
     deriving Generic
     deriving anyclass (FromJSON, ToJSON)
@@ -65,46 +74,88 @@ main = do
     let static    = "static"
     let index     = "index.html"
 
-    let (Translations translations) =
-            Translations $ M.fromList [("title", "Translations!"), ("lol", "fuck"), ("loller", "lollo")]
 
-    let state = State Normal "lol"
-
-    let (Run run) = Run $ EnvT
-            (state ^. #style)
-            (store (\translation -> M.findWithDefault translation translation translations)
-                   (state ^. #position)
-            )
 
     startGUI defaultConfig { jsWindowReloadOnDisconnect = False
                            , jsPort                     = Just port
                            , jsStatic                   = Just static
                            , jsCustomHTML               = Just index
                            , jsCallBufferMode           = NoBuffering
-                           } $ setup (Run run)
+                           } setup
 
     Lib.run port
 
 -------------------------------------------------------------------------------
-setup :: Run -> Window -> UI ()
-setup (Run run) window = void $ mdo
-    return window # set title (lookup "title" run)
+setup :: Window -> UI ()
+setup window = void $ mdo
 
-    translationEntry <- UI.entry bTranslation
+    return window # sink title (lookup "title" . unRun <$> bRun)
+
+
+    {-
+    key <- UI.span # sink text bSearchString
+    value <- UI.span # sink text bTranslationString
+
+    searchEntry <- UI.entry bSearchString
+    translationEntry <- UI.entry bTranslationString
+
+    listBox     <- UI.listBox  bListBoxItems bSelection bDisplayDataItemp
 
     getBody window #+ [ grid
-        [[row [string "Translation:", element translationEntry]]
+        [[row [string "Search translation:", element searchEntry]]
+        ,[element key]
+        ,[row [string "Change translation:", element translationEntry]]
+        ,[element value]
+        ,[element listBox]
         ]]
 
-    bTranslation <- stepper "" . rumors $ UI.userText translationEntry
+    let tSearch = UI.userText searchEntry
+        bSearch = facts  tSearch
+        eSearch = rumors tSearch
 
+    let tTranslation = UI.userText translationEntry
+        bTranslation = facts  tTranslation
+        eTranslation = rumors tTranslation
 
+    let bSearchString = currentK . unRun <$> bRun
+    let bTranslationString = currentV . unRun <$> bRun
+    -}
+
+    bTranslations <- stepper (Translations $ M.fromList [("title", "Translations!"), ("lol", "fuck"), ("loller", "lollo")]) UI.never
+            -- $ head . NE.fromList <$> unions [ (\translations status translation -> Translations $ M.adjust (const translation) (status ^. #position) (unTranslations translations)) <$> bTranslations <*> bStatus <@> eTranslation ]
+
+    bStatus <- stepper (Status Normal "lol" Danish) UI.never
+            -- $ head . NE.fromList <$> unions [ (\status search -> Lens.set #position search status) <$> bStatus <@> eSearch ]
+
+    let bRun = (\status translations -> Run $ EnvT
+            (status ^. #style)
+            (store (\translation -> M.findWithDefault translation translation (translations ^. #unTranslations))
+                   (status ^. #position)
+            )) <$> bStatus <*> bTranslations
+
+{-
+    let eSelection  = rumors $ UI.userSelection listBox
+
+    bSelection <- stepper Nothing $ head <$> unions
+        [ eSelection
+        , (\b s p -> b >>= \a -> if p (s a) then Just a else Nothing)
+            <$> bSelection <*> bShowDataItem <@> eFilter
+        ]
+
+-}
 
     return ()
 
 -------------------------------------------------------------------------------
 lookup :: (ComonadStore String w) => String -> w String -> String
-lookup k w = Store.seek k w & extract
+lookup k w = Store.peek k w
+
+currentK :: (ComonadStore String w) => w String -> String
+currentK = Store.pos
+
+currentV :: (ComonadStore String w) => w String -> String
+currentV = extract
+
 
 -------------------------------------------------------------------------------
 format' :: String -> [String] -> String
