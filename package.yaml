@@ -28,6 +28,7 @@ default-extensions:
 - FlexibleInstances
 - FlexibleContexts
 - OverloadedLabels
+- RecordWildCards
 
 dependencies:
 - name: base

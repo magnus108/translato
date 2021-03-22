@@ -26,11 +26,12 @@ source-repository head
 library
   exposed-modules:
       Lib
+      Model
   other-modules:
       Paths_translato
   hs-source-dirs:
       src
-  default-extensions: DerivingStrategies DeriveGeneric DeriveAnyClass OverloadedStrings TypeSynonymInstances FlexibleInstances FlexibleContexts OverloadedLabels
+  default-extensions: DerivingStrategies DeriveGeneric DeriveAnyClass OverloadedStrings TypeSynonymInstances FlexibleInstances FlexibleContexts OverloadedLabels RecordWildCards
   build-depends:
       aeson
     , base
@@ -53,7 +54,7 @@ executable translato-exe
       Paths_translato
   hs-source-dirs:
       app
-  default-extensions: DerivingStrategies DeriveGeneric DeriveAnyClass OverloadedStrings TypeSynonymInstances FlexibleInstances FlexibleContexts OverloadedLabels
+  default-extensions: DerivingStrategies DeriveGeneric DeriveAnyClass OverloadedStrings TypeSynonymInstances FlexibleInstances FlexibleContexts OverloadedLabels RecordWildCards
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
@@ -79,7 +80,7 @@ test-suite translato-test
       Paths_translato
   hs-source-dirs:
       test
-  default-extensions: DerivingStrategies DeriveGeneric DeriveAnyClass OverloadedStrings TypeSynonymInstances FlexibleInstances FlexibleContexts OverloadedLabels
+  default-extensions: DerivingStrategies DeriveGeneric DeriveAnyClass OverloadedStrings TypeSynonymInstances FlexibleInstances FlexibleContexts OverloadedLabels RecordWildCards
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
