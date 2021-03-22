@@ -74,22 +74,65 @@ main = do
     let static    = "static"
     let index     = "index.html"
 
-
+    let translations = Translations $ M.fromList [("title", "Translations!"), ("lol", "fuck"), ("loller", "lollo")]
+    let status = Status Normal "lol" Danish
 
     startGUI defaultConfig { jsWindowReloadOnDisconnect = False
                            , jsPort                     = Just port
                            , jsStatic                   = Just static
                            , jsCustomHTML               = Just index
                            , jsCallBufferMode           = NoBuffering
-                           } setup
+                           } $ setup translations status
 
     Lib.run port
 
 -------------------------------------------------------------------------------
-setup :: Window -> UI ()
-setup window = void $ mdo
+setup :: Translations -> Status -> Window -> UI ()
+setup translations status window = void $ mdo
 
     return window # sink title (lookup "title" . unRun <$> bRun)
+
+    let bSelection = (\x -> Just x) <$> (currentK . unRun <$> bRun)
+    listBox     <- UI.listBox  bListBoxItems bSelection (pure $ \x -> UI.string x)
+
+    filterEntry <- UI.entry bFilterString
+    key <- UI.span # sink text (currentK . unRun <$> bRun)
+    value <- UI.span # sink text (currentV . unRun <$> bRun)
+
+    getBody window #+ [ grid
+        [[element key]
+        ,[element value]
+        ,[element filterEntry]
+        ,[element listBox]
+        ]]
+
+    let userTextFilterEntry = UI.userText filterEntry
+    bFilterString <- stepper "" $ rumors userTextFilterEntry
+    let tFilter = isPrefixOf <$> userTextFilterEntry
+        bFilter = facts  tFilter
+        eFilter = rumors tFilter
+
+    let eSelection  = filterJust $ rumors $ UI.userSelection listBox
+
+    let bListBoxItems = (\p -> filter p . M.keys . unTranslations)
+                            <$> bFilter <*> bTranslations
+    --let bListBoxItems :: Behavior [DatabaseKey]
+        --bListBoxItems = (\p show -> filter (p . show) . M.keys . unTranslations)
+    --                <$> bFilter <*> bShowDataItem <*> bTranslations
+
+
+
+    bTranslations <- stepper translations UI.never
+            -- $ head . NE.fromList <$> unions [ (\translations status translation -> Translations $ M.adjust (const translation) (status ^. #position) (unTranslations translations)) <$> bTranslations <*> bStatus <@> eTranslation ]
+
+    bStatus <- stepper status 
+        $ head . NE.fromList <$> unions [ (\status search -> Lens.set #position search status) <$> bStatus <@> eSelection ]
+
+    let bRun = (\status translations -> Run $ EnvT
+            (status ^. #style)
+            (store (\translation -> M.findWithDefault translation translation (translations ^. #unTranslations))
+                   (status ^. #position)
+            )) <$> bStatus <*> bTranslations
 
 
     {-
@@ -121,6 +164,7 @@ setup window = void $ mdo
     let bTranslationString = currentV . unRun <$> bRun
     -}
 
+    {-
     bTranslations <- stepper (Translations $ M.fromList [("title", "Translations!"), ("lol", "fuck"), ("loller", "lollo")]) UI.never
             -- $ head . NE.fromList <$> unions [ (\translations status translation -> Translations $ M.adjust (const translation) (status ^. #position) (unTranslations translations)) <$> bTranslations <*> bStatus <@> eTranslation ]
 
@@ -132,6 +176,7 @@ setup window = void $ mdo
             (store (\translation -> M.findWithDefault translation translation (translations ^. #unTranslations))
                    (status ^. #position)
             )) <$> bStatus <*> bTranslations
+            -}
 
 {-
     let eSelection  = rumors $ UI.userSelection listBox
