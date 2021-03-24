@@ -1,20 +1,22 @@
 {-# LANGUAGE RecordWildCards, ScopedTypeVariables #-}
 module Lib (
-    -- * Widgets
-    -- ** Input widgets
     TextEntry, entry, userText,
-    -- ** ListBox
     listBox
+           , kv
     ) where
 
 import Model
+import Data.Generics.Labels
+import           Options.Generic
 
-import Control.Monad (void, when)
-import qualified Data.Map                          as Map
+import qualified Data.Map.Strict               as M
+import           Control.Comonad
+import Control.Comonad.Store
+import qualified Control.Comonad.Store.Class   as Store
 
-import qualified Graphics.UI.Threepenny.Attributes as UI
-import qualified Graphics.UI.Threepenny.Events     as UI
-import qualified Graphics.UI.Threepenny.Elements   as UI
+import           Control.Lens                   ( (^.), (.~))
+import qualified Control.Lens as Lens
+import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core
 import Reactive.Threepenny
 
@@ -53,9 +55,17 @@ entry bValue = do -- single text entry
     return TextEntry {..}
 
 ------------------------------------------------------------------------------
+
+kv :: (ComonadStore Status w) => w String -> (String, String)
+kv w = (position (Store.pos w), extract w)
+
+
 listBox :: Behavior Run -> UI Element
-listBox bItems = do
+listBox bRun = do
     list <- UI.div
+    let bItems = Store.experiment (\status' -> let elems = M.keys (status' ^. #translations . #unTranslations) in fmap (\e -> status' & #position .~ e) elems) . extend kv . unRun <$> bRun
+    let bDisplay = pure $ \(x,y) -> UI.div #+ [UI.string x, UI.string y]
+    element list # sink items (fmap <$> bDisplay <*> bItems)
 
     return list
     {-
@@ -90,3 +100,5 @@ items = mkWriteAttr $ \i x -> void $ do
     return x # set children [] #+ map (\i -> UI.option #+ [i]) i
     -}
 -------------------------------------------------------------------------------
+items = mkWriteAttr $ \i x -> void $ do
+    return x # set children [] #+ i

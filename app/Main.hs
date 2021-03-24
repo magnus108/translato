@@ -10,28 +10,24 @@
 
 module Main where
 
-import qualified Lib
+import Model
 
 import Data.Generics.Labels
-
-import qualified Data.List.NonEmpty as NE
+import           Options.Generic
 import           Safe                           ( atMay )
 import           Control.Lens                   ( (^.) )
-import qualified Control.Lens                  as Lens
+import qualified Control.Lens as Lens
 import           Options.Generic
-import           Data.Aeson
 
-import           Control.Comonad hiding ((<@>))
+import qualified Control.Comonad.Store.Class   as Store
+
+import           Control.Comonad
 import           Control.Comonad.Trans.Store
 import           Control.Comonad.Trans.Env
-import           Control.Comonad.Store.Class
-import qualified Control.Comonad.Store.Class   as Store
-import           Control.Comonad.Env.Class
-import qualified Control.Comonad.Env.Class     as Env
-
 
 import qualified Data.Map.Strict               as M
 
+import qualified Lib
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core
 
@@ -39,32 +35,6 @@ import Graphics.UI.Threepenny.Core
 data Config = Config { port :: Int }
     deriving Generic
     deriving anyclass ParseRecord
-
-data Style = Translating | Normal
-    deriving Show
-    deriving Generic
-    deriving anyclass (FromJSON, ToJSON)
-
-data Translations = Translations { unTranslations :: M.Map String String }
-    deriving Show
-    deriving Generic
-    deriving anyclass (FromJSON, ToJSON)
-
-data Status = Status { style :: Style
-                   , position :: String
-                   , language :: Language
-                   }
-    deriving Show
-    deriving Generic
-    deriving anyclass (FromJSON, ToJSON)
-
-
-data Language = Danish | English
-    deriving Show
-    deriving Generic
-    deriving anyclass (FromJSON, ToJSON)
-
-data Run = Run { unRun :: EnvT Style (Store String) String }
 
 
 main :: IO ()
@@ -75,20 +45,17 @@ main = do
     let index     = "index.html"
 
     let translations = Translations $ M.fromList [("title", "Translations!"), ("lol", "fuck"), ("loller", "lollo")]
-    let status = Status Normal "lol" Danish
+    let status = Status Normal "lol" Danish translations
 
     startGUI defaultConfig { jsWindowReloadOnDisconnect = False
                            , jsPort                     = Just port
                            , jsStatic                   = Just static
                            , jsCustomHTML               = Just index
                            , jsCallBufferMode           = NoBuffering
-                           } $ setup translations status
+                           } $ setup status
 
-    Lib.run port
 
--------------------------------------------------------------------------------
-setup :: Translations -> Status -> Window -> UI ()
-setup translations status window = void $ mdo
+    {-
 
     return window # sink title (lookup "title" . unRun <$> bRun)
 
@@ -135,6 +102,7 @@ setup translations status window = void $ mdo
             )) <$> bStatus <*> bTranslations
 
 
+-}
     {-
     key <- UI.span # sink text bSearchString
     value <- UI.span # sink text bTranslationString
@@ -189,19 +157,6 @@ setup translations status window = void $ mdo
 
 -}
 
-    return ()
-
--------------------------------------------------------------------------------
-lookup :: (ComonadStore String w) => String -> w String -> String
-lookup k w = Store.peek k w
-
-currentK :: (ComonadStore String w) => w String -> String
-currentK = Store.pos
-
-currentV :: (ComonadStore String w) => w String -> String
-currentV = extract
-
-
 -------------------------------------------------------------------------------
 format' :: String -> [String] -> String
 format' code args = go code
@@ -226,4 +181,34 @@ instance PrintfType String where
 
 instance (PrintfType r) => PrintfType (String -> r) where
     fancy f x = fancy $ \xs -> f (x : xs)
+
 -------------------------------------------------------------------------------
+setup :: Status -> Window -> UI ()
+setup status window = void $ mdo
+    return window # sink title (Store.peeks (Lens.set #position "title") . unRun <$> bRun)
+
+    key <- UI.span # sink text (position . Store.pos . unRun <$> bRun)
+    value <- UI.span # sink text (extract . unRun <$> bRun)
+
+    listBox <- Lib.listBox bRun
+
+    getBody window #+ [ grid
+        [[element key]
+        ,[element value]
+        ,[UI.hr]
+        --,[element filterEntry]
+        ,[element listBox]
+        ]]
+
+    let run = Run $ EnvT
+            (status ^. #style)
+            (store (\status' -> M.findWithDefault (status' ^. #position) (status' ^. #position) (status' ^. #translations . #unTranslations))
+                   status
+            )
+
+    bRun <- stepper run UI.never
+
+    xx <- extend Lib.kv . unRun <$> currentValue bRun
+    traceShowM (extract xx)
+
+    return ()
