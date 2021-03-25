@@ -1,19 +1,26 @@
 {-# LANGUAGE RecordWildCards, ScopedTypeVariables #-}
 module Lib (
     TextEntry, entry, userText,
-    listBox
+    myBox
+           , listBox
            ,brah
            , kv
            , lookup
     ) where
+
+
+import Utils.ListZipper (ListZipper)
+import qualified Utils.ListZipper as ListZipper
+import qualified Control.Comonad.Env as Env
+import qualified Data.Map                          as Map
 
 import Model
 import Data.Generics.Labels
 import           Options.Generic
 
 import qualified Data.Map.Strict               as M
-import           Control.Comonad
-import Control.Comonad.Store
+import           Control.Comonad hiding ((<@>))
+import Control.Comonad.Store hiding ((<@>))
 import qualified Control.Comonad.Store.Class   as Store
 
 import           Control.Lens                   ( (^.), (.~))
@@ -57,7 +64,7 @@ entry bValue = do
         _userTE    = tidings bValue $ UI.valueChange input
     return TextEntry {..}
 
-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 kv :: (ComonadStore Status w) => w String -> (String, String)
 kv w = (position (Store.pos w), extract w)
@@ -76,46 +83,31 @@ brah translation run =
         Store.seeks (const status') run
 
 
-listBox :: Behavior Run ->  Behavior (String -> Bool) -> UI Element
-listBox bRun bFilter = do
+-------------------------------------------------------------------------------
+myBox :: Behavior Run ->  Behavior (String -> Bool) -> UI Element
+myBox bRun bFilter = do
     list <- UI.div
 
     let bItems = (\p -> filter (p . fst) . Store.experiment (\status' -> let elems = (M.keys (status' ^. #translations . #unTranslations)) in fmap (\e -> status' & #position .~ e) elems) . extend kv . unRun) <$> bFilter <*> bRun
     let bDisplay = pure $ \(x,y) -> UI.div #+ [UI.string x, UI.string y]
     element list # sink items (fmap <$> bDisplay <*> bItems)
 
-    return list
-    {-
-    -- animate output items
-    element list # sink items (map <$> bdisplay <*> bitems)
+------------------------------------------------------------------------------
 
-    -- animate output selection
-    let bindices :: Behavior (Map.Map a Int)
-        bindices = (Map.fromList . flip zip [0..]) <$> bitems
-        bindex   = lookupIndex <$> bindices <*> bsel
+listBox :: Behavior Run -> UI (Element, Event (ListZipper Style))
+listBox bRun = do
+    (eSelect, hSelection) <- liftIO newEvent
 
-        lookupIndex indices Nothing    = Nothing
-        lookupIndex indices (Just sel) = Map.lookup sel indices
+    let displayOpen center items = do
+            button <- UI.button # set text (show (extract items))
+            UI.on UI.click button $ \_ -> do
+                    liftIO $ hSelection items
+            return button
 
-    element list # sink UI.selection bindex
+    list <- UI.div # sink items (ListZipper.toList . ListZipper.bextend displayOpen . Env.ask . unRun <$> bRun)
 
-    -- changing the display won't change the current selection
-    -- eDisplay <- changes display
-    -- sink listBox [ selection :== stepper (-1) $ bSelection <@ eDisplay ]
-
-    -- user selection
-    let bindices2 :: Behavior (Map.Map Int a)
-        bindices2 = Map.fromList . zip [0..] <$> bitems
-
-        _selectionLB = tidings bsel $
-            lookupIndex <$> bindices2 <@> UI.selectionChange list
-        _elementLB   = list
-
-    return ListBox {..}
-
-items = mkWriteAttr $ \i x -> void $ do
-    return x # set children [] #+ map (\i -> UI.option #+ [i]) i
-    -}
+    return (list, eSelect)
 -------------------------------------------------------------------------------
+items :: ReadWriteAttr Element [UI Element] ()
 items = mkWriteAttr $ \i x -> void $ do
     return x # set children [] #+ i

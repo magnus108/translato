@@ -20,12 +20,16 @@ import qualified Control.Lens as Lens
 import           Options.Generic
 
 import qualified Control.Comonad.Store.Class   as Store
+import qualified Control.Comonad.Env as Env
 
 
 import qualified Data.List.NonEmpty as NE
 import           Control.Comonad hiding ((<@>))
 import           Control.Comonad.Trans.Store
 import           Control.Comonad.Trans.Env
+
+import Utils.ListZipper (ListZipper)
+import qualified Utils.ListZipper as ListZipper
 
 import qualified Data.Map.Strict               as M
 
@@ -48,7 +52,8 @@ main = do
     let index     = "index.html"
 
     let translations = Translations $ M.fromList [("title", "Translations!"), ("lol", "fuck"), ("loller", "lollo")]
-    let status = Status Normal "lol" Danish translations
+    let style = ListZipper.ListZipper [] Normal [Translating]
+    let status = Status "lol" Danish translations
 
     --(eChange, hChange) <- newEvent
 
@@ -57,7 +62,7 @@ main = do
                            , jsStatic                   = Just static
                            , jsCustomHTML               = Just index
                            , jsCallBufferMode           = NoBuffering
-                           } $ setup status
+                           } $ setup style status
 
 
 
@@ -89,30 +94,38 @@ instance (PrintfType r) => PrintfType (String -> r) where
 -------------------------------------------------------------------------------
 
 
-setup :: Status -> Window -> UI ()
-setup status window = void $ mdo
+setup :: ListZipper Style -> Status -> Window -> UI ()
+setup style status window = void $ mdo
     return window # sink title (Store.peeks (Lens.set #position "title") . unRun <$> bRun)
 
     key <- UI.span # sink text (position . Store.pos . unRun <$> bRun)
     value <- UI.span # sink text (extract . unRun <$> bRun)
 
-    listBox <- Lib.listBox bRun bFilter
+    myBox <- Lib.myBox bRun bFilter
     filterEntry <- Lib.entry bFilterString
     changeEntry <- Lib.entry (extract . unRun <$> bRun)
 
     myText <- T.content bRun
 
+    styleElem <- UI.span # sink text (show . extract . Env.ask . unRun <$> bRun)
+
+    (styleSelection, eStyleSelection) <- Lib.listBox bRun
+
     getBody window #+ [ grid
-        [[row [UI.string "key: ", element key]]
+        [[row [UI.string "style: ", element styleElem]]
+        ,[element styleSelection]
+        ,[UI.hr]
+        ,[row [UI.string "key: ", element key]]
         ,[row [UI.string "value: ", element value]]
         ,[UI.hr]
         ,[row [UI.string "change it: ", element changeEntry]]
         ,[UI.hr]
         ,[row [UI.string "filter ",  element filterEntry]]
-        ,[element listBox]
+        ,[element myBox]
         ,[UI.hr]
         ,[element myText]
         ]]
+
 
     let userTextFilterEntry = Lib.userText filterEntry
     bFilterString <- stepper "" $ rumors userTextFilterEntry
@@ -125,14 +138,15 @@ setup status window = void $ mdo
 
 
     let run = Run $ EnvT
-            (status ^. #style)
+            style
             (store (\status' -> M.findWithDefault (status' ^. #position) (status' ^. #position) (status' ^. #translations . #unTranslations))
                    status
             )
 
     bRun <- stepper run $ head . NE.fromList <$> unions
-            [ (\run translation -> Run $ Lib.brah translation (unRun run)) <$> bRun <@> eDataItemChange ]
-
+            [ (\run translation -> Run $ Lib.brah translation (unRun run)) <$> bRun <@> eDataItemChange
+            , (\run style -> Run $ Env.local (const style) (unRun run)) <$> bRun <@> eStyleSelection
+            ]
 
     --  how do i save bRun?
     -- eChange

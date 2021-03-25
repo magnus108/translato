@@ -28,6 +28,7 @@ library
       Lib
       Model
       Text
+      Utils.ListZipper
   other-modules:
       Paths_translato
   hs-source-dirs:
