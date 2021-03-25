@@ -21,13 +21,16 @@ import           Options.Generic
 
 import qualified Control.Comonad.Store.Class   as Store
 
-import           Control.Comonad
+
+import qualified Data.List.NonEmpty as NE
+import           Control.Comonad hiding ((<@>))
 import           Control.Comonad.Trans.Store
 import           Control.Comonad.Trans.Env
 
 import qualified Data.Map.Strict               as M
 
 import qualified Lib
+import qualified Text as T
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core
 
@@ -47,6 +50,8 @@ main = do
     let translations = Translations $ M.fromList [("title", "Translations!"), ("lol", "fuck"), ("loller", "lollo")]
     let status = Status Normal "lol" Danish translations
 
+    --(eChange, hChange) <- newEvent
+
     startGUI defaultConfig { jsWindowReloadOnDisconnect = False
                            , jsPort                     = Just port
                            , jsStatic                   = Just static
@@ -55,107 +60,6 @@ main = do
                            } $ setup status
 
 
-    {-
-
-    return window # sink title (lookup "title" . unRun <$> bRun)
-
-    let bSelection = (\x -> Just x) <$> (currentK . unRun <$> bRun)
-    listBox     <- UI.listBox  bListBoxItems bSelection (pure $ \x -> UI.string x)
-
-    filterEntry <- UI.entry bFilterString
-    key <- UI.span # sink text (currentK . unRun <$> bRun)
-    value <- UI.span # sink text (currentV . unRun <$> bRun)
-
-    getBody window #+ [ grid
-        [[element key]
-        ,[element value]
-        ,[element filterEntry]
-        ,[element listBox]
-        ]]
-
-    let userTextFilterEntry = UI.userText filterEntry
-    bFilterString <- stepper "" $ rumors userTextFilterEntry
-    let tFilter = isPrefixOf <$> userTextFilterEntry
-        bFilter = facts  tFilter
-        eFilter = rumors tFilter
-
-    let eSelection  = filterJust $ rumors $ UI.userSelection listBox
-
-    let bListBoxItems = (\p -> filter p . M.keys . unTranslations)
-                            <$> bFilter <*> bTranslations
-    --let bListBoxItems :: Behavior [DatabaseKey]
-        --bListBoxItems = (\p show -> filter (p . show) . M.keys . unTranslations)
-    --                <$> bFilter <*> bShowDataItem <*> bTranslations
-
-
-
-    bTranslations <- stepper translations UI.never
-            -- $ head . NE.fromList <$> unions [ (\translations status translation -> Translations $ M.adjust (const translation) (status ^. #position) (unTranslations translations)) <$> bTranslations <*> bStatus <@> eTranslation ]
-
-    bStatus <- stepper status 
-        $ head . NE.fromList <$> unions [ (\status search -> Lens.set #position search status) <$> bStatus <@> eSelection ]
-
-    let bRun = (\status translations -> Run $ EnvT
-            (status ^. #style)
-            (store (\translation -> M.findWithDefault translation translation (translations ^. #unTranslations))
-                   (status ^. #position)
-            )) <$> bStatus <*> bTranslations
-
-
--}
-    {-
-    key <- UI.span # sink text bSearchString
-    value <- UI.span # sink text bTranslationString
-
-    searchEntry <- UI.entry bSearchString
-    translationEntry <- UI.entry bTranslationString
-
-    listBox     <- UI.listBox  bListBoxItems bSelection bDisplayDataItemp
-
-    getBody window #+ [ grid
-        [[row [string "Search translation:", element searchEntry]]
-        ,[element key]
-        ,[row [string "Change translation:", element translationEntry]]
-        ,[element value]
-        ,[element listBox]
-        ]]
-
-    let tSearch = UI.userText searchEntry
-        bSearch = facts  tSearch
-        eSearch = rumors tSearch
-
-    let tTranslation = UI.userText translationEntry
-        bTranslation = facts  tTranslation
-        eTranslation = rumors tTranslation
-
-    let bSearchString = currentK . unRun <$> bRun
-    let bTranslationString = currentV . unRun <$> bRun
-    -}
-
-    {-
-    bTranslations <- stepper (Translations $ M.fromList [("title", "Translations!"), ("lol", "fuck"), ("loller", "lollo")]) UI.never
-            -- $ head . NE.fromList <$> unions [ (\translations status translation -> Translations $ M.adjust (const translation) (status ^. #position) (unTranslations translations)) <$> bTranslations <*> bStatus <@> eTranslation ]
-
-    bStatus <- stepper (Status Normal "lol" Danish) UI.never
-            -- $ head . NE.fromList <$> unions [ (\status search -> Lens.set #position search status) <$> bStatus <@> eSearch ]
-
-    let bRun = (\status translations -> Run $ EnvT
-            (status ^. #style)
-            (store (\translation -> M.findWithDefault translation translation (translations ^. #unTranslations))
-                   (status ^. #position)
-            )) <$> bStatus <*> bTranslations
-            -}
-
-{-
-    let eSelection  = rumors $ UI.userSelection listBox
-
-    bSelection <- stepper Nothing $ head <$> unions
-        [ eSelection
-        , (\b s p -> b >>= \a -> if p (s a) then Just a else Nothing)
-            <$> bSelection <*> bShowDataItem <@> eFilter
-        ]
-
--}
 
 -------------------------------------------------------------------------------
 format' :: String -> [String] -> String
@@ -183,6 +87,8 @@ instance (PrintfType r) => PrintfType (String -> r) where
     fancy f x = fancy $ \xs -> f (x : xs)
 
 -------------------------------------------------------------------------------
+
+
 setup :: Status -> Window -> UI ()
 setup status window = void $ mdo
     return window # sink title (Store.peeks (Lens.set #position "title") . unRun <$> bRun)
@@ -190,15 +96,33 @@ setup status window = void $ mdo
     key <- UI.span # sink text (position . Store.pos . unRun <$> bRun)
     value <- UI.span # sink text (extract . unRun <$> bRun)
 
-    listBox <- Lib.listBox bRun
+    listBox <- Lib.listBox bRun bFilter
+    filterEntry <- Lib.entry bFilterString
+    changeEntry <- Lib.entry (extract . unRun <$> bRun)
+
+    myText <- T.content bRun
 
     getBody window #+ [ grid
-        [[element key]
-        ,[element value]
+        [[row [UI.string "key: ", element key]]
+        ,[row [UI.string "value: ", element value]]
         ,[UI.hr]
-        --,[element filterEntry]
+        ,[row [UI.string "change it: ", element changeEntry]]
+        ,[UI.hr]
+        ,[row [UI.string "filter ",  element filterEntry]]
         ,[element listBox]
+        ,[UI.hr]
+        ,[element myText]
         ]]
+
+    let userTextFilterEntry = Lib.userText filterEntry
+    bFilterString <- stepper "" $ rumors userTextFilterEntry
+    let tFilter = isPrefixOf <$> userTextFilterEntry
+        bFilter = facts  tFilter
+        eFilter = rumors tFilter
+
+    let userTextChangeEntry = Lib.userText changeEntry
+        eDataItemChange = rumors $ userTextChangeEntry
+
 
     let run = Run $ EnvT
             (status ^. #style)
@@ -206,9 +130,14 @@ setup status window = void $ mdo
                    status
             )
 
-    bRun <- stepper run UI.never
+    bRun <- stepper run $ head . NE.fromList <$> unions
+            [ (\run translation -> Run $ Lib.brah translation (unRun run)) <$> bRun <@> eDataItemChange ]
 
-    xx <- extend Lib.kv . unRun <$> currentValue bRun
-    traceShowM (extract xx)
+
+    --  how do i save bRun?
+    -- eChange
+    -- onEvent eDataItemChange hChange
+    -- register?
 
     return ()
+

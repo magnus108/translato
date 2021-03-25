@@ -27,6 +27,7 @@ library
   exposed-modules:
       Lib
       Model
+      Text
   other-modules:
       Paths_translato
   hs-source-dirs:

@@ -2,7 +2,9 @@
 module Lib (
     TextEntry, entry, userText,
     listBox
+           ,brah
            , kv
+           , lookup
     ) where
 
 import Model
@@ -20,10 +22,7 @@ import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core
 import Reactive.Threepenny
 
-{-----------------------------------------------------------------------------
-    Input widgets
-------------------------------------------------------------------------------}
--- | A single-line text entry.
+-------------------------------------------------------------------------------
 data TextEntry = TextEntry
     { _elementTE :: Element
     , _userTE    :: Tidings String
@@ -31,21 +30,25 @@ data TextEntry = TextEntry
 
 instance Widget TextEntry where getElement = _elementTE
 
--- | User changes to the text value.
 userText :: TextEntry -> Tidings String
 userText = _userTE
 
--- | Create a single-line text entry.
 entry
-    :: Behavior String  -- ^ Display value when the element does not have focus.
+    :: Behavior String
     -> UI TextEntry
-entry bValue = do -- single text entry
+entry bValue = do
+
     input <- UI.input
 
     bEditing <- stepper False $ and <$>
         unions [True <$ UI.focus input, False <$ UI.blur input]
 
     window <- askWindow
+
+    liftIOLater $ runUI window $ void $ do
+        current <- currentValue bValue
+        element input # set value current
+
     liftIOLater $ onChange bValue $ \s -> runUI window $ do
         editing <- liftIO $ currentValue bEditing
         when (not editing) $ void $ element input # set value s
@@ -59,11 +62,25 @@ entry bValue = do -- single text entry
 kv :: (ComonadStore Status w) => w String -> (String, String)
 kv w = (position (Store.pos w), extract w)
 
+lookup :: String -> Run -> String
+lookup key = Store.peeks (Lens.set #position key) . unRun
 
-listBox :: Behavior Run -> UI Element
-listBox bRun = do
+brah :: (ComonadStore Status w) => String -> w String -> w String
+brah translation run =
+    let status = pos run
+        position = status ^. #position
+        translations = status ^. #translations . #unTranslations
+        translations' = Translations $ M.insert position translation translations
+        status' = status & #translations .~ translations'
+    in
+        Store.seeks (const status') run
+
+
+listBox :: Behavior Run ->  Behavior (String -> Bool) -> UI Element
+listBox bRun bFilter = do
     list <- UI.div
-    let bItems = Store.experiment (\status' -> let elems = M.keys (status' ^. #translations . #unTranslations) in fmap (\e -> status' & #position .~ e) elems) . extend kv . unRun <$> bRun
+
+    let bItems = (\p -> filter (p . fst) . Store.experiment (\status' -> let elems = (M.keys (status' ^. #translations . #unTranslations)) in fmap (\e -> status' & #position .~ e) elems) . extend kv . unRun) <$> bFilter <*> bRun
     let bDisplay = pure $ \(x,y) -> UI.div #+ [UI.string x, UI.string y]
     element list # sink items (fmap <$> bDisplay <*> bItems)
 
