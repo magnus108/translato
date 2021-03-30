@@ -7,10 +7,12 @@ import           Control.Comonad.Trans.Env
 
 import qualified Data.Map.Strict               as M
 
-import Utils.ListZipper (ListZipper)
-import qualified Utils.ListZipper as ListZipper
+import           Utils.ListZipper               ( ListZipper )
+import qualified Utils.ListZipper              as ListZipper
 
-data Run = Run { unRun :: EnvT (ListZipper Style) (Store Status) String }
+
+
+data Run = Run { unRun :: EnvT Settings (Store Status) String }
 
 data Translations = Translations { unTranslations :: M.Map String String }
     deriving Show
@@ -24,9 +26,15 @@ data Style = Translating | Normal
     deriving anyclass (FromJSON, ToJSON)
 
 
+data Settings = Settings {}
+    deriving Show
+    deriving Generic
+    deriving anyclass (FromJSON, ToJSON)
+
 data Status = Status { position :: String
-                     , language :: Language
                      , translations :: Translations
+                     , languages :: ListZipper Language
+                     , styles :: ListZipper Style
                      }
     deriving Show
     deriving Generic

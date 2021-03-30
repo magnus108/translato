@@ -9,6 +9,7 @@ module Lib (
     ) where
 
 
+import           Control.Conditional            ( (?<>) )
 import Utils.ListZipper (ListZipper)
 import qualified Utils.ListZipper as ListZipper
 import qualified Control.Comonad.Env as Env
@@ -93,18 +94,19 @@ myBox bRun bFilter = do
     element list # sink items (fmap <$> bDisplay <*> bItems)
 
 ------------------------------------------------------------------------------
-
-listBox :: Behavior Run -> UI (Element, Event (ListZipper Style))
-listBox bRun = do
+listBox :: Show a => Behavior (ListZipper a) -> UI (Element, Event (ListZipper a))
+listBox xs = do
     (eSelect, hSelection) <- liftIO newEvent
 
     let displayOpen center items = do
-            button <- UI.button # set text (show (extract items))
+            button <- UI.button 
+                    #. (center ?<> "is-info is-seleceted" <> " " <> "button")
+                    # set text (show (extract items))
             UI.on UI.click button $ \_ -> do
                     liftIO $ hSelection items
             return button
 
-    list <- UI.div # sink items (ListZipper.toList . ListZipper.bextend displayOpen . Env.ask . unRun <$> bRun)
+    list <- UI.div #. "buttons has-addons" # sink items (ListZipper.toList . ListZipper.bextend displayOpen <$> xs)
 
     return (list, eSelect)
 -------------------------------------------------------------------------------

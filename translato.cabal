@@ -38,6 +38,7 @@ library
       aeson
     , base
     , comonad
+    , cond
     , containers
     , generic-lens
     , lens
@@ -62,6 +63,7 @@ executable translato-exe
       aeson
     , base
     , comonad
+    , cond
     , containers
     , generic-lens
     , lens
@@ -88,6 +90,7 @@ test-suite translato-test
       aeson
     , base
     , comonad
+    , cond
     , containers
     , generic-lens
     , lens

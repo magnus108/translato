@@ -52,9 +52,11 @@ main = do
     let index     = "index.html"
 
     let translations = Translations $ M.fromList [("title", "Translations!"), ("lol", "fuck"), ("loller", "lollo")]
-    let style = ListZipper.ListZipper [] Normal [Translating]
-    let status = Status "lol" Danish translations
+    let languages = ListZipper.ListZipper [] Danish [English]
+    let styles = ListZipper.ListZipper [] Normal [Translating]
+    let status = Status "lol" translations languages styles
 
+    let settings = Settings
     --(eChange, hChange) <- newEvent
 
     startGUI defaultConfig { jsWindowReloadOnDisconnect = False
@@ -62,7 +64,7 @@ main = do
                            , jsStatic                   = Just static
                            , jsCustomHTML               = Just index
                            , jsCallBufferMode           = NoBuffering
-                           } $ setup style status
+                           } $ setup settings status
 
 
 
@@ -94,8 +96,8 @@ instance (PrintfType r) => PrintfType (String -> r) where
 -------------------------------------------------------------------------------
 
 
-setup :: ListZipper Style -> Status -> Window -> UI ()
-setup style status window = void $ mdo
+setup :: Settings -> Status -> Window -> UI ()
+setup settings status window = void $ mdo
     return window # sink title (Store.peeks (Lens.set #position "title") . unRun <$> bRun)
 
     key <- UI.span # sink text (position . Store.pos . unRun <$> bRun)
@@ -107,13 +109,13 @@ setup style status window = void $ mdo
 
     myText <- T.content bRun
 
-    styleElem <- UI.span # sink text (show . extract . Env.ask . unRun <$> bRun)
-
-    (styleSelection, eStyleSelection) <- Lib.listBox bRun
+    (styleSelection, eStyleSelection) <- Lib.listBox (styles . Store.pos . unRun <$> bRun)
+    (languageSelection, eLanguageSelection) <- Lib.listBox (languages . Store.pos . unRun <$> bRun)
 
     getBody window #+ [ grid
-        [[row [UI.string "style: ", element styleElem]]
-        ,[element styleSelection]
+        [[element styleSelection]
+        ,[UI.hr]
+        ,[element languageSelection]
         ,[UI.hr]
         ,[row [UI.string "key: ", element key]]
         ,[row [UI.string "value: ", element value]]
@@ -138,14 +140,15 @@ setup style status window = void $ mdo
 
 
     let run = Run $ EnvT
-            style
+            settings
             (store (\status' -> M.findWithDefault (status' ^. #position) (status' ^. #position) (status' ^. #translations . #unTranslations))
                    status
             )
 
     bRun <- stepper run $ head . NE.fromList <$> unions
             [ (\run translation -> Run $ Lib.brah translation (unRun run)) <$> bRun <@> eDataItemChange
-            , (\run style -> Run $ Env.local (const style) (unRun run)) <$> bRun <@> eStyleSelection
+            , (\run language -> Run $ Store.seeks (Lens.set #languages language) (unRun run)) <$> bRun <@> eLanguageSelection
+            , (\run style -> Run $ Store.seeks (Lens.set #styles style) (unRun run)) <$> bRun <@> eStyleSelection
             ]
 
     --  how do i save bRun?

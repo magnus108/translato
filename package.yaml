@@ -43,6 +43,7 @@ dependencies:
 - name: containers
 - name: safe
 - name: threepenny-gui
+- name: cond
 
 library:
   source-dirs: src
