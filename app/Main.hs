@@ -12,9 +12,11 @@ module Main where
 
 import Model
 
+import Format
+import qualified Format as Format
+
 import Data.Generics.Labels
 import           Options.Generic
-import           Safe                           ( atMay )
 import           Control.Lens                   ( (^.) )
 import qualified Control.Lens as Lens
 import           Options.Generic
@@ -36,7 +38,7 @@ import qualified Data.Map.Strict               as M
 import qualified Lib
 import qualified Text as T
 import qualified Graphics.UI.Threepenny as UI
-import Graphics.UI.Threepenny.Core
+import Graphics.UI.Threepenny.Core hiding (title)
 
 -------------------------------------------------------------------------------
 data Config = Config { port :: Int }
@@ -51,10 +53,10 @@ main = do
     let static    = "static"
     let index     = "index.html"
 
-    let translations = Translations $ M.fromList [("title", "Translations!"), ("lol", "fuck"), ("loller", "lollo")]
+    let translations = Translations $ M.fromList [("text3", Translation "bob%1"), ("title", Translation "Translations! %1 %2"), ("lol", Translation "fuck"), ("loller", Translation "lollo")]
     let languages = ListZipper.ListZipper [] Danish [English]
     let styles = ListZipper.ListZipper [] Normal [Translating]
-    let status = Status "lol" translations languages styles
+    let status = Status {- must be wrong key -} "text3" translations languages styles
 
     let settings = Settings
     --(eChange, hChange) <- newEvent
@@ -67,45 +69,16 @@ main = do
                            } $ setup settings status
 
 
-
--------------------------------------------------------------------------------
-format' :: String -> [String] -> String
-format' code args = go code
-  where
-    at xs i = maybe " " id $ atMay xs i
-    argument i = args `at` i
-
-    go []               = []
-    go ('%' : '%' : cs) = '%' : go cs
-    go ('%' : c   : cs) = argument index ++ go cs
-        where index = fromEnum c - fromEnum '1'
-    go (c : cs) = c : go cs
-
-format :: PrintfType a => String -> a
-format x = fancy (format' x)
-
-class PrintfType a where
-    fancy :: ([String] -> String) -> a
-
-instance PrintfType String where
-    fancy f = f []
-
-instance (PrintfType r) => PrintfType (String -> r) where
-    fancy f x = fancy $ \xs -> f (x : xs)
-
--------------------------------------------------------------------------------
-
-
 setup :: Settings -> Status -> Window -> UI ()
 setup settings status window = void $ mdo
-    return window # sink title (Store.peeks (Lens.set #position "title") . unRun <$> bRun)
+    return window # sink title (Format.lookup "title" ("lol" :: String) ("loL2" :: String) <$> bRun)
 
     key <- UI.span # sink text (position . Store.pos . unRun <$> bRun)
-    value <- UI.span # sink text (extract . unRun <$> bRun)
+    value <- UI.span # sink text (unTranslation . extract . unRun <$> bRun)
 
     myBox <- Lib.myBox bRun bFilter
     filterEntry <- Lib.entry bFilterString
-    changeEntry <- Lib.entry (extract . unRun <$> bRun)
+    changeEntry <- Lib.entry (unTranslation . extract . unRun <$> bRun)
 
     myText <- T.content bRun
 
@@ -141,12 +114,12 @@ setup settings status window = void $ mdo
 
     let run = Run $ EnvT
             settings
-            (store (\status' -> M.findWithDefault (status' ^. #position) (status' ^. #position) (status' ^. #translations . #unTranslations))
+            (store (\status' -> M.findWithDefault (Translation (status' ^. #position)) (status' ^. #position) (status' ^. #translations . #unTranslations))
                    status
             )
 
     bRun <- stepper run $ head . NE.fromList <$> unions
-            [ (\run translation -> Run $ Lib.brah translation (unRun run)) <$> bRun <@> eDataItemChange
+            [ (\run translation -> Run $ Lib.brah (Translation translation) (unRun run)) <$> bRun <@> eDataItemChange
             , (\run language -> Run $ Store.seeks (Lens.set #languages language) (unRun run)) <$> bRun <@> eLanguageSelection
             , (\run style -> Run $ Store.seeks (Lens.set #styles style) (unRun run)) <$> bRun <@> eStyleSelection
             ]

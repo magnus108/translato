@@ -12,9 +12,14 @@ import qualified Utils.ListZipper              as ListZipper
 
 
 
-data Run = Run { unRun :: EnvT Settings (Store Status) String }
+data Run = Run { unRun :: EnvT Settings (Store Status) Translation }
 
-data Translations = Translations { unTranslations :: M.Map String String }
+data Translation = Translation { unTranslation :: String }
+    deriving Show
+    deriving Generic
+    deriving anyclass (FromJSON, ToJSON)
+
+data Translations = Translations { unTranslations :: M.Map String Translation }
     deriving Show
     deriving Generic
     deriving anyclass (FromJSON, ToJSON)

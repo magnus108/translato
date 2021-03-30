@@ -22,19 +22,12 @@ import qualified Lib
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core
 
+import Format
+import qualified Format as Format
+
 content :: Behavior Run -> UI Element
 content bRun = UI.div #+
-                [ UI.p # sink presentation (Lib.lookup "text3" <$> bRun)
-                , UI.p # sink presentation (Lib.lookup "text2" <$> bRun)
-                , UI.p # sink presentation (Lib.lookup "title" <$> bRun)
+                [ UI.p # sink presentation (Format.lookup "text3" <$> bRun)
+                , UI.p # sink presentation (Format.lookup "text2" <$> bRun)
+                , UI.p # sink presentation (Format.lookup "title" <$> bRun)
                 ]
-
-
-
-presentationtext :: WriteAttr Element String
-presentation = mkWriteAttr $ \s el ->
-    runFunction $ ffi "$(%1).text(%2)" el s
-
-
-mkPresentation :: String -> UI Element
-mkPresentation s = mkElement "span" # set text s

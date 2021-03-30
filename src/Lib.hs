@@ -5,7 +5,6 @@ module Lib (
            , listBox
            ,brah
            , kv
-           , lookup
     ) where
 
 
@@ -27,7 +26,7 @@ import qualified Control.Comonad.Store.Class   as Store
 import           Control.Lens                   ( (^.), (.~))
 import qualified Control.Lens as Lens
 import qualified Graphics.UI.Threepenny as UI
-import Graphics.UI.Threepenny.Core
+import Graphics.UI.Threepenny.Core hiding (title)
 import Reactive.Threepenny
 
 -------------------------------------------------------------------------------
@@ -67,13 +66,11 @@ entry bValue = do
 
 -------------------------------------------------------------------------------
 
-kv :: (ComonadStore Status w) => w String -> (String, String)
-kv w = (position (Store.pos w), extract w)
+kv :: (ComonadStore Status w) => w Translation -> (String, String)
+kv w = (position (Store.pos w), unTranslation (extract w))
 
-lookup :: String -> Run -> String
-lookup key = Store.peeks (Lens.set #position key) . unRun
 
-brah :: (ComonadStore Status w) => String -> w String -> w String
+brah :: (ComonadStore Status w) => Translation -> w Translation -> w Translation
 brah translation run =
     let status = pos run
         position = status ^. #position
