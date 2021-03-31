@@ -7,38 +7,13 @@ import           Data.Generics.Labels
 import           Options.Generic
 import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
-import qualified Control.Comonad.Store.Class   as Store
+import qualified Control.Comonad
+import qualified Control.Comonad.Store as Store
 import qualified Control.Lens                  as Lens
 
-    {-
-format' :: String -> [String] -> String
-format' code args = go code
-  where
-    at xs i = maybe " " id $ atMay xs i
-    argument i = args `at` i
-
-    go []               = []
-    go ('%' : '%' : cs) = '%' : go cs
-    go ('%' : c   : cs) = argument index ++ go cs
-        where index = fromEnum c - fromEnum '1'
-    go (c : cs) = c : go cs
-
-format :: PrintfType a => String -> a
-format x = fancy (format' x)
-
-class PrintfType a where
-    fancy :: ([String] -> String) -> a
-
-instance PrintfType String where
-    fancy f = f []
-
-instance (PrintfType r) => PrintfType (String -> r) where
-    fancy f x = fancy $ \xs -> f (x : xs)
-
--}
 
 lookup :: PrintfType a => String -> a
-lookup key = format $ Store.peeks (Lens.set #position key) . unRun
+lookup key = format $ Store.peek (Position key) . Store.lower . unRun
 
 
 title :: WriteAttr Window Translation

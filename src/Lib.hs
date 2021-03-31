@@ -4,9 +4,10 @@ module Lib (
     myBox
            , listBox
            ,brah
+           ,brah2
            , kv
     ) where
-
+import Control.Comonad.Hoist.Class
 
 import           Control.Conditional            ( (?<>) )
 import Utils.ListZipper (ListZipper)
@@ -21,7 +22,7 @@ import           Options.Generic
 import qualified Data.Map.Strict               as M
 import           Control.Comonad hiding ((<@>))
 import Control.Comonad.Store hiding ((<@>))
-import qualified Control.Comonad.Store.Class   as Store
+import qualified Control.Comonad.Store as Store
 
 import           Control.Lens                   ( (^.), (.~))
 import qualified Control.Lens as Lens
@@ -66,19 +67,31 @@ entry bValue = do
 
 -------------------------------------------------------------------------------
 
-kv :: (ComonadStore Status w) => w Translation -> (String, String)
-kv w = (position (Store.pos w), unTranslation (extract w))
+kv :: (ComonadStore Position w) => w Translation -> (String, String)
+kv w = (unPosition (Store.pos w), unTranslation (extract w))
 
 
-brah :: (ComonadStore Status w) => Translation -> w Translation -> w Translation
+brah :: (ComonadStore Position w, ComonadStore Status (t w), ComonadTrans t) => Translation -> t w Translation -> t w Translation
 brah translation run =
-    let status = pos run
-        position = status ^. #position
+    let position = pos (Store.lower run)
+        status = pos run
         translations = status ^. #translations . #unTranslations
-        translations' = Translations $ M.insert position translation translations
+        translations' = Translations $ M.insert (unPosition position) translation translations
         status' = status & #translations .~ translations'
     in
-        Store.seeks (const status') run
+        Store.seek (status') run
+
+brah2 :: (ComonadStore Position w, ComonadHoist t, ComonadStore Status (t w), ComonadTrans t) => Position -> t w Translation -> t w Translation
+brah2 position run = cohoist (Store.seek position) run
+
+
+brah3 :: (ComonadStore Position w, ComonadStore Status (t w), ComonadTrans t) => t w (String,String) -> [(String,String)]
+brah3 run =
+    let wPosition = Store.lower run
+        status = pos run
+        elems = M.keys (status ^. #translations . #unTranslations)
+    in
+        Store.experiment (\position' -> fmap (Position) elems) wPosition
 
 
 -------------------------------------------------------------------------------
@@ -86,9 +99,9 @@ myBox :: Behavior Run ->  Behavior (String -> Bool) -> UI (Element, Event String
 myBox bRun bFilter = do
     (eSelect, hSelection) <- liftIO newEvent
 
-    let bItems = (\p -> filter (p . fst) . Store.experiment (\status' -> let elems = (M.keys (status' ^. #translations . #unTranslations)) in fmap (\e -> status' & #position .~ e) elems) . extend kv . unRun) <$> bFilter <*> bRun
+    let bItems = (\p -> filter (p . fst) . brah3 . extend (kv . lower) . unRun) <$> bFilter <*> bRun
+
     let bDisplay = pure $ \(x,y) -> do
-             
             button <- UI.button
            --         #. (center ?<> "is-info is-seleceted" <> " " <> "button")
                     # set text x

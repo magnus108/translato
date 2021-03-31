@@ -21,7 +21,7 @@ import           Control.Lens                   ( (^.) )
 import qualified Control.Lens as Lens
 import           Options.Generic
 
-import qualified Control.Comonad.Store.Class   as Store
+import qualified Control.Comonad.Store as Store
 import qualified Control.Comonad.Env as Env
 
 
@@ -56,7 +56,8 @@ main = do
     let translations = Translations $ M.fromList [("text3", Translation "bob%1"), ("title", Translation "Translations! %1 %2"), ("key", Translation "Key: "), ("lol", Translation "fuck"), ("loller", Translation "lollo")]
     let languages = ListZipper.ListZipper [] Danish [English]
     let styles = ListZipper.ListZipper [] Normal [Translating]
-    let status = Status {- must be wrong key -} "text3" translations languages styles
+    let status = Status translations languages styles
+    let position = Position "title"
 
     --(eChange, hChange) <- newEvent
 
@@ -65,14 +66,14 @@ main = do
                            , jsStatic                   = Just static
                            , jsCustomHTML               = Just index
                            , jsCallBufferMode           = NoBuffering
-                           } $ setup status
+                           } $ setup position status
 
 
-setup :: Status -> Window -> UI ()
-setup status window = void $ mdo
+setup :: Position -> Status -> Window -> UI ()
+setup position status window = void $ mdo
     return window # sink title (Format.lookup "title" ("lol" :: String) ("loL2" :: String) <$> bRun)
 
-    key <- UI.span # sink text (position . Store.pos . unRun <$> bRun)
+    key <- UI.span # sink text (unPosition . Store.pos . Store.lower . unRun <$> bRun)
     value <- UI.span # sink text (unTranslation . extract . unRun <$> bRun)
 
     (myBox, eKeyChange) <- Lib.myBox bRun bFilter
@@ -112,13 +113,13 @@ setup status window = void $ mdo
 
 
     let run = Run $ StoreT
-            ( store (\key status' -> M.findWithDefault (Translation key) key (status' ^. #translations . #unTranslations)) "title" ) status
+            ( store (\position' status' -> M.findWithDefault (Translation (unPosition position')) (unPosition position') (status' ^. #translations . #unTranslations)) position ) status
 
     bRun <- stepper run $ head . NE.fromList <$> unions
             [ (\run translation -> Run $ Lib.brah (Translation translation) (unRun run)) <$> bRun <@> eDataItemChange
             , (\run language -> Run $ Store.seeks (Lens.set #languages language) (unRun run)) <$> bRun <@> eLanguageSelection
             , (\run style -> Run $ Store.seeks (Lens.set #styles style) (unRun run)) <$> bRun <@> eStyleSelection
-            , (\run key -> Run $ Store.seeks (Lens.set #position key) (unRun run)) <$> bRun <@> eKeyChange
+            , (\run position -> Run $ Lib.brah2 (Position position) (unRun run)) <$> bRun <@> eKeyChange
             ]
 
     --  how do i save bRun?
