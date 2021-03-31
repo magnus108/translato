@@ -51,8 +51,8 @@ presentation = mkWriteAttr
     $ \s el -> runFunction $ ffi "$(%1).text(%2)" el (unTranslation s)
 
 
-mkPresentation :: Translation -> UI Element
-mkPresentation s = mkElement "span" # set presentation s
+mkPresentation :: Behavior Run -> String -> UI Element
+mkPresentation bRun key = mkElement "span" # sink presentation (lookup key <$> bRun)
 
 
 -------------------------------------------------------------------------------

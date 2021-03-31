@@ -82,13 +82,25 @@ brah translation run =
 
 
 -------------------------------------------------------------------------------
-myBox :: Behavior Run ->  Behavior (String -> Bool) -> UI Element
+myBox :: Behavior Run ->  Behavior (String -> Bool) -> UI (Element, Event String)
 myBox bRun bFilter = do
-    list <- UI.div
+    (eSelect, hSelection) <- liftIO newEvent
 
     let bItems = (\p -> filter (p . fst) . Store.experiment (\status' -> let elems = (M.keys (status' ^. #translations . #unTranslations)) in fmap (\e -> status' & #position .~ e) elems) . extend kv . unRun) <$> bFilter <*> bRun
-    let bDisplay = pure $ \(x,y) -> UI.div #+ [UI.string x, UI.string y]
-    element list # sink items (fmap <$> bDisplay <*> bItems)
+    let bDisplay = pure $ \(x,y) -> do
+             
+            button <- UI.button
+           --         #. (center ?<> "is-info is-seleceted" <> " " <> "button")
+                    # set text x
+
+            UI.on UI.click button $ \_ -> do
+                    liftIO $ hSelection x
+
+            UI.div #+ [element button, UI.string y]
+
+    list <- UI.div # sink items (fmap <$> bDisplay <*> bItems)
+
+    return (list, eSelect)
 
 ------------------------------------------------------------------------------
 listBox :: Show a => Behavior (ListZipper a) -> UI (Element, Event (ListZipper a))

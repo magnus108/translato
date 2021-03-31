@@ -50,5 +50,3 @@ data Language = Danish | English
     deriving Show
     deriving Generic
     deriving anyclass (FromJSON, ToJSON)
-
-

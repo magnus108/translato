@@ -53,7 +53,7 @@ main = do
     let static    = "static"
     let index     = "index.html"
 
-    let translations = Translations $ M.fromList [("text3", Translation "bob%1"), ("title", Translation "Translations! %1 %2"), ("lol", Translation "fuck"), ("loller", Translation "lollo")]
+    let translations = Translations $ M.fromList [("text3", Translation "bob%1"), ("title", Translation "Translations! %1 %2"), ("key", Translation "Key: "), ("lol", Translation "fuck"), ("loller", Translation "lollo")]
     let languages = ListZipper.ListZipper [] Danish [English]
     let styles = ListZipper.ListZipper [] Normal [Translating]
     let status = Status {- must be wrong key -} "text3" translations languages styles
@@ -76,7 +76,7 @@ setup settings status window = void $ mdo
     key <- UI.span # sink text (position . Store.pos . unRun <$> bRun)
     value <- UI.span # sink text (unTranslation . extract . unRun <$> bRun)
 
-    myBox <- Lib.myBox bRun bFilter
+    (myBox, eKeyChange) <- Lib.myBox bRun bFilter
     filterEntry <- Lib.entry bFilterString
     changeEntry <- Lib.entry (unTranslation . extract . unRun <$> bRun)
 
@@ -90,7 +90,7 @@ setup settings status window = void $ mdo
         ,[UI.hr]
         ,[element languageSelection]
         ,[UI.hr]
-        ,[row [UI.string "key: ", element key]]
+        ,[row [mkPresentation bRun "key" , element key]]
         ,[row [UI.string "value: ", element value]]
         ,[UI.hr]
         ,[row [UI.string "change it: ", element changeEntry]]
@@ -122,6 +122,7 @@ setup settings status window = void $ mdo
             [ (\run translation -> Run $ Lib.brah (Translation translation) (unRun run)) <$> bRun <@> eDataItemChange
             , (\run language -> Run $ Store.seeks (Lens.set #languages language) (unRun run)) <$> bRun <@> eLanguageSelection
             , (\run style -> Run $ Store.seeks (Lens.set #styles style) (unRun run)) <$> bRun <@> eStyleSelection
+            , (\run key -> Run $ Store.seeks (Lens.set #position key) (unRun run)) <$> bRun <@> eKeyChange
             ]
 
     --  how do i save bRun?
