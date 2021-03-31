@@ -12,7 +12,8 @@ import qualified Utils.ListZipper              as ListZipper
 
 
 
-data Run = Run { unRun :: EnvT Settings (Store Status) Translation }
+data Run = Run { unRun :: StoreT Status (Store String) Translation }
+
 
 data Translation = Translation { unTranslation :: String }
     deriving Show
@@ -31,13 +32,9 @@ data Style = Translating | Normal
     deriving anyclass (FromJSON, ToJSON)
 
 
-data Settings = Settings {}
-    deriving Show
-    deriving Generic
-    deriving anyclass (FromJSON, ToJSON)
-
 data Status = Status { position :: String
                      , translations :: Translations
+                --     , lols :: Store String Translation
                      , languages :: ListZipper Language
                      , styles :: ListZipper Style
                      }

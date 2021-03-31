@@ -58,7 +58,6 @@ main = do
     let styles = ListZipper.ListZipper [] Normal [Translating]
     let status = Status {- must be wrong key -} "text3" translations languages styles
 
-    let settings = Settings
     --(eChange, hChange) <- newEvent
 
     startGUI defaultConfig { jsWindowReloadOnDisconnect = False
@@ -66,11 +65,11 @@ main = do
                            , jsStatic                   = Just static
                            , jsCustomHTML               = Just index
                            , jsCallBufferMode           = NoBuffering
-                           } $ setup settings status
+                           } $ setup status
 
 
-setup :: Settings -> Status -> Window -> UI ()
-setup settings status window = void $ mdo
+setup :: Status -> Window -> UI ()
+setup status window = void $ mdo
     return window # sink title (Format.lookup "title" ("lol" :: String) ("loL2" :: String) <$> bRun)
 
     key <- UI.span # sink text (position . Store.pos . unRun <$> bRun)
@@ -112,11 +111,8 @@ setup settings status window = void $ mdo
         eDataItemChange = rumors $ userTextChangeEntry
 
 
-    let run = Run $ EnvT
-            settings
-            (store (\status' -> M.findWithDefault (Translation (status' ^. #position)) (status' ^. #position) (status' ^. #translations . #unTranslations))
-                   status
-            )
+    let run = Run $ StoreT
+            ( store (\key status' -> M.findWithDefault (Translation key) key (status' ^. #translations . #unTranslations)) "title" ) status
 
     bRun <- stepper run $ head . NE.fromList <$> unions
             [ (\run translation -> Run $ Lib.brah (Translation translation) (unRun run)) <$> bRun <@> eDataItemChange
