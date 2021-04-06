@@ -67,9 +67,6 @@ entry bValue = do
 
 -------------------------------------------------------------------------------
 
-kv :: (ComonadStore Position w) => w Translation -> (String, String)
-kv w = (unPosition (Store.pos w), unTranslation (extract w))
-
 
 brah :: (ComonadStore Position w, ComonadStore Status (t w), ComonadTrans t) => Translation -> t w Translation -> t w Translation
 brah translation run =
@@ -85,7 +82,7 @@ brah2 :: (ComonadStore Position w, ComonadHoist t, ComonadStore Status (t w), Co
 brah2 position run = cohoist (Store.seek position) run
 
 
-brah3 :: (ComonadStore Position w, ComonadStore Status (t w), ComonadTrans t) => t w (String,String) -> [(String,String)]
+brah3 :: (ComonadStore Position w, ComonadStore Status (t w), ComonadTrans t) => t w (String,String, Bool) -> [(String,String,Bool)]
 brah3 run =
     let wPosition = Store.lower run
         status = pos run
@@ -94,16 +91,25 @@ brah3 run =
         Store.experiment (\position' -> fmap (Position) elems) wPosition
 
 
+kv :: (ComonadStore Position w, ComonadStore Status (t w), ComonadTrans t) => t w Translation -> t w Translation -> (String, String, Bool)
+kv w1 w2 = (unPosition (Store.pos (lower w2)), unTranslation (extract (lower w2)), Store.pos (lower w2) == Store.pos (lower w1))
+
+extendi :: Comonad w => (w a -> w a -> b) -> w a -> w b
+extendi f w = extend (f w) w
+
+fst3 :: (a,b,c) -> a
+fst3 (a,b,c) = a
+
 -------------------------------------------------------------------------------
 myBox :: Behavior Run ->  Behavior (String -> Bool) -> UI (Element, Event String)
 myBox bRun bFilter = do
     (eSelect, hSelection) <- liftIO newEvent
 
-    let bItems = (\p -> filter (p . fst) . brah3 . extend (kv . lower) . unRun) <$> bFilter <*> bRun
+    let bItems = (\p -> filter (p . fst3) . brah3 . extendi kv . unRun) <$> bFilter <*> bRun
 
-    let bDisplay = pure $ \(x,y) -> do
+    let bDisplay = pure $ \(x,y,center) -> do
             button <- UI.button
-           --         #. (center ?<> "is-info is-seleceted" <> " " <> "button")
+                    #. (center ?<> "is-info is-seleceted" <> " " <> "button")
                     # set text x
 
             UI.on UI.click button $ \_ -> do

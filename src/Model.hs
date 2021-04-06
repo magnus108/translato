@@ -33,7 +33,7 @@ data Style = Translating | Normal
 
 
 data Position = Position { unPosition :: String }
-    deriving Show
+    deriving (Show, Eq)
     deriving Generic
     deriving anyclass (FromJSON, ToJSON)
 
