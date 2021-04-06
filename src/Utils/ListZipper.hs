@@ -2,6 +2,7 @@ module Utils.ListZipper
     ( ListZipper(..)
     , fromList
     , bextend
+    , setter
     , toList
     )
 where
@@ -24,6 +25,9 @@ data ListZipper a = ListZipper [a] a [a]
     deriving (Generic)
     deriving (FromJSON, ToJSON)
 
+
+setter :: (ListZipper a) -> a -> (ListZipper a)
+setter (ListZipper ls _ rs) new = ListZipper ls new rs
 
 toList :: ListZipper a -> [a]
 toList (ListZipper ls x rs) = (reverse ls) ++ (x : rs)

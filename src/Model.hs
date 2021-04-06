@@ -37,8 +37,7 @@ data Position = Position { unPosition :: String }
     deriving Generic
     deriving anyclass (FromJSON, ToJSON)
 
-data Status = Status { translations :: Translations
-                     , languages :: ListZipper Language
+data Status = Status { languages :: ListZipper Language
                      , styles :: ListZipper Style
                      }
     deriving Show
@@ -46,7 +45,7 @@ data Status = Status { translations :: Translations
     deriving anyclass (FromJSON, ToJSON)
 
 
-data Language = Danish | English
+data Language = Danish Translations | English Translations
     deriving Show
     deriving Generic
     deriving anyclass (FromJSON, ToJSON)

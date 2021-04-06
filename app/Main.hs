@@ -17,7 +17,8 @@ import qualified Format as Format
 
 import Data.Generics.Labels
 import           Options.Generic
-import           Control.Lens                   ( (^.) )
+import Data.Generics.Sum.Constructors (_Ctor)
+import           Control.Lens                   ( (^.), (^?))
 import qualified Control.Lens as Lens
 import           Options.Generic
 
@@ -53,10 +54,12 @@ main = do
     let static    = "static"
     let index     = "index.html"
 
-    let translations = Translations $ M.fromList [("text3", Translation "bob%1"), ("title", Translation "Translations! %1 %2"), ("key", Translation "Key: "), ("lol", Translation "fuck"), ("loller", Translation "lollo")]
-    let languages = ListZipper.ListZipper [] Danish [English]
+    let en = English $ Translations $ M.fromList [("text3", Translation "bob%1"), ("title", Translation "Translations! %1 %2"), ("key", Translation "Key: "), ("lol", Translation "fuck"), ("loller", Translation "lollo")]
+    let dk = Danish $ Translations $ M.fromList [("danish", Translation "dansk"), ("text3", Translation "bob%1"), ("title", Translation "Translations!!!!!!!!!!%1 %2"), ("key", Translation "Key: "), ("lol", Translation "fuck"), ("loller", Translation "lollo")]
+
+    let languages = ListZipper.ListZipper [] dk [en]
     let styles = ListZipper.ListZipper [] Normal [Translating]
-    let status = Status translations languages styles
+    let status = Status languages styles
     let position = Position "title"
 
     --(eChange, hChange) <- newEvent
@@ -82,8 +85,14 @@ setup position status window = void $ mdo
 
     myText <- T.content bRun
 
-    (styleSelection, eStyleSelection) <- Lib.listBox (styles . Store.pos . unRun <$> bRun)
-    (languageSelection, eLanguageSelection) <- Lib.listBox (languages . Store.pos . unRun <$> bRun)
+    (styleSelection, eStyleSelection) <- Lib.listBox bRun show (styles . Store.pos . unRun <$> bRun)
+
+
+    let getTrans' u
+                | Just v <- u ^? _Ctor @"Danish" = "danish"
+                | Just v <- u ^? _Ctor @"English" = "english"
+
+    (languageSelection, eLanguageSelection) <- Lib.listBox bRun getTrans' (languages . Store.pos . unRun <$> bRun)
 
     getBody window #+ [ grid
         [[element styleSelection]
@@ -112,8 +121,13 @@ setup position status window = void $ mdo
         eDataItemChange = rumors $ userTextChangeEntry
 
 
+
+    let getTrans u
+                | Just v <- u ^? _Ctor @"Danish"= v
+                | Just v <- u ^? _Ctor @"English" = v
+
     let run = Run $ StoreT
-            ( store (\position' status' -> M.findWithDefault (Translation (unPosition position')) (unPosition position') (status' ^. #translations . #unTranslations)) position ) status
+            ( store (\position' status' -> M.findWithDefault (Translation (unPosition position')) (unPosition position') (unTranslations (getTrans (extract (status' ^. #languages))))) position ) status
 
     bRun <- stepper run $ head . NE.fromList <$> unions
             [ (\run translation -> Run $ Lib.brah (Translation translation) (unRun run)) <$> bRun <@> eDataItemChange

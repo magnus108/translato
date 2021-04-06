@@ -1,4 +1,14 @@
 {-# LANGUAGE RecordWildCards, ScopedTypeVariables #-}
+
+{-# LANGUAGE AllowAmbiguousTypes       #-}
+{-# LANGUAGE DataKinds                 #-}
+{-# LANGUAGE DeriveGeneric             #-}
+{-# LANGUAGE DuplicateRecordFields     #-}
+{-# LANGUAGE FlexibleContexts          #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE TypeApplications          #-}
+{-# LANGUAGE GADTs          #-}
+
 module Lib (
     TextEntry, entry, userText,
     myBox
@@ -8,6 +18,7 @@ module Lib (
            , kv
     ) where
 import Control.Comonad.Hoist.Class
+import Data.Generics.Sum.Constructors (_Ctor)
 
 import           Control.Conditional            ( (?<>) )
 import Utils.ListZipper (ListZipper)
@@ -15,6 +26,7 @@ import qualified Utils.ListZipper as ListZipper
 import qualified Control.Comonad.Env as Env
 import qualified Data.Map                          as Map
 
+import Format
 import Model
 import Data.Generics.Labels
 import           Options.Generic
@@ -24,7 +36,7 @@ import           Control.Comonad hiding ((<@>))
 import Control.Comonad.Store hiding ((<@>))
 import qualified Control.Comonad.Store as Store
 
-import           Control.Lens                   ( (^.), (.~))
+import           Control.Lens                   ( (^.), (.~), (^?))
 import qualified Control.Lens as Lens
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core hiding (title)
@@ -72,9 +84,15 @@ brah :: (ComonadStore Position w, ComonadStore Status (t w), ComonadTrans t) => 
 brah translation run =
     let position = pos (Store.lower run)
         status = pos run
-        translations = status ^. #translations . #unTranslations
-        translations' = Translations $ M.insert (unPosition position) translation translations
-        status' = status & #translations .~ translations'
+        languages = status ^. #languages
+        language = languages & extract
+
+        getTrans u
+                | Just v <- u ^? _Ctor @"Danish"= Danish $ Translations $ M.insert (unPosition position) translation (unTranslations v)
+                | Just v <- u ^? _Ctor @"English" = English $ Translations $ M.insert (unPosition position) translation (unTranslations v)
+
+        languages' = ListZipper.setter languages (getTrans language)
+        status' =  status & #languages .~ languages'
     in
         Store.seek (status') run
 
@@ -86,7 +104,11 @@ brah3 :: (ComonadStore Position w, ComonadStore Status (t w), ComonadTrans t) =>
 brah3 run =
     let wPosition = Store.lower run
         status = pos run
-        elems = M.keys (status ^. #translations . #unTranslations)
+        getTrans u
+                | Just v <- u ^? _Ctor @"Danish"= v
+                | Just v <- u ^? _Ctor @"English" = v
+
+        elems = M.keys (unTranslations (getTrans (status ^. #languages & extract)))
     in
         Store.experiment (\position' -> fmap (Position) elems) wPosition
 
@@ -122,19 +144,20 @@ myBox bRun bFilter = do
     return (list, eSelect)
 
 ------------------------------------------------------------------------------
-listBox :: Show a => Behavior (ListZipper a) -> UI (Element, Event (ListZipper a))
-listBox xs = do
+listBox :: Behavior Run -> (a -> String) -> Behavior (ListZipper a) -> UI (Element, Event (ListZipper a))
+listBox bRun f xs = do
     (eSelect, hSelection) <- liftIO newEvent
 
-    let displayOpen center items = do
-            button <- UI.button 
+    let displayOpen run center items = do
+            button <- UI.button
                     #. (center ?<> "is-info is-seleceted" <> " " <> "button")
-                    # set text (show (extract items))
+                    # set presentation (lookup (f (extract items)) run)
+
             UI.on UI.click button $ \_ -> do
                     liftIO $ hSelection items
             return button
 
-    list <- UI.div #. "buttons has-addons" # sink items (ListZipper.toList . ListZipper.bextend displayOpen <$> xs)
+    list <- UI.div #. "buttons has-addons" # sink items ((\run ys -> ListZipper.toList (ListZipper.bextend (displayOpen run) ys)) <$> bRun <*> xs)
 
     return (list, eSelect)
 -------------------------------------------------------------------------------
