@@ -44,6 +44,7 @@ dependencies:
 - name: safe
 - name: threepenny-gui
 - name: cond
+- name: data-fix
 
 library:
   source-dirs: src

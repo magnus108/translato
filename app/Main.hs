@@ -39,7 +39,8 @@ import qualified Data.Map.Strict               as M
 import qualified Lib
 import qualified Text as T
 import qualified Graphics.UI.Threepenny as UI
-import Graphics.UI.Threepenny.Core hiding (title)
+import Graphics.UI.Threepenny.Core hiding (title, grid, column, row)
+import Columns
 
 -------------------------------------------------------------------------------
 data Config = Config { port :: Int }
@@ -94,22 +95,26 @@ setup position status window = void $ mdo
 
     (languageSelection, eLanguageSelection) <- Lib.listBox bRun getTrans' (languages . Store.pos . unRun <$> bRun)
 
-    getBody window #+ [ grid
-        [[element styleSelection]
-        ,[UI.hr]
-        ,[element languageSelection]
-        ,[UI.hr]
-        ,[row [mkPresentation bRun "key" , element key]]
-        ,[row [UI.string "value: ", element value]]
-        ,[UI.hr]
-        ,[row [UI.string "change it: ", element changeEntry]]
-        ,[UI.hr]
-        ,[row [UI.string "filter ",  element filterEntry]]
-        ,[element myBox]
-        ,[UI.hr]
-        ,[element myText]
-        ]]
+    {-
+    getBody window #+ [UI.div #. "container" #+
+        grid
+            [Columns [Column [element styleSelection]]
+            ,Columns [Column [UI.hr]]
+            ,Columns [Column [element languageSelection]]
+            ,Columns [Column [UI.hr]]
+            ,Columns [Column [mkPresentation bRun "key"], Column [element key]]
+            ,Columns [Column [UI.string "value: "], Column [element value]]
+            ,Columns [Column [UI.hr]]
+            ,Columns [Column [UI.string "change it: ", element changeEntry]]
+            ,Columns [Column [UI.hr]]
+            ,Columns [Column [UI.string "filter ",  element filterEntry]]
+            ,Columns [Column [element myBox]]
+            ,Columns [Column [UI.hr]]
+            ,Columns [Column [element myText]]
+            ]]
+            -}
 
+    getBody window #+ [grid2 lola2]
 
     let userTextFilterEntry = Lib.userText filterEntry
     bFilterString <- stepper "" $ rumors userTextFilterEntry
