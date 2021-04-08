@@ -137,6 +137,7 @@ myBox bRun bFilter = do
             UI.on UI.click button $ \_ -> do
                     liftIO $ hSelection x
 
+            -- HER
             UI.div #+ [element button, UI.string y]
 
     list <- UI.div # sink items (fmap <$> bDisplay <*> bItems)

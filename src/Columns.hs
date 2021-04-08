@@ -8,15 +8,23 @@ import Data.Fix
 
 data Single a
     = Single (UI Element)
-    | Nested a
     deriving Functor
 
-data Multiple a = Multiple [Single a]
+data Nested a = Nested a
+    deriving Functor
+
+data NestedOrSingle a
+    = S (Single a)
+    | N (Nested a)
+    deriving Functor
+
+data Multiple a = Multiple [NestedOrSingle a]
     deriving Functor
 
 data Item a
     = Single' (Single a)
     | Multiple' (Multiple a)
+    | Nested' (Nested a)
     deriving Functor
 
 data Items a = Items [[Item a]]
@@ -25,33 +33,17 @@ data Items a = Items [[Item a]]
 type Grid = Fix Items
 
 
-testGrid :: Grid
-testGrid = Fix $ Items
-        [ [Single' $ Nested $ Fix $ Items [[Single' $ Single $ UI.string "lols"]]]
-        , [Single' $ Nested $ Fix $ Items [[Single' $ Single $ UI.string "lols"]]]
-        , [Single' $ Single $ UI.string "lols", Single' $ Single $ UI.string "lols2"]
-        , [Single' $ Single $ UI.string "lols", Multiple' $ Multiple [Single $ UI.string "lols", Single $ UI.string "lols2"]]
-        , [Single' $ Single $ UI.string "lols", Multiple' $ Multiple [Nested $ Fix $ Items [[Single' $ Single $ UI.string "lols"], [Single' $ Single $ UI.string "lols"],[Single' $ Single $ UI.string "lols"]],  Single $ UI.string "lols", Single $ UI.string "lols2"]]
-        ]
-
-
-
-helper3 :: Single [UI Element] -> UI Element
-helper3 x = case x of
-            Single x -> UI.div #. "column" #+ [x]
-            Nested z -> UI.div #. "column" #+ z
-
-
-helper2 :: Single [UI Element] -> UI Element
+helper2 :: NestedOrSingle [UI Element] -> UI Element
 helper2 x = case x of
-            Single x -> x
-            Nested z -> UI.div #. "columns" #+ [UI.div #. "column" #+ z]
+            S (Single x) -> x
+            N (Nested z) -> UI.div #+ z
 
 
 helper1 :: Item [UI Element] -> UI Element
-helper1  x = case x of
-            (Single' y) -> helper3 y
-            (Multiple' (Multiple ys)) -> UI.div #. "column" #+ fmap helper2 ys
+helper1 x = case x of
+            (Single' (Single y)) -> UI.div #. "column" #+ [y]
+            (Multiple' (Multiple ys)) -> UI.div #. "column" #+ (fmap helper2 ys)
+            (Nested' (Nested ys)) -> UI.div #. "column" #+ ys
 
 
 helper :: Items [UI Element] -> [UI Element]
@@ -60,4 +52,61 @@ helper (Items xss) = fmap (\xs -> UI.div #. "columns" #+ fmap helper1 xs) xss
 grid :: Grid -> [UI Element]
 grid = foldFix $ helper
 
+    {-
+testGrid2 :: Grid
+testGrid2 = t [[]]
 
+
+testGrid4 :: Item Grid
+testGrid4 = g [[]]
+
+testGrid3 :: Grid
+testGrid3 = t [[toItem testGrid2, g [[]], testGrid4]]
+
+--testGrid5 :: Grid
+--testGrid5 = unItem testGrid4
+
+testGrid :: Grid
+testGrid = t
+        [ [s $ UI.string "lols"]
+        , [s $ UI.string "lols", s $ UI.string "lols2"]
+        , [g [[s $ UI.string "lols"]]]
+        , [g [[s $ UI.string "lols3"], [s $ UI.string "lols"]]]
+        , [m [s' $ UI.string "lols"]]
+        , [m [s' $ UI.string "lols", s' $ UI.string "lols"]]
+        , [m [s' $ UI.string "lols"], s $ UI.string "lols"]
+        , [m [g' [[s $ UI.string "lols"]], s' $ UI.string "lols"]]
+        ]
+        -}
+
+-- Top
+t :: [[Item Grid]] -> Grid
+t = Fix . Items
+
+-- Lift
+toItem :: Grid -> Item Grid
+toItem = Nested' . Nested
+
+-- Helpers
+s'' :: UI Element -> Single Grid
+s'' = Single
+
+g'' :: [[Item Grid]] -> Nested Grid
+g'' = Nested . t
+
+-- Items
+s :: UI Element ->  Item Grid
+s = Single' . s''
+
+m :: [NestedOrSingle Grid] -> Item Grid
+m = Multiple' . Multiple
+
+g :: [[Item Grid]] ->  Item Grid
+g = Nested' . g''
+
+-- Multiple
+s' :: UI Element -> NestedOrSingle Grid
+s' = S . s''
+
+g' :: [[Item Grid]] -> NestedOrSingle Grid
+g' = N . g''

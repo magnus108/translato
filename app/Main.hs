@@ -88,33 +88,29 @@ setup position status window = void $ mdo
 
     (styleSelection, eStyleSelection) <- Lib.listBox bRun show (styles . Store.pos . unRun <$> bRun)
 
-
     let getTrans' u
                 | Just v <- u ^? _Ctor @"Danish" = "danish"
                 | Just v <- u ^? _Ctor @"English" = "english"
 
     (languageSelection, eLanguageSelection) <- Lib.listBox bRun getTrans' (languages . Store.pos . unRun <$> bRun)
 
-    {-
     getBody window #+ [UI.div #. "container" #+
-        grid
-            [Columns [Column [element styleSelection]]
-            ,Columns [Column [UI.hr]]
-            ,Columns [Column [element languageSelection]]
-            ,Columns [Column [UI.hr]]
-            ,Columns [Column [mkPresentation bRun "key"], Column [element key]]
-            ,Columns [Column [UI.string "value: "], Column [element value]]
-            ,Columns [Column [UI.hr]]
-            ,Columns [Column [UI.string "change it: ", element changeEntry]]
-            ,Columns [Column [UI.hr]]
-            ,Columns [Column [UI.string "filter ",  element filterEntry]]
-            ,Columns [Column [element myBox]]
-            ,Columns [Column [UI.hr]]
-            ,Columns [Column [element myText]]
-            ]]
-            -}
+        (grid $ t
+            [[s $ element styleSelection]
+            ,[s $ UI.hr]
+            ,[s $ element languageSelection]
+            ,[s $ UI.hr]
+            ,[m [s' $ mkPresentation bRun "key", s' $ element key]]
+            ,[m [s' $ UI.string "value: ", s' $ element value]]
+            ,[s $ UI.hr]
+            ,[m [s' $ UI.string "change it: ", s' $ element changeEntry]]
+            ,[s $ UI.hr]
+            ,[m [s' $ UI.string "filter ", s' $ element filterEntry]]
+            ,[s $ element myBox]
+            ,[s $ UI.hr]
+            ])
+        ]
 
-    getBody window #+ [UI.div #+ (grid testGrid)]
 
     let userTextFilterEntry = Lib.userText filterEntry
     bFilterString <- stepper "" $ rumors userTextFilterEntry
@@ -124,7 +120,6 @@ setup position status window = void $ mdo
 
     let userTextChangeEntry = Lib.userText changeEntry
         eDataItemChange = rumors $ userTextChangeEntry
-
 
 
     let getTrans u
