@@ -114,7 +114,7 @@ setup position status window = void $ mdo
             ]]
             -}
 
-    getBody window #+ [UI.div #+ (grid2 lola2)]
+    getBody window #+ [UI.div #+ (grid testGrid)]
 
     let userTextFilterEntry = Lib.userText filterEntry
     bFilterString <- stepper "" $ rumors userTextFilterEntry
