@@ -16,6 +16,7 @@ module Lib (
            ,brah
            ,brah2
            , kv
+           , displayOpen
     ) where
 import Control.Comonad.Hoist.Class
 import Data.Generics.Sum.Constructors (_Ctor)
@@ -145,20 +146,22 @@ myBox bRun bFilter = do
     return (list, eSelect)
 
 ------------------------------------------------------------------------------
+--GENBRUG
+displayOpen f run handler center items = do
+        button <- UI.button
+                #. (center ?<> "is-info is-seleceted" <> " " <> "button")
+                # set presentation (lookup (f (extract items)) run)
+
+        UI.on UI.click button $ \_ -> do
+                liftIO $ handler items
+
+        return button
+
 listBox :: Behavior Run -> (a -> String) -> Behavior (ListZipper a) -> UI (Element, Event (ListZipper a))
 listBox bRun f xs = do
     (eSelect, hSelection) <- liftIO newEvent
 
-    let displayOpen run center items = do
-            button <- UI.button
-                    #. (center ?<> "is-info is-seleceted" <> " " <> "button")
-                    # set presentation (lookup (f (extract items)) run)
-
-            UI.on UI.click button $ \_ -> do
-                    liftIO $ hSelection items
-            return button
-
-    list <- UI.div #. "buttons has-addons" # sink items ((\run ys -> ListZipper.toList (ListZipper.bextend (displayOpen run) ys)) <$> bRun <*> xs)
+    list <- UI.div #. "buttons has-addons" # sink items ((\run ys -> ListZipper.toList (ListZipper.bextend (displayOpen f run hSelection) ys)) <$> bRun <*> xs)
 
     return (list, eSelect)
 -------------------------------------------------------------------------------

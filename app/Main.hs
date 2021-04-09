@@ -102,7 +102,6 @@ setup position status window = void $ mdo
     contentA <- UI.div # set text "bob"
     contentB <- UI.button # set text "boby"
 
-    -- Kunne have en mapping med til content.
     (eStyleSelection, hStyleSelection) <- liftIO newEvent
 
     content <- UI.div
@@ -111,20 +110,9 @@ setup position status window = void $ mdo
                 | Just v <- u ^? _Ctor @"Normal" = "normal"
                 | Just v <- u ^? _Ctor @"Translating" = "translating"
 
-    --GENBRUG
-    let displayOpen run center items = do
-            button <- UI.button
-                    #. (center ?<> "is-info is-seleceted" <> " " <> "button")
-                    # set presentation (lookup (getTrans'' (extract items)) run)
-
-            UI.on UI.click button $ \_ -> do
-                    liftIO $ hStyleSelection items
-
-            return button
-
-    let setContent run = do
+    let setContent f run hStyleSelection = do
             let styles' = styles $ Store.pos $ unRun $ run
-            menu <- UI.div #. "buttons has-addons" #+ (ListZipper.toList (ListZipper.bextend (displayOpen run) styles'))
+            menu <- UI.div #. "buttons has-addons" #+ (ListZipper.toList (ListZipper.bextend (Lib.displayOpen f run hStyleSelection) styles'))
             let focus = extract styles'
             case focus of
                 Normal -> element content # set children [menu, contentA]
@@ -133,14 +121,11 @@ setup position status window = void $ mdo
     --GENBRUG
     liftIOLater $ runUI window $ void $ do
         run <- currentValue bRun
-        setContent run
+        setContent getTrans'' run hStyleSelection
 
     liftIOLater $ onChange bRun $ \run -> runUI window $ void $ do
-            setContent run
+            setContent getTrans'' run hStyleSelection
 ------------------------------------------------------------------------------
-
-
-
 
     getBody window #+ [UI.div #. "container" #+
         (grid $ t
