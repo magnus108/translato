@@ -10,6 +10,7 @@
 
 module Main where
 
+import           Control.Conditional            ( (?<>) )
 import Model
 
 import Format
@@ -40,6 +41,7 @@ import qualified Lib
 import qualified Text as T
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core hiding (title, grid, column, row)
+import Reactive.Threepenny
 import Columns
 
 -------------------------------------------------------------------------------
@@ -56,7 +58,7 @@ main = do
     let index     = "index.html"
 
     let en = English $ Translations $ M.fromList [("text3", Translation "bob%1"), ("title", Translation "Translations! %1 %2"), ("key", Translation "Key: "), ("lol", Translation "fuck"), ("loller", Translation "lollo")]
-    let dk = Danish $ Translations $ M.fromList [("danish", Translation "dansk"), ("text3", Translation "bob%1"), ("title", Translation "Translations!!!!!!!!!!%1 %2"), ("key", Translation "Key: "), ("lol", Translation "fuck"), ("loller", Translation "lollo")]
+    let dk = Danish $ Translations $ M.fromList [("normal", Translation "Normal"), ("translating", Translation "Oversætter"), ("danish", Translation "dansk"), ("text3", Translation "bob%1"), ("title", Translation "Translations!!!!!!!!!!%1 %2"), ("key", Translation "Key: "), ("lol", Translation "fuck"), ("loller", Translation "lollo")]
 
     let languages = ListZipper.ListZipper [] dk [en]
     let styles = ListZipper.ListZipper [] Normal [Translating]
@@ -86,7 +88,6 @@ setup position status window = void $ mdo
 
     myText <- T.content bRun
 
-    (styleSelection, eStyleSelection) <- Lib.listBox bRun show (styles . Store.pos . unRun <$> bRun)
 
     let getTrans' u
                 | Just v <- u ^? _Ctor @"Danish" = "danish"
@@ -94,11 +95,56 @@ setup position status window = void $ mdo
 
     (languageSelection, eLanguageSelection) <- Lib.listBox bRun getTrans' (languages . Store.pos . unRun <$> bRun)
 
+
+
+
+------------------------------------------------------------------------------
+    contentA <- UI.div # set text "bob"
+    contentB <- UI.button # set text "boby"
+
+    -- Kunne have en mapping med til content.
+    (eStyleSelection, hStyleSelection) <- liftIO newEvent
+
+    content <- UI.div
+
+    let getTrans'' u
+                | Just v <- u ^? _Ctor @"Normal" = "normal"
+                | Just v <- u ^? _Ctor @"Translating" = "translating"
+
+    --GENBRUG
+    let displayOpen run center items = do
+            button <- UI.button
+                    #. (center ?<> "is-info is-seleceted" <> " " <> "button")
+                    # set presentation (lookup (getTrans'' (extract items)) run)
+
+            UI.on UI.click button $ \_ -> do
+                    liftIO $ hStyleSelection items
+
+            return button
+
+    let setContent run = do
+            let styles' = styles $ Store.pos $ unRun $ run
+            menu <- UI.div #. "buttons has-addons" #+ (ListZipper.toList (ListZipper.bextend (displayOpen run) styles'))
+            let focus = extract styles'
+            case focus of
+                Normal -> element content # set children [menu, contentA]
+                Translating -> element content # set children [menu, contentB]
+
+    --GENBRUG
+    liftIOLater $ runUI window $ void $ do
+        run <- currentValue bRun
+        setContent run
+
+    liftIOLater $ onChange bRun $ \run -> runUI window $ void $ do
+            setContent run
+------------------------------------------------------------------------------
+
+
+
+
     getBody window #+ [UI.div #. "container" #+
         (grid $ t
-            [[s $ element styleSelection]
-            ,[s $ UI.hr]
-            ,[s $ element languageSelection]
+            [[s $ element languageSelection]
             ,[s $ UI.hr]
             ,[m [s' $ mkPresentation bRun "key", s' $ element key]]
             ,[m [s' $ UI.string "value: ", s' $ element value]]
@@ -108,6 +154,7 @@ setup position status window = void $ mdo
             ,[m [s' $ UI.string "filter ", s' $ element filterEntry]]
             ,[s $ element myBox]
             ,[s $ UI.hr]
+            ,[s $ element content]
             ])
         ]
 
@@ -128,6 +175,9 @@ setup position status window = void $ mdo
 
     let run = Run $ StoreT
             ( store (\position' status' -> M.findWithDefault (Translation (unPosition position')) (unPosition position') (unTranslations (getTrans (extract (status' ^. #languages))))) position ) status
+
+
+
 
     bRun <- stepper run $ head . NE.fromList <$> unions
             [ (\run translation -> Run $ Lib.brah (Translation translation) (unRun run)) <$> bRun <@> eDataItemChange

@@ -27,7 +27,7 @@ data Translations = Translations { unTranslations :: M.Map String Translation }
 
 
 data Style = Translating | Normal
-    deriving Show
+    deriving (Show, Eq)
     deriving Generic
     deriving anyclass (FromJSON, ToJSON)
 
