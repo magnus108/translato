@@ -31,32 +31,31 @@ data Item a
 data GridF a = GridF [[Item a]]
     deriving (Functor, Foldable, Traversable)
 
-singleToElem :: Single Element -> UI Element
-singleToElem (Single x) = return x
+singleToElem :: Single [Element] -> UI [Element]
+singleToElem (Single x) = return [x]
 
-nestedToElem :: Nested Element -> UI Element
+nestedToElem :: Nested [Element] -> UI [Element]
 nestedToElem (Nested x) = return x
 
-nestedOrSingleToElem :: NestedOrSingle Element -> UI Element
+nestedOrSingleToElem :: NestedOrSingle [Element] -> UI [Element]
 nestedOrSingleToElem (N x) = nestedToElem x
 nestedOrSingleToElem (S x) = singleToElem x
 
-groupedToElem :: Grouped Element -> UI Element
+groupedToElem :: Grouped [Element] -> UI Element
 groupedToElem (Grouped xs) = do
     items <- mapM nestedOrSingleToElem xs
-    UI.div #. "column" # set children items
+    UI.div #. "column" # set children (concat items)
 
-itemToElem :: Item Element -> UI Element
+itemToElem :: Item [Element] -> UI Element
 itemToElem (Single' x) = do
-    child <- singleToElem x
-    UI.div #. "column" # set children [child]
+    children' <- singleToElem x
+    UI.div #. "column" # set children children'
 itemToElem (Grouped' x) = groupedToElem x
 itemToElem (Nested' x) = do
-    child <- nestedToElem x
-    -- gir det her ik en hel container?
-    UI.div #. "column" # set children [child]
+    children' <- nestedToElem x
+    UI.div #. "column" # set children children'
 
-gridToElem :: GridF Element -> UI Element
+gridToElem :: GridF [Element] -> UI [Element]
 gridToElem (GridF xss) = do
 
     rows <- mapM (\xs -> do
@@ -64,9 +63,11 @@ gridToElem (GridF xss) = do
             UI.div #."columns" # set children row
         ) xss
 
-    UI.div #. "container" # set children rows
+    return rows
 
 fromGrid :: Grid -> UI Element
-fromGrid = foldFixM $ gridToElem
+fromGrid grid = do
+    children' <- foldFixM gridToElem grid
+    UI.div # set children children'
 
 type Grid = Fix GridF

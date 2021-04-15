@@ -61,14 +61,16 @@ test = do
     contentA1 <- UI.div # set text "a1"
     contentB <- UI.div # set text "b"
     contentC <- UI.div # set text "c"
+    contentCC <- UI.div # set text "c2"
+    contentCCC <- UI.div # set text "c3"
     contentC1 <- UI.div # set text "c1"
     contentC2 <- UI.div # set text "c2"
 
     let grid = Grid [ [S (element contentA), S (element contentB)]
                     , [S (element contentC) ]
-                    , [S (element contentC), M (Grouped [S' (element contentC1), S' (element contentC2)]) ]
+                    , [S (element contentCC), M (Grouped [S' (element contentC1), S' (element contentC2)]) ]
                     --, [S (element contentC), M (Grouped [N' (Grid [[S (element contentA)]]), S' (element contentC2)]) ]
-                    , [S (element contentC), N (Grid [[S (element contentAAA)]])]
+                    -- , [S (element contentCCC), N (Grid [[S (element contentAAA)]])]
                     ]
 
     myGrid <- fromGrid =<< toGrid grid
