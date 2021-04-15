@@ -43,6 +43,7 @@ import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core hiding (title, grid, column, row)
 import Reactive.Threepenny
 import Columns
+import Columns3 (test)
 
 -------------------------------------------------------------------------------
 data Config = Config { port :: Int }
@@ -127,9 +128,10 @@ setup position status window = void $ mdo
             setContent getTrans'' run hStyleSelection
 ------------------------------------------------------------------------------
 
-    getBody window #+ [UI.div #. "container" #+
+    getBody window #+ [test, UI.div #. "container" #+
         (grid $ t
             [[s $ element languageSelection]
+            --, s $ UI.hr :  s $ UI.hr : C
             ,[s $ UI.hr]
             ,[m [s' $ mkPresentation bRun "key", s' $ element key]]
             ,[m [s' $ UI.string "value: ", s' $ element value]]

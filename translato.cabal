@@ -26,6 +26,8 @@ source-repository head
 library
   exposed-modules:
       Columns
+      Columns2
+      Columns3
       Format
       Lib
       Model

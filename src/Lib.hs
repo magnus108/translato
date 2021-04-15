@@ -20,6 +20,7 @@ module Lib (
     ) where
 import Control.Comonad.Hoist.Class
 import Data.Generics.Sum.Constructors (_Ctor)
+import Columns
 
 import           Control.Conditional            ( (?<>) )
 import Utils.ListZipper (ListZipper)
@@ -40,7 +41,7 @@ import qualified Control.Comonad.Store as Store
 import           Control.Lens                   ( (^.), (.~), (^?))
 import qualified Control.Lens as Lens
 import qualified Graphics.UI.Threepenny as UI
-import Graphics.UI.Threepenny.Core hiding (title)
+import Graphics.UI.Threepenny.Core hiding (title, grid, column, row)
 import Reactive.Threepenny
 
 -------------------------------------------------------------------------------
@@ -139,11 +140,21 @@ myBox bRun bFilter = do
                     liftIO $ hSelection x
 
             -- HER
-            UI.div #+ [element button, UI.string y]
+            return $ [s $ element button, s $ UI.string y]
+    
+    let gg = (\d xs -> do
+                i <- mapM d xs
+                sequence $ grid $ t i
+              ) <$> bDisplay <*> bItems
 
-    list <- UI.div # sink items (fmap <$> bDisplay <*> bItems)
+    list <- UI.div # sink items2 gg
 
     return (list, eSelect)
+
+items2 :: ReadWriteAttr Element (UI [Element]) ()
+items2 = mkWriteAttr $ \i x -> void $ do
+    ii <- i
+    return x # set children ii
 
 ------------------------------------------------------------------------------
 --GENBRUG
