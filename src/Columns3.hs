@@ -11,7 +11,7 @@ import qualified Columns2
 import Columns2 (fromGrid)
 
 
-type Single = Element
+type Single = UI Element
 type Nested = Grid
 
 data NestedOrSingle
@@ -27,47 +27,50 @@ data Item
 
 data Grid = Grid [[Item]]
 
-elemToSingle :: Element -> Columns2.Single Grid
-elemToSingle x = Columns2.Single x
+elemToSingle :: UI Element -> UI (Columns2.Single Grid)
+elemToSingle x = Columns2.Single <$> x
 
-elemToNested :: Grid -> Columns2.Nested Grid
-elemToNested x = Columns2.Nested x
+elemToNested :: Grid -> UI (Columns2.Nested Grid)
+elemToNested x = return $ Columns2.Nested x
 
-elemToNestedOrSingle :: NestedOrSingle -> Columns2.NestedOrSingle Grid
-elemToNestedOrSingle (N' x) = Columns2.N $ elemToNested x
-elemToNestedOrSingle (S' x) = Columns2.S $ elemToSingle x
+elemToNestedOrSingle :: NestedOrSingle -> UI (Columns2.NestedOrSingle Grid)
+elemToNestedOrSingle (N' x) = Columns2.N <$> elemToNested x
+elemToNestedOrSingle (S' x) = Columns2.S <$> elemToSingle x
 
-elemToGrouped :: Grouped -> Columns2.Grouped Grid
-elemToGrouped (Grouped xs) = Columns2.Grouped $ fmap elemToNestedOrSingle xs
+elemToGrouped :: Grouped -> UI (Columns2.Grouped Grid)
+elemToGrouped (Grouped xs) = Columns2.Grouped <$> mapM elemToNestedOrSingle xs
 
-elemToItem :: Item -> Columns2.Item Grid
-elemToItem (S x) = Columns2.Single' $ elemToSingle x
-elemToItem (M x) = Columns2.Grouped' $ elemToGrouped x
-elemToItem (N x) = Columns2.Nested' $ elemToNested x
+elemToItem :: Item -> UI (Columns2.Item Grid)
+elemToItem (S x) = Columns2.Single' <$> elemToSingle x
+elemToItem (M x) = Columns2.Grouped' <$> elemToGrouped x
+elemToItem (N x) = Columns2.Nested' <$> elemToNested x
 
-elemToGrid :: Grid -> Columns2.GridF Grid
-elemToGrid (Grid xss) = Columns2.GridF $ fmap (fmap elemToItem) xss
+elemToGrid :: Grid -> UI (Columns2.GridF Grid)
+elemToGrid (Grid xss) = Columns2.GridF <$> mapM (mapM elemToItem) xss
 
-toGrid :: Grid -> Columns2.Grid
-toGrid = unfoldFix elemToGrid
+toGrid :: Grid -> UI Columns2.Grid
+toGrid = unfoldFixM elemToGrid
 
+
+-- FÅ FJERNTET CONTAAINER
 
 test :: UI Element
 test = do
     contentA <- UI.div # set text "a"
+    contentAAA <- UI.div # set text "aaaaaa"
     contentA1 <- UI.div # set text "a1"
     contentB <- UI.div # set text "b"
     contentC <- UI.div # set text "c"
     contentC1 <- UI.div # set text "c1"
     contentC2 <- UI.div # set text "c2"
 
-    let grid = Grid [[S contentA, S contentB]
-               , [S contentC ]
-               , [S contentC, M (Grouped [S' contentC1, S' contentC2]) ]
-               , [S contentC, M (Grouped [N' (Grid [[S contentA]]), S' contentC2]) ]
-               , [N (Grid [[S contentA]])]
-               ]
+    let grid = Grid [ [S (element contentA), S (element contentB)]
+                    , [S (element contentC) ]
+                    , [S (element contentC), M (Grouped [S' (element contentC1), S' (element contentC2)]) ]
+                    --, [S (element contentC), M (Grouped [N' (Grid [[S (element contentA)]]), S' (element contentC2)]) ]
+                    , [S (element contentC), N (Grid [[S (element contentAAA)]])]
+                    ]
 
-    let grid2 = [[S contentA1, N grid]]
-    elem <- fromGrid (toGrid (Grid grid2))
-    return elem
+    myGrid <- fromGrid =<< toGrid grid
+
+    return myGrid
