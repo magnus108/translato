@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveTraversable #-}
-module Columns3 (test) where
+module Columns3 (test, Row(..), Grid(..), Item(..), toGrid) where
 
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core hiding (grid, row, column)
@@ -25,7 +25,9 @@ data Item
     | M Grouped
     | N Nested
 
-data Grid = Grid [[Item]]
+data Row = Row [Item]
+
+data Grid = Grid [UI Row]
 
 elemToSingle :: UI Element -> UI (Columns2.Single Grid)
 elemToSingle x = Columns2.Single <$> x
@@ -45,8 +47,15 @@ elemToItem (S x) = Columns2.Single' <$> elemToSingle x
 elemToItem (M x) = Columns2.Grouped' <$> elemToGrouped x
 elemToItem (N x) = Columns2.Nested' <$> elemToNested x
 
+
+elemToRow :: Row -> UI (Columns2.Row Grid)
+elemToRow (Row xs) = Columns2.Row <$> mapM elemToItem xs
+
+----- LAV ROW HER!
 elemToGrid :: Grid -> UI (Columns2.GridF Grid)
-elemToGrid (Grid xss) = Columns2.GridF <$> mapM (mapM elemToItem) xss
+elemToGrid (Grid xss) = do
+    yss <- sequence xss
+    Columns2.GridF <$> mapM elemToRow yss
 
 toGrid :: Grid -> UI Columns2.Grid
 toGrid = unfoldFixM elemToGrid
@@ -66,9 +75,9 @@ test = do
     contentC1 <- UI.div # set text "c1"
     contentC2 <- UI.div # set text "c2"
 
-    let grid = Grid [ [S (element contentA), S (element contentB)]
-                    , [S (element contentC) ]
-                    , [S (element contentCC), M (Grouped [S' (element contentC1), S' (element contentC2)]) ]
+    let grid = Grid [ return $ Row [S (element contentA), S (element contentB)]
+                    , return $ Row [S (element contentC) ]
+                    , return $ Row [S (element contentCC), M (Grouped [S' (element contentC1), S' (element contentC2)]) ]
                     --, [S (element contentC), M (Grouped [N' (Grid [[S (element contentA)]]), S' (element contentC2)]) ]
                     -- , [S (element contentCCC), N (Grid [[S (element contentAAA)]])]
                     ]

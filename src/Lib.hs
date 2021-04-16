@@ -20,7 +20,8 @@ module Lib (
     ) where
 import Control.Comonad.Hoist.Class
 import Data.Generics.Sum.Constructors (_Ctor)
-import Columns
+import Columns3
+import Columns2 (fromGrid, fromGrid2)
 
 import           Control.Conditional            ( (?<>) )
 import Utils.ListZipper (ListZipper)
@@ -140,21 +141,16 @@ myBox bRun bFilter = do
                     liftIO $ hSelection x
 
             -- HER
-            return $ [s $ element button, s $ UI.string y]
+            return $ Row $ [S $ element button, S $ UI.string y]
     
     let gg = (\d xs -> do
-                i <- mapM d xs
-                sequence $ grid $ t i
+                let grid = Grid $ fmap d xs
+                fromGrid2 <$> (toGrid grid)
               ) <$> bDisplay <*> bItems
 
-    list <- UI.div # sink items2 gg
+    list <- UI.div # sink items gg
 
     return (list, eSelect)
-
-items2 :: ReadWriteAttr Element (UI [Element]) ()
-items2 = mkWriteAttr $ \i x -> void $ do
-    ii <- i
-    return x # set children ii
 
 ------------------------------------------------------------------------------
 --GENBRUG
