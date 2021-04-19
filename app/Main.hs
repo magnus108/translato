@@ -42,8 +42,8 @@ import qualified Text as T
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core hiding (title, grid, column, row)
 import Reactive.Threepenny
-import Columns
-import Columns3 (test)
+import Columns2 (fromGrid2)
+import Columns3 
 
 -------------------------------------------------------------------------------
 data Config = Config { port :: Int }
@@ -89,15 +89,11 @@ setup position status window = void $ mdo
 
     myText <- T.content bRun
 
-
     let getTrans' u
                 | Just v <- u ^? _Ctor @"Danish" = "danish"
                 | Just v <- u ^? _Ctor @"English" = "english"
 
     (languageSelection, eLanguageSelection) <- Lib.listBox bRun getTrans' (languages . Store.pos . unRun <$> bRun)
-
-
-
 
 ------------------------------------------------------------------------------
     contentA <- UI.div # set text "bob"
@@ -128,20 +124,19 @@ setup position status window = void $ mdo
             setContent getTrans'' run hStyleSelection
 ------------------------------------------------------------------------------
 
-    getBody window #+ [test, UI.div #. "container" #+
-        (grid $ t
-            [[s $ element languageSelection]
-            --, s $ UI.hr :  s $ UI.hr : C
-            ,[s $ UI.hr]
-            ,[m [s' $ mkPresentation bRun "key", s' $ element key]]
-            ,[m [s' $ UI.string "value: ", s' $ element value]]
-            ,[s $ UI.hr]
-            ,[m [s' $ UI.string "change it: ", s' $ element changeEntry]]
-            ,[s $ UI.hr]
-            ,[m [s' $ UI.string "filter ", s' $ element filterEntry]]
-            ,[s $ element myBox]
-            ,[s $ UI.hr]
-            ,[s $ element content]
+    getBody window #+ [UI.div #. "container" #+
+        (fromGrid2 $ toGrid $ Grid
+            [ return $ Row [S $ element languageSelection]
+            , return $ Row [S $ UI.hr]
+            , return $ Row [M (Grouped [S' $ mkPresentation bRun "key", S' $ element key])]
+            , return $ Row [M (Grouped [S' $ UI.string "value: ", S' $ element value])]
+            , return $ Row [S $ UI.hr]
+            , return $ Row [M (Grouped [S' $ UI.string "change it: ", S' $ element changeEntry])]
+            , return $ Row [S $ UI.hr]
+            , return $ Row [M (Grouped [S' $ UI.string "filter ", S' $ element filterEntry])]
+            , return $ Row [S $ element myBox]
+            , return $ Row [S $ UI.hr]
+            , return $ Row [S $ element content]
             ])
         ]
 

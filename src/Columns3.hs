@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveTraversable #-}
-module Columns3 (test, Row(..), Grid(..), Item(..), toGrid) where
+module Columns3 (Grouped(..), NestedOrSingle(..), Row(..), Grid(..), Item(..), toGrid) where
 
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core hiding (grid, row, column)
