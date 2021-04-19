@@ -21,7 +21,7 @@ module Lib (
 import Control.Comonad.Hoist.Class
 import Data.Generics.Sum.Constructors (_Ctor)
 import Columns3
-import Columns2 (fromGrid, fromGrid2)
+import Columns2 (fromGrid2, fromGrid2)
 
 import           Control.Conditional            ( (?<>) )
 import Utils.ListZipper (ListZipper)
@@ -140,15 +140,11 @@ myBox bRun bFilter = do
             UI.on UI.click button $ \_ -> do
                     liftIO $ hSelection x
 
-            -- HER
             return $ Row $ [S $ element button, S $ UI.string y]
-    
-    let gg = (\d xs -> do
-                let grid = Grid $ fmap d xs
-                fromGrid2 <$> (toGrid grid)
-              ) <$> bDisplay <*> bItems
 
-    list <- UI.div # sink items gg
+    let rows = fmap <$> bDisplay <*>  bItems
+
+    list <- UI.div # sink items ((fromGrid2 . toGrid . Grid) <$> rows)
 
     return (list, eSelect)
 
