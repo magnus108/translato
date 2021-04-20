@@ -125,7 +125,7 @@ setup position status window = void $ mdo
 ------------------------------------------------------------------------------
 
     getBody window #+ [UI.div #. "container" #+
-        (fromGrid2 $ toGrid $ Grid
+        (construct $ Grid
             [ return $ Row [S $ element languageSelection]
             , return $ Row [S $ UI.hr]
             , return $ Row [M (Grouped [S' $ mkPresentation bRun "key", S' $ element key])]

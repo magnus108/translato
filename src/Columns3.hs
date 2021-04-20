@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveTraversable #-}
-module Columns3 (Grouped(..), NestedOrSingle(..), Row(..), Grid(..), Item(..), toGrid) where
+module Columns3 (Grouped(..), NestedOrSingle(..), Row(..), Grid(..), Item(..), toGrid, construct) where
 
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core hiding (grid, row, column)
@@ -8,7 +8,7 @@ import Graphics.UI.Threepenny.Core hiding (grid, row, column)
 import Data.Fix
 
 import qualified Columns2
-import Columns2 (fromGrid2)
+import Columns2 (fromGrid2, gridToElem2)
 
 
 type Single = UI Element
@@ -56,6 +56,10 @@ elemToGrid (Grid xss) = Columns2.GridF $ fmap elemToRow xss
 toGrid :: Grid -> Columns2.Grid
 toGrid = unfoldFix elemToGrid
 
+construct :: Grid -> [UI Element]
+construct = refold gridToElem2 elemToGrid
+
+    {-
 test :: UI Element
 test = do
     contentA <- UI.div # set text "a"
@@ -79,3 +83,4 @@ test = do
     let myGrid = fromGrid2 (toGrid grid)
 
     UI.div #+ myGrid
+    -}
