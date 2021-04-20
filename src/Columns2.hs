@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveTraversable #-}
-module Columns2 (fromGrid2, gridToElem2, Grid, Row(..), GridF(..),Grouped(..), Item(..), Single(..), Nested(..), NestedOrSingle(..)) where
+module Columns2 (fromGrid2, gridToElem2, Grid, SuperSingle(..), Row(..), GridF(..),Grouped(..), Item(..), Single(..), Nested(..), NestedOrSingle(..)) where
 
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core hiding (grid, row, column)
@@ -10,6 +10,10 @@ import Data.Fix
 
 data Single a
     = Single (UI Element)
+    deriving (Functor, Foldable, Traversable)
+
+data SuperSingle a
+    = SuperSingle (UI Element)
     deriving (Functor, Foldable, Traversable)
 
 
@@ -29,6 +33,7 @@ data Grouped a = Grouped [NestedOrSingle a]
 
 data Item a
     = Single' (Single a)
+    | SuperSingle' (SuperSingle a)
     | Grouped' (Grouped a)
     | Nested' (Nested a)
     deriving (Functor, Foldable, Traversable)
@@ -64,7 +69,14 @@ groupedToElem2 (Grouped xs) = do
     UI.div #. "column" #+ (concat items)
 
 
+superSingleToElem2 :: SuperSingle [UI Element] -> UI Element
+superSingleToElem2 (SuperSingle x) = x
+
+
 itemToElem2 :: Item [UI Element] -> UI Element
+itemToElem2 (SuperSingle' x) = do
+    let elem = superSingleToElem2 x
+    elem #. "column"
 itemToElem2 (Single' x) = do
     let children' = singleToElem2 x
     UI.div #. "column" #+ children'

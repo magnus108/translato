@@ -103,9 +103,11 @@ setup position status window = void $ mdo
 
     content <- UI.div
 
-    let getTrans'' u
-                | Just v <- u ^? _Ctor @"Normal" = "normal"
-                | Just v <- u ^? _Ctor @"Translating" = "translating"
+    -- HOW?
+    let problemName = \case
+            Normal -> "normal"
+            Translating -> "translating"
+
 
     let setContent f run hStyleSelection = do
             let styles' = styles $ Store.pos $ unRun $ run
@@ -118,10 +120,10 @@ setup position status window = void $ mdo
     --GENBRUG
     liftIOLater $ runUI window $ void $ do
         run <- currentValue bRun
-        setContent getTrans'' run hStyleSelection
+        setContent problemName run hStyleSelection
 
     liftIOLater $ onChange bRun $ \run -> runUI window $ void $ do
-            setContent getTrans'' run hStyleSelection
+            setContent problemName run hStyleSelection
 ------------------------------------------------------------------------------
 
     getBody window #+ [UI.div #. "container" #+
@@ -134,7 +136,7 @@ setup position status window = void $ mdo
             , return $ Row [M (Grouped [S' $ UI.string "change it: ", S' $ element changeEntry])]
             , return $ Row [S $ UI.hr]
             , return $ Row [M (Grouped [S' $ UI.string "filter ", S' $ element filterEntry])]
-            , return $ Row [S $ element myBox]
+            , return $ Row [SS $ element myBox]
             , return $ Row [S $ UI.hr]
             , return $ Row [S $ element content]
             ])

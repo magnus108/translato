@@ -45,6 +45,7 @@ library
       FlexibleInstances
       FlexibleContexts
       OverloadedLabels
+      LambdaCase
       RecordWildCards
   build-depends:
       aeson
@@ -79,6 +80,7 @@ executable translato-exe
       FlexibleInstances
       FlexibleContexts
       OverloadedLabels
+      LambdaCase
       RecordWildCards
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
@@ -116,6 +118,7 @@ test-suite translato-test
       FlexibleInstances
       FlexibleContexts
       OverloadedLabels
+      LambdaCase
       RecordWildCards
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:

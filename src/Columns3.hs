@@ -11,6 +11,7 @@ import qualified Columns2
 import Columns2 (fromGrid2, gridToElem2)
 
 
+type SuperSingle = UI Element
 type Single = UI Element
 type Nested = Grid
 
@@ -22,6 +23,7 @@ data Grouped = Grouped [NestedOrSingle]
 
 data Item
     = S Single
+    | SS SuperSingle
     | M Grouped
     | N Nested
 
@@ -31,6 +33,9 @@ data Grid = Grid [UI Row]
 
 elemToSingle :: UI Element -> Columns2.Single Grid
 elemToSingle x = Columns2.Single x
+
+elemToSuperSingle :: UI Element -> Columns2.SuperSingle Grid
+elemToSuperSingle x = Columns2.SuperSingle x
 
 elemToNested :: Grid -> Columns2.Nested Grid
 elemToNested x = Columns2.Nested x
@@ -44,6 +49,7 @@ elemToGrouped (Grouped xs) = Columns2.Grouped $ fmap elemToNestedOrSingle xs
 
 elemToItem :: Item -> Columns2.Item Grid
 elemToItem (S x) = Columns2.Single' $ elemToSingle x
+elemToItem (SS x) = Columns2.SuperSingle' $ elemToSuperSingle x
 elemToItem (M x) = Columns2.Grouped' $ elemToGrouped x
 elemToItem (N x) = Columns2.Nested' $ elemToNested x
 
