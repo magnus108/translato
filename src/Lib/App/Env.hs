@@ -4,6 +4,8 @@
 module Lib.App.Env
     ( Env(..)
     , Has(..)
+    , InChan(..)
+    , OutChan(..)
     , grab
     )
 where
@@ -16,6 +18,9 @@ import qualified Lib.Message                   as Message
 data Env (m :: Type -> Type) = Env
     { inChan :: InChan
     , outChan :: OutChan
+    , port :: !Int
+    , static :: !FilePath
+    , index :: !FilePath
     }
 
 

@@ -23,7 +23,7 @@ type AppEnv = Env App
 
 newtype App a = App
     { unApp :: ReaderT AppEnv IO a
-    } deriving ( Functor
+    } deriving newtype ( Functor
                , Applicative
                , Monad
                , MonadIO

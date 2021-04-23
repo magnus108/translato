@@ -1,6 +1,6 @@
 module Text (content) where
 
-import qualified Lib
+import qualified Lib2
 import Model
 
 import Data.Generics.Labels
@@ -18,7 +18,6 @@ import           Control.Comonad.Trans.Env
 
 import qualified Data.Map.Strict               as M
 
-import qualified Lib
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core
 

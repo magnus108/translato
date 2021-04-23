@@ -38,6 +38,7 @@ import qualified Utils.ListZipper as ListZipper
 import qualified Data.Map.Strict               as M
 
 import qualified Lib
+import qualified Lib2
 import qualified Text as T
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core hiding (title, grid, column, row)
@@ -82,9 +83,9 @@ setup position status window = void $ mdo
     key <- UI.span # sink text (unPosition . Store.pos . Store.lower . unRun <$> bRun)
     value <- UI.span # sink text (unTranslation . extract . unRun <$> bRun)
 
-    (myBox, eKeyChange) <- Lib.myBox bRun bFilter
-    filterEntry <- Lib.entry bFilterString
-    changeEntry <- Lib.entry (unTranslation . extract . unRun <$> bRun)
+    (myBox, eKeyChange) <- Lib2.myBox bRun bFilter
+    filterEntry <- Lib2.entry bFilterString
+    changeEntry <- Lib2.entry (unTranslation . extract . unRun <$> bRun)
 
     myText <- T.content bRun
 
@@ -92,7 +93,7 @@ setup position status window = void $ mdo
                 | Just v <- u ^? _Ctor @"Danish" = "danish"
                 | Just v <- u ^? _Ctor @"English" = "english"
 
-    (languageSelection, eLanguageSelection) <- Lib.listBox bRun getTrans' (languages . Store.pos . unRun <$> bRun)
+    (languageSelection, eLanguageSelection) <- Lib2.listBox bRun getTrans' (languages . Store.pos . unRun <$> bRun)
 
 ------------------------------------------------------------------------------
     contentA <- UI.div # set text "bob"
@@ -110,7 +111,7 @@ setup position status window = void $ mdo
 
     let setContent f run hStyleSelection = do
             let styles' = styles $ Store.pos $ unRun $ run
-            menu <- UI.div #. "buttons has-addons" #+ (ListZipper.toList (ListZipper.bextend (Lib.displayOpen f run hStyleSelection) styles'))
+            menu <- UI.div #. "buttons has-addons" #+ (ListZipper.toList (ListZipper.bextend (Lib2.displayOpen f run hStyleSelection) styles'))
             let focus = extract styles'
             case focus of
                 Normal -> element content # set children [menu, contentA]
@@ -142,13 +143,13 @@ setup position status window = void $ mdo
         ]
 
 
-    let userTextFilterEntry = Lib.userText filterEntry
+    let userTextFilterEntry = Lib2.userText filterEntry
     bFilterString <- stepper "" $ rumors userTextFilterEntry
     let tFilter = isPrefixOf <$> userTextFilterEntry
         bFilter = facts  tFilter
         eFilter = rumors tFilter
 
-    let userTextChangeEntry = Lib.userText changeEntry
+    let userTextChangeEntry = Lib2.userText changeEntry
         eDataItemChange = rumors $ userTextChangeEntry
 
 
@@ -168,11 +169,11 @@ setup position status window = void $ mdo
     -- lyt til changes og hånter
     (eChange, hChange) <- liftIO $ newEvent
     bRun <- stepper run $ head . NE.fromList <$> unions
-            [ (\run translation -> Run $ Lib.brah (Translation translation) (unRun run)) <$> bRun <@> eDataItemChange -- move this out and  handle with register
+            [ (\run translation -> Run $ Lib2.brah (Translation translation) (unRun run)) <$> bRun <@> eDataItemChange -- move this out and  handle with register
             , (\run language -> Run $ Store.seeks (Lens.set #languages language) (unRun run)) <$> bRun <@> eLanguageSelection
             , (\run style -> Run $ Store.seeks (Lens.set #styles style) (unRun run)) <$> bRun <@> eStyleSelection
-            , (\run position -> Run $ Lib.brah2 (Position position) (unRun run)) <$> bRun <@> eKeyChange
-            , (\run position -> Run $ Lib.brah2 (Position position) (unRun run)) <$> bRun <@> eChange
+            , (\run position -> Run $ Lib2.brah2 (Position position) (unRun run)) <$> bRun <@> eKeyChange
+            , (\run position -> Run $ Lib2.brah2 (Position position) (unRun run)) <$> bRun <@> eChange
             ]
 -------------------------------------------------------------------------------
 

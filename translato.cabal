@@ -33,7 +33,9 @@ library
       Lib.App.Env
       Lib.App.Error
       Lib.App.Monad
+      Lib.Config
       Lib.Message
+      Lib2
       Model
       Text
       Utils.ListZipper
@@ -66,6 +68,7 @@ library
     , cond
     , containers
     , data-fix
+    , filepath
     , generic-lens
     , lens
     , mtl
@@ -111,6 +114,7 @@ executable translato-exe
     , cond
     , containers
     , data-fix
+    , filepath
     , generic-lens
     , lens
     , mtl
@@ -158,6 +162,7 @@ test-suite translato-test
     , cond
     , containers
     , data-fix
+    , filepath
     , generic-lens
     , lens
     , mtl

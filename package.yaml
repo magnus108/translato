@@ -55,6 +55,7 @@ dependencies:
 - name: data-fix
 - name: unagi-chan
 - name: mtl
+- name: filepath
 
 library:
   source-dirs: src
