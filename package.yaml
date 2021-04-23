@@ -26,16 +26,23 @@ default-extensions:
 - OverloadedStrings
 - TypeSynonymInstances
 - FlexibleInstances
+- MultiParamTypeClasses
+- InstanceSigs
 - FlexibleContexts
 - OverloadedLabels
 - LambdaCase
 - RecordWildCards
+- TypeApplications
+- ScopedTypeVariables
+- KindSignatures
+- ConstraintKinds
+- GeneralizedNewtypeDeriving
 
 dependencies:
 - name: base
   mixin: hiding (Prelude)
 - name: relude
-  mixin: (Relude as Prelude)
+  mixin: (Relude as Prelude, Relude.Extra)
 - name: aeson
 - name: optparse-generic
 - name: generic-lens
@@ -46,6 +53,8 @@ dependencies:
 - name: threepenny-gui
 - name: cond
 - name: data-fix
+- name: unagi-chan
+- name: mtl
 
 library:
   source-dirs: src

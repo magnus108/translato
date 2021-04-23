@@ -29,6 +29,11 @@ library
       Columns3
       Format
       Lib
+      Lib.App
+      Lib.App.Env
+      Lib.App.Error
+      Lib.App.Monad
+      Lib.Message
       Model
       Text
       Utils.ListZipper
@@ -43,10 +48,17 @@ library
       OverloadedStrings
       TypeSynonymInstances
       FlexibleInstances
+      MultiParamTypeClasses
+      InstanceSigs
       FlexibleContexts
       OverloadedLabels
       LambdaCase
       RecordWildCards
+      TypeApplications
+      ScopedTypeVariables
+      KindSignatures
+      ConstraintKinds
+      GeneralizedNewtypeDeriving
   build-depends:
       aeson
     , base
@@ -56,13 +68,15 @@ library
     , data-fix
     , generic-lens
     , lens
+    , mtl
     , optparse-generic
     , relude
     , safe
     , threepenny-gui
+    , unagi-chan
   mixins:
       base hiding (Prelude)
-    , relude (Relude as Prelude)
+    , relude (Relude as Prelude, Relude.Extra)
   default-language: Haskell2010
 
 executable translato-exe
@@ -78,10 +92,17 @@ executable translato-exe
       OverloadedStrings
       TypeSynonymInstances
       FlexibleInstances
+      MultiParamTypeClasses
+      InstanceSigs
       FlexibleContexts
       OverloadedLabels
       LambdaCase
       RecordWildCards
+      TypeApplications
+      ScopedTypeVariables
+      KindSignatures
+      ConstraintKinds
+      GeneralizedNewtypeDeriving
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
@@ -92,14 +113,16 @@ executable translato-exe
     , data-fix
     , generic-lens
     , lens
+    , mtl
     , optparse-generic
     , relude
     , safe
     , threepenny-gui
     , translato
+    , unagi-chan
   mixins:
       base hiding (Prelude)
-    , relude (Relude as Prelude)
+    , relude (Relude as Prelude, Relude.Extra)
   default-language: Haskell2010
 
 test-suite translato-test
@@ -116,10 +139,17 @@ test-suite translato-test
       OverloadedStrings
       TypeSynonymInstances
       FlexibleInstances
+      MultiParamTypeClasses
+      InstanceSigs
       FlexibleContexts
       OverloadedLabels
       LambdaCase
       RecordWildCards
+      TypeApplications
+      ScopedTypeVariables
+      KindSignatures
+      ConstraintKinds
+      GeneralizedNewtypeDeriving
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
@@ -130,12 +160,14 @@ test-suite translato-test
     , data-fix
     , generic-lens
     , lens
+    , mtl
     , optparse-generic
     , relude
     , safe
     , threepenny-gui
     , translato
+    , unagi-chan
   mixins:
       base hiding (Prelude)
-    , relude (Relude as Prelude)
+    , relude (Relude as Prelude, Relude.Extra)
   default-language: Haskell2010
