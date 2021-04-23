@@ -66,7 +66,6 @@ main = do
     let status = Status languages styles
     let position = Position "title"
 
-    --(eChange, hChange) <- newEvent
 
     startGUI defaultConfig { jsWindowReloadOnDisconnect = False
                            , jsPort                     = Just port
@@ -162,13 +161,20 @@ setup position status window = void $ mdo
 
 
 
-
+-------------------------------------------------------------------------------
+    -- lave events og handlers
+    -- put events ind i bRun
+    -- register handles på all events
+    -- lyt til changes og hånter
+    (eChange, hChange) <- liftIO $ newEvent
     bRun <- stepper run $ head . NE.fromList <$> unions
-            [ (\run translation -> Run $ Lib.brah (Translation translation) (unRun run)) <$> bRun <@> eDataItemChange
+            [ (\run translation -> Run $ Lib.brah (Translation translation) (unRun run)) <$> bRun <@> eDataItemChange -- move this out and  handle with register
             , (\run language -> Run $ Store.seeks (Lens.set #languages language) (unRun run)) <$> bRun <@> eLanguageSelection
             , (\run style -> Run $ Store.seeks (Lens.set #styles style) (unRun run)) <$> bRun <@> eStyleSelection
             , (\run position -> Run $ Lib.brah2 (Position position) (unRun run)) <$> bRun <@> eKeyChange
+            , (\run position -> Run $ Lib.brah2 (Position position) (unRun run)) <$> bRun <@> eChange
             ]
+-------------------------------------------------------------------------------
 
     --  how do i save bRun?
     -- eChange
