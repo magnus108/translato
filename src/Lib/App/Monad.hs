@@ -2,6 +2,7 @@ module Lib.App.Monad
     ( App(..)
     , AppEnv
     , runAppAsIO
+    , runApp
     )
 where
 

@@ -5,6 +5,8 @@ module Lib
     )
 where
 
+import           Control.Monad
+import qualified Control.Concurrent.Async      as Async
 import qualified Lib.Config                    as Config
 
 import           Lib.App                        ( AppEnv
@@ -12,6 +14,9 @@ import           Lib.App                        ( AppEnv
                                                 , InChan(..)
                                                 , OutChan(..)
                                                 )
+
+import           Network.Wai.Handler.Warp       ( run )
+import           Lib.Server                     ( application )
 
 import           Graphics.UI.Threepenny.Core
 
@@ -28,7 +33,6 @@ mkAppEnv port Config.Config {..} = do
     let index   = "index.html"
 
     pure Env { .. }
-
 
 
 runClient :: AppEnv -> IO ()
@@ -48,8 +52,11 @@ setup env@Env {..} win = return ()
 
 runServer :: AppEnv -> IO ()
 runServer env@Env {..} = do
-    return ()
+    run 8080 $ application env
+
 
 main :: Int -> FilePath -> IO ()
 main port root = do
-    Config.loadConfig root "config.json" >>= mkAppEnv port >>= runServer -- andRunClient
+    Config.loadConfig root "config.json"
+        >>= mkAppEnv port
+        >>= liftM2 Async.race_ runServer runClient

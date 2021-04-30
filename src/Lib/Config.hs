@@ -7,13 +7,26 @@ where
 import           System.FilePath
 import           Lib.App
 import           Data.Aeson
-
+import qualified Data.ByteString               as B
+import           Control.Monad.Catch            ( MonadThrow
+                                                , throwM
+                                                )
+import           System.IO.Error
 
 data Config = Config
     { dumpFile :: !FilePath
-    } deriving (Show, Eq)
+    }
+    deriving (Show, Eq)
     deriving Generic
     deriving anyclass (FromJSON, ToJSON)
+
+
+readJSONFileStrict :: (MonadIO m, FromJSON a) => FilePath -> m a
+readJSONFileStrict fp = liftIO $ do
+    bs <- B.readFile fp
+    case eitherDecodeStrict' bs of
+        Left  e -> throwM $ userError e
+        Right x -> return x
 
 
 loadConfig :: MonadIO m => FilePath -> FilePath -> m Config

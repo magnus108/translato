@@ -35,6 +35,9 @@ library
       Lib.App.Monad
       Lib.Config
       Lib.Message
+      Lib.Server
+      Lib.Server.Auth
+      Lib.Server.Types
       Lib2
       Model
       Text
@@ -61,13 +64,18 @@ library
       KindSignatures
       ConstraintKinds
       GeneralizedNewtypeDeriving
+      DataKinds
+      TypeOperators
   build-depends:
       aeson
+    , async
     , base
+    , bytestring
     , comonad
     , cond
     , containers
     , data-fix
+    , exceptions
     , filepath
     , generic-lens
     , lens
@@ -75,8 +83,12 @@ library
     , optparse-generic
     , relude
     , safe
+    , servant
+    , servant-server
     , threepenny-gui
     , unagi-chan
+    , wai
+    , warp
   mixins:
       base hiding (Prelude)
     , relude (Relude as Prelude, Relude.Extra)
@@ -106,14 +118,19 @@ executable translato-exe
       KindSignatures
       ConstraintKinds
       GeneralizedNewtypeDeriving
+      DataKinds
+      TypeOperators
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
+    , async
     , base
+    , bytestring
     , comonad
     , cond
     , containers
     , data-fix
+    , exceptions
     , filepath
     , generic-lens
     , lens
@@ -121,9 +138,13 @@ executable translato-exe
     , optparse-generic
     , relude
     , safe
+    , servant
+    , servant-server
     , threepenny-gui
     , translato
     , unagi-chan
+    , wai
+    , warp
   mixins:
       base hiding (Prelude)
     , relude (Relude as Prelude, Relude.Extra)
@@ -154,14 +175,19 @@ test-suite translato-test
       KindSignatures
       ConstraintKinds
       GeneralizedNewtypeDeriving
+      DataKinds
+      TypeOperators
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
+    , async
     , base
+    , bytestring
     , comonad
     , cond
     , containers
     , data-fix
+    , exceptions
     , filepath
     , generic-lens
     , lens
@@ -169,9 +195,13 @@ test-suite translato-test
     , optparse-generic
     , relude
     , safe
+    , servant
+    , servant-server
     , threepenny-gui
     , translato
     , unagi-chan
+    , wai
+    , warp
   mixins:
       base hiding (Prelude)
     , relude (Relude as Prelude, Relude.Extra)

@@ -37,6 +37,9 @@ default-extensions:
 - KindSignatures
 - ConstraintKinds
 - GeneralizedNewtypeDeriving
+- DataKinds
+- TypeOperators
+
 
 dependencies:
 - name: base
@@ -56,6 +59,12 @@ dependencies:
 - name: unagi-chan
 - name: mtl
 - name: filepath
+- name: bytestring
+- name: exceptions
+- name: async
+- name: servant
+- name: servant-server
+- name: warp
 
 library:
   source-dirs: src

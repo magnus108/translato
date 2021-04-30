@@ -67,13 +67,17 @@ main = do
     let status = Status languages styles
     let position = Position "title"
 
+    Lib.main port ""
 
+    {-
     startGUI defaultConfig { jsWindowReloadOnDisconnect = False
                            , jsPort                     = Just port
                            , jsStatic                   = Just static
                            , jsCustomHTML               = Just index
                            , jsCallBufferMode           = NoBuffering
                            } $ setup position status
+                           -}
+
 
 
 setup :: Position -> Status -> Window -> UI ()
