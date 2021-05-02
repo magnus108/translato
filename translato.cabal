@@ -87,7 +87,6 @@ library
     , servant-server
     , threepenny-gui
     , unagi-chan
-    , wai
     , warp
   mixins:
       base hiding (Prelude)
@@ -143,7 +142,6 @@ executable translato-exe
     , threepenny-gui
     , translato
     , unagi-chan
-    , wai
     , warp
   mixins:
       base hiding (Prelude)
@@ -200,7 +198,6 @@ test-suite translato-test
     , threepenny-gui
     , translato
     , unagi-chan
-    , wai
     , warp
   mixins:
       base hiding (Prelude)

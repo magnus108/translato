@@ -23,6 +23,9 @@ import           Lib.Server.Auth                ( AuthApi
 
 type Api = AuthApi
 
+api :: Proxy Api
+api = Proxy
+
 runAppAsHandler :: AppEnv -> App a -> Handler a
 runAppAsHandler env app = do
     -- not save
@@ -30,8 +33,8 @@ runAppAsHandler env app = do
 
 server :: AppEnv -> Server Api
 server env =
-    hoistServer (Proxy @Api) (runAppAsHandler env) (toServant authServer)
+    hoistServer api (runAppAsHandler env) (toServant authServer)
 
 
 application :: AppEnv -> Application
-application env = serve (Proxy @Api) (server env)
+application env = serve api (server env)
