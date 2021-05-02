@@ -2,9 +2,11 @@ module Lib
     ( mkAppEnv
     , runServer
     , main
-    )
-where
+    ) where
 
+
+import Network.HTTP.Client (newManager, defaultManagerSettings)
+import Servant.API
 import           Control.Monad
 import qualified Control.Concurrent.Async      as Async
 import qualified Lib.Config                    as Config
@@ -13,15 +15,24 @@ import           Lib.App                        ( AppEnv
                                                 , Env(..)
                                                 , InChan(..)
                                                 , OutChan(..)
+                                                , runApp
+                                                , App(..)
+                                                , throwError
+                                                , AppErrorType(..)
                                                 )
 
+
 import           Network.Wai.Handler.Warp       ( run )
-import           Lib.Server                     ( application )
+import           Lib.Server                     ( application, api)
+import           Lib.Server.Auth
 
 import           Graphics.UI.Threepenny.Core
 
 import qualified Control.Concurrent.Chan.Unagi.Bounded
                                                as Chan
+
+import           Servant hiding (throwError, ServerError)
+import           Servant.Client
 
 mkAppEnv :: Int -> Config.Config -> IO AppEnv
 mkAppEnv port Config.Config {..} = do
@@ -47,8 +58,23 @@ runClient env@Env {..} = do
 
 
 setup :: AppEnv -> Window -> UI ()
-setup env@Env {..} win = return ()
+setup env@Env {..} win = do
+    -- config
+    let baseUrl' = BaseUrl Http "localhost" 8081 ""
+    manager' <- liftIO $ newManager defaultManagerSettings
+    let cenv = mkClientEnv manager' baseUrl'
+    let ff :<|> ss :<|> dd = hoistClient api (runClientM' cenv) (client api)
 
+    liftIO $ runApp env (ss "lol")
+
+    return ()
+
+runClientM' :: ClientEnv -> ClientM a -> App a
+runClientM' clietEnv client = do
+    e <- liftIO $ runClientM client clietEnv
+    case e of
+        Left servantErr -> throwError $ ServerError "servantErr" -- servantErr
+        Right a -> pure a
 
 runServer :: AppEnv -> IO ()
 runServer env@Env {..} = do

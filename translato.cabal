@@ -78,12 +78,14 @@ library
     , exceptions
     , filepath
     , generic-lens
+    , http-client
     , lens
     , mtl
     , optparse-generic
     , relude
     , safe
     , servant
+    , servant-client
     , servant-server
     , threepenny-gui
     , unagi-chan
@@ -132,12 +134,14 @@ executable translato-exe
     , exceptions
     , filepath
     , generic-lens
+    , http-client
     , lens
     , mtl
     , optparse-generic
     , relude
     , safe
     , servant
+    , servant-client
     , servant-server
     , threepenny-gui
     , translato
@@ -188,12 +192,14 @@ test-suite translato-test
     , exceptions
     , filepath
     , generic-lens
+    , http-client
     , lens
     , mtl
     , optparse-generic
     , relude
     , safe
     , servant
+    , servant-client
     , servant-server
     , threepenny-gui
     , translato

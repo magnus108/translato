@@ -1,6 +1,7 @@
 module Lib.Server
     ( Api
     , application
+    , api
     )
 where
 

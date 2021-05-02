@@ -64,6 +64,8 @@ dependencies:
 - name: async
 - name: servant
 - name: servant-server
+- name: servant-client
+- name: http-client
 - name: warp
 
 library:

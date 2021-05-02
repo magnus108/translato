@@ -1,6 +1,6 @@
 module Lib.App.Error
     ( AppError(..)
-    , AppErrorType
+    , AppErrorType(..)
     , AppException(..)
     , WithError
     , throwError
