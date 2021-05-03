@@ -65,6 +65,7 @@ dependencies:
 - name: servant
 - name: servant-server
 - name: servant-client
+- name: servant-docs
 - name: http-client
 - name: warp
 

@@ -2,6 +2,7 @@ module Lib.Server
     ( Api
     , application
     , api
+    , docs
     )
 where
 
@@ -22,6 +23,8 @@ import           Lib.Server.Auth                ( AuthApi
                                                 , authServer
                                                 )
 
+import qualified Servant.Docs                  as Docs
+
 type Api = AuthApi
 
 api :: Proxy Api
@@ -33,9 +36,10 @@ runAppAsHandler env app = do
     liftIO $ runApp env app
 
 server :: AppEnv -> Server Api
-server env =
-    hoistServer api (runAppAsHandler env) (toServant authServer)
+server env = hoistServer api (runAppAsHandler env) (toServant authServer)
 
+docs :: Docs.API
+docs = Docs.docs api
 
 application :: AppEnv -> Application
 application env = serve api (server env)

@@ -86,6 +86,7 @@ library
     , safe
     , servant
     , servant-client
+    , servant-docs
     , servant-server
     , threepenny-gui
     , unagi-chan
@@ -142,6 +143,7 @@ executable translato-exe
     , safe
     , servant
     , servant-client
+    , servant-docs
     , servant-server
     , threepenny-gui
     , translato
@@ -200,6 +202,7 @@ test-suite translato-test
     , safe
     , servant
     , servant-client
+    , servant-docs
     , servant-server
     , threepenny-gui
     , translato

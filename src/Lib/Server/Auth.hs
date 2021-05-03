@@ -38,6 +38,7 @@ import           Servant.API.Generic           as Web
                                                 ( (:-)
                                                 , toServant
                                                 )
+import           Servant.Docs
 
 data LoginRequest = LoginRequest
     { --loginRequestEmail    :: Email
@@ -45,12 +46,14 @@ data LoginRequest = LoginRequest
     } deriving Show
       deriving Generic
       deriving anyclass (FromJSON, ToJSON)
+      deriving ToSample
 
 data LoginResponse = LoginResponse
     { -- loginResponseToken :: JwtToken
     } deriving Show
       deriving Generic
       deriving anyclass (FromJSON, ToJSON)
+      deriving ToSample
 
 
 data AuthSite route = AuthSite
@@ -69,6 +72,10 @@ data AuthSite route = AuthSite
         :> Capture "JWT" String -- JwtToken
         :> Get '[JSON] NoContent
     } deriving (Generic)
+
+
+instance ToCapture (Capture "JWT" String) where
+  toCapture _ = DocCapture "JWT" "No description"
 
 
 type AuthApi = ToApi AuthSite
