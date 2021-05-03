@@ -19,6 +19,7 @@ import           Lib.App                        ( AppEnv
                                                 , InChan(..)
                                                 , OutChan(..)
                                                 , runApp
+                                                , runAppAsIO
                                                 , App(..)
                                                 , throwError
                                                 , AppErrorType(..)
@@ -44,13 +45,19 @@ import           Servant                 hiding ( throwError
 import           Servant.Client
 
 mkAppEnv :: Int -> Config.Config -> IO AppEnv
-mkAppEnv port Config.Config {..} = do
+mkAppEnv clientPort Config.Config {..} = do
     (inChan', outChan') <- Chan.newChan 200
-    let inChan  = InChan inChan'
-    let outChan = OutChan outChan'
+    let inChan     = InChan inChan'
+    let outChan    = OutChan outChan'
 
-    let static  = "static"
-    let index   = "index.html"
+    let static     = "static"
+    let index      = "index.html"
+
+    let serverPort = 8080
+
+    let baseUrl' = BaseUrl Http "localhost" serverPort ""
+    manager' <- newManager defaultManagerSettings
+    let cenv      = mkClientEnv manager' baseUrl'
 
     pure Env { .. }
 
@@ -58,7 +65,7 @@ mkAppEnv port Config.Config {..} = do
 runClient :: AppEnv -> IO ()
 runClient env@Env {..} = do
     startGUI defaultConfig { jsWindowReloadOnDisconnect = False
-                           , jsPort                     = Just port
+                           , jsPort                     = Just clientPort
                            , jsStatic                   = Just static
                            , jsCustomHTML               = Just index
                            , jsCallBufferMode           = NoBuffering
@@ -69,12 +76,11 @@ runClient env@Env {..} = do
 setup :: AppEnv -> Window -> UI ()
 setup env@Env {..} win = do
     -- config
-    let baseUrl' = BaseUrl Http "localhost" 8081 ""
-    manager' <- liftIO $ newManager defaultManagerSettings
-    let cenv               = mkClientEnv manager' baseUrl'
     let ff :<|> ss :<|> dd = hoistClient api (runClientM' cenv) (client api)
+    liftIO $ runAppAsIO env (ss "lol")
 
-    liftIO $ runApp env (ss "lol")
+-------------------------------------------------------------------------------
+    return win # set title "test"
 
     return ()
 
@@ -85,14 +91,15 @@ runClientM' clietEnv client = do
         Left  servantErr -> throwError $ ServerError "servantErr" -- servantErr
         Right a          -> pure a
 
+
 runServer :: AppEnv -> IO ()
 runServer env@Env {..} = do
     putStrLn $ Docs.markdown docs
-    run 8080 $ application env
+    run serverPort $ application env
 
 
 main :: Int -> FilePath -> IO ()
 main port root = do
-    Config.loadConfig root "config.json"
+    Config.loadConfig root "config/config.json"
         >>= mkAppEnv port
         >>= liftM2 Async.race_ runServer runClient

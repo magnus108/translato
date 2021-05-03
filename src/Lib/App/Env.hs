@@ -15,17 +15,22 @@ import qualified Control.Concurrent.Chan.Unagi.Bounded
 
 import qualified Lib.Message                   as Message
 
+import           Servant.Client
+
 data Env (m :: Type -> Type) = Env
     { inChan :: InChan
     , outChan :: OutChan
-    , port :: !Int
+    , clientPort :: !Int
+    , serverPort :: !Int
     , static :: !FilePath
     , index :: !FilePath
+    , cenv :: !ClientEnv
     }
 
 
 newtype InChan = InChan { unInChan :: Chan.InChan Message.Message }
 newtype OutChan = OutChan { unOutChan :: Chan.OutChan Message.Message }
+
 
 instance Has InChan              (Env m) where
     obtain = inChan

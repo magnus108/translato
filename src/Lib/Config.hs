@@ -32,6 +32,5 @@ readJSONFileStrict fp = liftIO $ do
 loadConfig :: MonadIO m => FilePath -> FilePath -> m Config
 loadConfig root file = do
     let config = root </> file
-    return $ Config "lol"
-    --readJSONFile config
+    readJSONFileStrict config
 
