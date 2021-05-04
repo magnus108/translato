@@ -2,6 +2,7 @@ module Lib.Server.Auth
     ( LoginRequest(..)
     , LoginResponse(..)
     , AuthApi
+    , AuthSite
     , authServer
 --    , loginHandler
 --    , isLoggedInHandler

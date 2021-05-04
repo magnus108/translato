@@ -77,7 +77,7 @@ setup :: AppEnv -> Window -> UI ()
 setup env@Env {..} win = do
     -- config
     let ff :<|> ss :<|> dd = hoistClient api (runClientM' cenv) (client api)
-    liftIO $ runAppAsIO env (ss "lol")
+    -- liftIO $ runAppAsIO env (ss 1)
 
 -------------------------------------------------------------------------------
     return win # set title "test"
