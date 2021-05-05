@@ -66,8 +66,13 @@ dependencies:
 - name: servant-server
 - name: servant-client
 - name: servant-docs
+- name: servant-auth
+- name: servant-auth-server
+- name: servant-auth-client
+- name: servant-auth-docs
 - name: http-client
 - name: warp
+- name: typed-uuid
 
 library:
   source-dirs: src

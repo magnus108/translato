@@ -85,10 +85,15 @@ library
     , relude
     , safe
     , servant
+    , servant-auth
+    , servant-auth-client
+    , servant-auth-docs
+    , servant-auth-server
     , servant-client
     , servant-docs
     , servant-server
     , threepenny-gui
+    , typed-uuid
     , unagi-chan
     , warp
   mixins:
@@ -142,11 +147,16 @@ executable translato-exe
     , relude
     , safe
     , servant
+    , servant-auth
+    , servant-auth-client
+    , servant-auth-docs
+    , servant-auth-server
     , servant-client
     , servant-docs
     , servant-server
     , threepenny-gui
     , translato
+    , typed-uuid
     , unagi-chan
     , warp
   mixins:
@@ -201,11 +211,16 @@ test-suite translato-test
     , relude
     , safe
     , servant
+    , servant-auth
+    , servant-auth-client
+    , servant-auth-docs
+    , servant-auth-server
     , servant-client
     , servant-docs
     , servant-server
     , threepenny-gui
     , translato
+    , typed-uuid
     , unagi-chan
     , warp
   mixins:
