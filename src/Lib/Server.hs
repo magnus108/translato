@@ -24,6 +24,7 @@ import           Lib.Server.Auth                ( AuthApi
                                                 , AuthSite
                                                 )
 
+import Servant.Auth.Docs
 import qualified Servant.Docs                  as Docs
 
 import           Servant.API                   as Web
@@ -50,7 +51,11 @@ import           Servant.API.Generic           as Web
 
 import           Lib.Server.Types               ( AppServer
                                                 , ToApi
+                                                , Permission
+                                                , ProtectAPI
                                                 )
+import Lib.Server.Protected.AccessKey 
+
 
 
 data TestAPI route = TestAPI
@@ -70,8 +75,7 @@ instance Docs.ToCapture (Capture "i" Int) where
 testApiServer :: TestAPI AppServer
 testApiServer =
     TestAPI { p1 = undefined -- loginHandler
-            , p2 = undefined
-            } -- logoutHandler
+                            , p2 = undefined } -- logoutHandler
 
 
 type Api = AuthApi :<|> (ToApi TestAPI)
@@ -98,3 +102,30 @@ docs = Docs.docs api
 
 application :: AppEnv -> Application
 application env = serve api (server env)
+
+
+
+
+
+
+-------------------------------------------------------------------------------
+siteAPI :: Proxy SiteApi
+siteAPI = Proxy
+
+type SiteApi = ToApi Site
+
+data Site route = Site
+      { protectedSite :: !(route :- ToApi ProtectedSite)
+      }
+  deriving (Generic)
+
+type ProtectedAPI = ToApi ProtectedSite
+
+data ProtectedSite route
+  = ProtectedSite
+      { protectedAccessKeySite :: !(route :- "access-key" :> ToApi ProtectedAccessKeySite)
+      , getPermissions :: !(route :- GetPermissions)
+      }
+  deriving (Generic)
+
+type GetPermissions = ProtectAPI :> "permissions" :> Get '[JSON] (Set Permission)

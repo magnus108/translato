@@ -73,6 +73,9 @@ dependencies:
 - name: http-client
 - name: warp
 - name: typed-uuid
+- name: time
+- name: text
+- name: base16-bytestring
 
 library:
   source-dirs: src

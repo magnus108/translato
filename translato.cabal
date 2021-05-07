@@ -37,6 +37,8 @@ library
       Lib.Message
       Lib.Server
       Lib.Server.Auth
+      Lib.Server.Protected.AccessKey
+      Lib.Server.Protected.AccessKey.Types
       Lib.Server.Types
       Lib2
       Model
@@ -70,6 +72,7 @@ library
       aeson
     , async
     , base
+    , base16-bytestring
     , bytestring
     , comonad
     , cond
@@ -92,7 +95,9 @@ library
     , servant-client
     , servant-docs
     , servant-server
+    , text
     , threepenny-gui
+    , time
     , typed-uuid
     , unagi-chan
     , warp
@@ -132,6 +137,7 @@ executable translato-exe
       aeson
     , async
     , base
+    , base16-bytestring
     , bytestring
     , comonad
     , cond
@@ -154,7 +160,9 @@ executable translato-exe
     , servant-client
     , servant-docs
     , servant-server
+    , text
     , threepenny-gui
+    , time
     , translato
     , typed-uuid
     , unagi-chan
@@ -196,6 +204,7 @@ test-suite translato-test
       aeson
     , async
     , base
+    , base16-bytestring
     , bytestring
     , comonad
     , cond
@@ -218,7 +227,9 @@ test-suite translato-test
     , servant-client
     , servant-docs
     , servant-server
+    , text
     , threepenny-gui
+    , time
     , translato
     , typed-uuid
     , unagi-chan
