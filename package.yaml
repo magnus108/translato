@@ -72,10 +72,12 @@ dependencies:
 - name: servant-auth-docs
 - name: http-client
 - name: warp
+- name: uuid
 - name: typed-uuid
 - name: time
 - name: text
 - name: base16-bytestring
+- name: random
 
 library:
   source-dirs: src

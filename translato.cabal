@@ -85,6 +85,7 @@ library
     , lens
     , mtl
     , optparse-generic
+    , random
     , relude
     , safe
     , servant
@@ -100,6 +101,7 @@ library
     , time
     , typed-uuid
     , unagi-chan
+    , uuid
     , warp
   mixins:
       base hiding (Prelude)
@@ -150,6 +152,7 @@ executable translato-exe
     , lens
     , mtl
     , optparse-generic
+    , random
     , relude
     , safe
     , servant
@@ -166,6 +169,7 @@ executable translato-exe
     , translato
     , typed-uuid
     , unagi-chan
+    , uuid
     , warp
   mixins:
       base hiding (Prelude)
@@ -217,6 +221,7 @@ test-suite translato-test
     , lens
     , mtl
     , optparse-generic
+    , random
     , relude
     , safe
     , servant
@@ -233,6 +238,7 @@ test-suite translato-test
     , translato
     , typed-uuid
     , unagi-chan
+    , uuid
     , warp
   mixins:
       base hiding (Prelude)

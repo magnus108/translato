@@ -21,6 +21,7 @@ import Data.UUID.Typed
 import Servant.API
 import Servant.API.Generic
 import Servant.Auth.Docs ()
+import Servant.Docs
 
 import Lib.Server.Protected.AccessKey.Types
 
@@ -43,3 +44,9 @@ type GetAccessKey = ProtectAPI :> Capture "uuid" AccessKeyUUID :> Get '[JSON] Ac
 type GetAccessKeys = ProtectAPI :> Get '[JSON] [AccessKeyInfo]
 
 type DeleteAccessKey = ProtectAPI :> Capture "uuid" AccessKeyUUID :> Delete '[JSON] NoContent
+
+
+
+
+instance ToCapture (Capture "uuid" AccessKeyUUID) where
+  toCapture _ = DocCapture "uuid" "The UUID of the access key"

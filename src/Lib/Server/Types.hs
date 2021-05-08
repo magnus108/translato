@@ -19,6 +19,8 @@ import           Data.Set                       ( Set )
 
 import Data.UUID.Typed
 
+import Servant.Docs
+
 type AppServer = AsServerT App
 
 type ToApi (site :: Type -> Type) = ToServantApi site
@@ -38,6 +40,7 @@ data Permission
         deriving anyclass (FromJSON, ToJSON)
 
 
+instance ToSample Permission
 
 type AccountUUID = UUID User
 
@@ -48,21 +51,21 @@ type ProtectAPI = Auth '[JWT] AuthCookie
 data AuthCookie
   = AuthCookie
       { userUUID :: AccountUUID,
-        permissions :: Set Permission
+        permissions :: [Permission]
       }
     deriving Show
     deriving Generic
     deriving anyclass (FromJSON, ToJSON)
     deriving anyclass (FromJWT, ToJWT)
 
-userPermissions :: Set Permission
-userPermissions = S.fromList [ReadSomthing]
+userPermissions :: [Permission]
+userPermissions = [ReadSomthing]
 
-adminOnlyPermissions :: Set Permission
-adminOnlyPermissions = S.fromList [WriteSomething]
+adminOnlyPermissions :: [Permission]
+adminOnlyPermissions = [WriteSomething]
 
-adminPermissions :: Set Permission
-adminPermissions = S.union userPermissions adminOnlyPermissions
+adminPermissions :: [Permission]
+adminPermissions = userPermissions ++ adminOnlyPermissions
 
-allPermissions :: Set Permission
-allPermissions = S.fromList [minBound .. maxBound]
+allPermissions :: [Permission]
+allPermissions = [minBound .. maxBound]

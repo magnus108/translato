@@ -28,7 +28,6 @@ import           Lib.App                        ( AppEnv
 
 import           Network.Wai.Handler.Warp       ( run )
 import           Lib.Server                     ( application
-                                                , api
                                                 , docs
                                                 )
 import           Lib.Server.Auth
@@ -76,7 +75,7 @@ runClient env@Env {..} = do
 setup :: AppEnv -> Window -> UI ()
 setup env@Env {..} win = do
     -- config
-    let ff :<|> ss :<|> dd = hoistClient api (runClientM' cenv) (client api)
+    --let ff :<|> ss :<|> dd = hoistClient api (runClientM' cenv) (client api)
     -- liftIO $ runAppAsIO env (ss 1)
 
 -------------------------------------------------------------------------------

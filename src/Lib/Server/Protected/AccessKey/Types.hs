@@ -6,6 +6,8 @@ module Lib.Server.Protected.AccessKey.Types
     )
 where
 
+import qualified Data.UUID as UUID
+import Servant.Docs
 import           Lib.Server.Types               ( Permission )
 import           Data.Aeson
 import           Data.Set                       ( Set )
@@ -16,6 +18,10 @@ import qualified Data.ByteString as SB
 import qualified Data.ByteString.Base16 as SB16
 import qualified Data.Text.Encoding as TE
 
+
+import System.Random
+import System.IO.Unsafe
+
 type AccessKeyUUID = UUID AccessKey
 
 data AccessKey
@@ -24,6 +30,13 @@ newtype AccessKeySecret
   = AccessKeySecret ByteString
     deriving (Show, Eq, Ord)
     deriving Generic
+
+
+instance ToSample AccessKeySecret where
+  toSamples Proxy = singleSample $ unsafePerformIO generateRandomAccessKeySecret
+
+generateRandomAccessKeySecret :: IO AccessKeySecret
+generateRandomAccessKeySecret = AccessKeySecret . SB.pack <$> replicateM 16 randomIO
 
 instance FromJSON AccessKeySecret where
   parseJSON =
@@ -50,21 +63,26 @@ data AccessKeyInfo
       { accessKeyInfoUUID :: AccessKeyUUID
       , accessKeyInfoName :: Text
       , accessKeyInfoCreatedTimestamp :: UTCTime
-      , accessKeyInfoPermissions :: Set Permission
+      , accessKeyInfoPermissions :: [Permission]
       }
     deriving (Show, Eq, Ord)
     deriving Generic
     deriving anyclass (FromJSON, ToJSON)
 
+
+
+instance ToSample AccessKeyInfo
 
 data AddAccessKey
   = AddAccessKey
       { addAccessKeyName :: Text
-      ,   addAccessKeyPermissions :: Set Permission
+      , addAccessKeyPermissions :: [Permission]
       }
     deriving (Show, Eq, Ord)
     deriving Generic
     deriving anyclass (FromJSON, ToJSON)
+
+instance ToSample AddAccessKey
 
 data AccessKeyCreated
   = AccessKeyCreated
@@ -76,3 +94,13 @@ data AccessKeyCreated
     deriving Generic
     deriving anyclass (FromJSON, ToJSON)
 
+instance ToSample AccessKeyCreated
+
+instance ToSample Text where
+    toSamples Proxy = singleSample "Example Text"
+
+instance ToSample UTCTime where
+      toSamples Proxy = singleSample $ UTCTime (fromGregorian 2018 2 10) 42
+
+instance ToSample (UUID a) where
+  toSamples Proxy = singleSample (UUID $ UUID.fromWords 0 0 0 0)

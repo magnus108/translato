@@ -1,7 +1,5 @@
 module Lib.Server
-    ( Api
-    , application
-    , api
+    ( application
     , docs
     )
 where
@@ -24,6 +22,8 @@ import           Lib.Server.Auth                ( AuthApi
                                                 , AuthSite
                                                 )
 
+
+import Servant.Auth.Server (JWTSettings, CookieSettings)
 import Servant.Auth.Docs
 import qualified Servant.Docs                  as Docs
 
@@ -58,55 +58,36 @@ import Lib.Server.Protected.AccessKey
 
 
 
-data TestAPI route = TestAPI
-                        { p1 :: route
-                                :- "foo"
-                                :> Capture "i" Int
-                                :> Get '[JSON] NoContent
-                        , p2 :: route
-                                :- "bar"
-                                :> Get '[JSON] NoContent
-                        } deriving (Generic)
-
-instance Docs.ToCapture (Capture "i" Int) where
-    toCapture _ = Docs.DocCapture "i" "No description"
-
-
-testApiServer :: TestAPI AppServer
-testApiServer =
-    TestAPI { p1 = undefined -- loginHandler
-                            , p2 = undefined } -- logoutHandler
-
-
-type Api = AuthApi :<|> (ToApi TestAPI)
-
-
-api :: Proxy Api
-api = Proxy
 
 runAppAsHandler :: AppEnv -> App a -> Handler a
 runAppAsHandler env app = do
     -- not save
     liftIO $ runApp env app
 
+siteServer :: Site AppServer
+siteServer = Site { protectedSite      = undefined -- loginHandler
+                  }
 
 
-server :: AppEnv -> Server Api
-server env = hoistServer
-    api
-    (runAppAsHandler env)
-    (toServant authServer :<|> toServant testApiServer)
+server :: AppEnv -> Server SiteApi
+server env = 
+    hoistServerWithContext
+        siteAPI
+        (Proxy :: Proxy SiteContext)
+        (runAppAsHandler env)
+        (toServant siteServer)
+
+type SiteContext = '[CookieSettings, JWTSettings]
 
 docs :: Docs.API
-docs = Docs.docs api
+docs = Docs.docs siteAPI
 
 application :: AppEnv -> Application
-application env = serve api (server env)
+application env = serveWithContext siteAPI (siteContext env) (server env)
 
 
-
-
-
+siteContext :: AppEnv -> Context SiteContext
+siteContext env = undefined --envCookieSettings :. envJWTSettings :. EmptyContext
 
 -------------------------------------------------------------------------------
 siteAPI :: Proxy SiteApi
@@ -128,4 +109,4 @@ data ProtectedSite route
       }
   deriving (Generic)
 
-type GetPermissions = ProtectAPI :> "permissions" :> Get '[JSON] (Set Permission)
+type GetPermissions = ProtectAPI :> "permissions" :> Get '[JSON] ([Permission])
