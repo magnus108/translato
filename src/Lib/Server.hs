@@ -86,26 +86,21 @@ siteServer = Site { protectedSite = genericServerT protectedServer }
 -- does not match layercake
 protectedServer :: ProtectedSite AppServer
 protectedServer = ProtectedSite
-    { protectedAccessKeySite = undefined ---genericServerT protectedAccessKeyServer
+    { protectedAccessKeySite = genericServerT protectedAccessKeyServer
     , getPermissions = withAuthResultAndPermission PermitAdd serveGetPermissions
     }
 
-    {-
 protectedAccessKeyServer :: ProtectedAccessKeySite AppServer
 protectedAccessKeyServer = ProtectedAccessKeySite
-    { postAddAccessKey = withAuthResultAndPermission PermitAdd
-                                                     servePostAddAccessKey
+    { postAddAccessKey = withAuthResultAndPermission PermitAdd servePostAddAccessKey
     , getAccessKey     = withAuthResultAndPermission PermitAdd serveGetAccessKey
     , getAccessKeys = withAuthResultAndPermission PermitAdd serveGetAccessKeys
-    , deleteAccessKey  = withAuthResultAndPermission PermitAdd
-                                                     serveDeleteAccessKey
+    , deleteAccessKey = withAuthResultAndPermission PermitAdd serveDeleteAccessKey
     }
 
--}
-serveGetPermissions :: AuthCookie -> [Permission]
-serveGetPermissions AuthCookie {..} = permissions
+serveGetPermissions :: AuthCookie -> App [Permission]
+serveGetPermissions AuthCookie {..} = pure permissions
 
-    {-
 serveDeleteAccessKey :: AuthCookie -> AccessKeyUUID -> App NoContent
 serveDeleteAccessKey AuthCookie {..} uuid = do
     undefined
@@ -126,24 +121,20 @@ serveGetAccessKeys AuthCookie {..} = do
 --  aks <- runDb $ selectList [AccessKeyUser ==. authCookieUserUUID] []
  -- pure $ map (makeAccessKeyInfo . entityVal) aks
 
+-- Shoud use withPattern
 servePostAddAccessKey :: AuthCookie -> AddAccessKey -> App AccessKeyCreated
 servePostAddAccessKey AuthCookie {..} AddAccessKey {..} = undefined
--}
 
 
--- the fuck are these?
 withAuthResult :: WithError m => (AuthCookie -> m a) -> (AuthResult AuthCookie -> m a)
 withAuthResult func ar = case ar of
     Authenticated ac -> func ac
     _                -> throwError $ ServerError "servantErr"
 
--- the fuck are these?
-withAuthResultAndPermission :: WithError m =>
-    Permission -> (AuthCookie -> a) -> (AuthResult AuthCookie -> m a)
+withAuthResultAndPermission :: WithError m => Permission -> (AuthCookie -> m a) -> (AuthResult AuthCookie -> m a)
 withAuthResultAndPermission p func =
-    withAuthResult (\ac -> withPermission (permissions ac) p (func ac))
+    withAuthResult (\ac -> withPermission (permissions ac) p =<< (func ac))
 
--- the fuck are these?
 withPermission :: WithError m => [Permission] -> Permission -> a -> m a
 withPermission ps p func =
     if elem p ps then return func else throwError $ ServerError "servantErr"
