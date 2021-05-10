@@ -22,14 +22,12 @@ import           Lib.App                        ( AppEnv
                                                 , runApp
                                                 )
 
-import           Lib.Server.Auth                ( AuthApi
-                                                , authServer
-                                                , AuthSite
-                                                )
 import           Lib.Server.Types               ( AuthCookie(..)
                                                 , Permission(..)
+                                                , adminPermissions
                                                 )
 
+import Data.Aeson
 
 import           Servant.Auth.Server            ( JWTSettings
                                                 , CookieSettings
@@ -44,6 +42,7 @@ import           Servant.API                   as Web
                                                 , Header
                                                 , Header'
                                                 , JSON
+                                                , PostNoContent(..)
                                                 , NoContent(NoContent)
                                                 , Post
                                                 , QueryParam
@@ -60,6 +59,7 @@ import           Servant.Server.Generic         ( genericServerT )
 import           Servant.API.Generic           as Web
                                                 ( (:-)
                                                 , toServant
+                                                , genericApi
                                                 , ToServant
                                                 )
 
@@ -72,6 +72,7 @@ import           Lib.Server.Protected.AccessKey
 
 
 import           Network.Wai.Middleware.Cors
+import Data.UUID.Typed
 
 
 runAppAsHandler :: AppEnv -> App a -> Handler a
@@ -81,7 +82,92 @@ runAppAsHandler env app = do
 
 -- does not match layercake
 siteServer :: Site AppServer
-siteServer = Site { protectedSite = genericServerT protectedServer }
+siteServer = Site { publicSite = genericServerT publicServer
+                  , protectedSite = genericServerT protectedServer
+                  }
+
+
+newtype Username
+  = Username
+      { usernameText :: Text
+      }
+        deriving (Show, Eq, Ord)
+        deriving Generic
+        deriving anyclass (FromJSON, ToJSON)
+
+data LoginForm
+  = LoginForm
+      { loginFormUsername :: Username
+      , loginFormPassword :: Text
+      }
+        deriving (Show, Eq, Ord)
+        deriving Generic
+        deriving anyclass (FromJSON, ToJSON)
+
+instance Docs.ToSample LoginForm
+instance Docs.ToSample Username
+
+
+publicServer :: PublicSite AppServer
+publicServer = PublicSite
+    { postLogin = servePostLogin
+    }
+
+servePostLogin :: LoginForm -> App (Headers '[Header "Set-Cookie" Text] NoContent)
+servePostLogin LoginForm {..} = do
+    let perms = adminPermissions
+        uid = 1
+        --Find ud af hvordan User virker??
+    userIdentifier <- liftIO nextRandomUUID
+    setLoggedIn uid userIdentifier perms
+        where
+            setLoggedIn uid userIdentifier perms = do
+                    let cookie = AuthCookie {userUUID = userIdentifier, permissions = perms}
+                    Env {..} <- ask -- this is wrong
+                    mCookie <- liftIO $ makeSessionCookieBS cookieSettings jwtSettings cookie
+                    case mCookie of
+                        Nothing -> throwError $ ServerError "servantErr"
+                        Just setCookie -> do
+                            --now <- liftIO getCurrentTime
+                            --runDb $ update uid [UserLastLogin =. Just now]
+                            return $ addHeader (decodeUtf8 setCookie) NoContent
+        {-
+  me <- runDb $ getBy $ UniqueUsername loginFormUsername
+  case me of
+    Nothing -> throwError err401
+    Just (Entity uid user) ->
+      if validatePassword (userHashedPassword user) loginFormPassword
+        then do
+          admins <- asks envAdmins
+          let perms =
+                if userUsername user `elem` admins
+                  then adminPermissions
+                  else userPermissions
+          setLoggedIn uid user perms
+        else do
+          aks <- runDb $ selectList [] [Asc AccessKeyCreatedTimestamp]
+          let mli =
+                flip map aks $ \(Entity _ AccessKey {..}) -> do
+                  submittedKey <- parseAccessKeySecretText loginFormPassword
+                  if validatePassword accessKeyHashedKey (accessKeySecretText submittedKey)
+                    then Just accessKeyPermissions
+                    else Nothing
+          case msum mli of
+            Nothing -> throwError err401
+            Just perms -> setLoggedIn uid user perms
+  where
+    setLoggedIn uid user perms = do
+      let cookie =
+            AuthCookie {authCookieUserUUID = userIdentifier user, authCookiePermissions = perms}
+      IntrayServerEnv {..} <- ask
+      mCookie <- liftIO $ makeSessionCookieBS envCookieSettings envJWTSettings cookie
+      case mCookie of
+        Nothing -> throwError err401
+        Just setCookie -> do
+          now <- liftIO getCurrentTime
+          runDb $ update uid [UserLastLogin =. Just now]
+          return $ addHeader (decodeUtf8 setCookie) NoContent
+          -}
 
 -- does not match layercake
 protectedServer :: ProtectedSite AppServer
@@ -103,9 +189,11 @@ serveGetPermissions AuthCookie {..} = pure permissions
 
 serveDeleteAccessKey :: AuthCookie -> AccessKeyUUID -> App NoContent
 serveDeleteAccessKey AuthCookie {..} uuid = do
-    undefined
-  --runDb $ deleteWhere [AccessKeyIdentifier ==. uuid]
-  --pure NoContent
+    -- RUN IN IO, read file ith array
+    -- delete item
+    -- write file
+    -- STRICT!
+    pure NoContent
 
 serveGetAccessKey :: AuthCookie -> AccessKeyUUID -> App AccessKeyInfo
 serveGetAccessKey AuthCookie {..} uuid = do
@@ -126,6 +214,8 @@ servePostAddAccessKey :: AuthCookie -> AddAccessKey -> App AccessKeyCreated
 servePostAddAccessKey AuthCookie {..} AddAccessKey {..} = undefined
 
 
+
+
 withAuthResult :: WithError m => (AuthCookie -> m a) -> (AuthResult AuthCookie -> m a)
 withAuthResult func ar = case ar of
     Authenticated ac -> func ac
@@ -144,7 +234,7 @@ server :: AppEnv -> Server SiteApi
 server env = hoistServerWithContext siteAPI
                                     (Proxy :: Proxy SiteContext)
                                     (runAppAsHandler env)
-                                    (toServant siteServer)
+                                    (genericServerT siteServer)
 
 type SiteContext = '[CookieSettings, JWTSettings]
 
@@ -167,16 +257,24 @@ siteContext Env {..} = cookieSettings :. jwtSettings :. EmptyContext
 
 -------------------------------------------------------------------------------
 siteAPI :: Proxy SiteApi
-siteAPI = Proxy
+siteAPI = genericApi $ (Proxy :: Proxy Site)
 
 type SiteApi = ToApi Site
 
 data Site route = Site
-      { protectedSite :: !(route :- ToApi ProtectedSite)
+      { publicSite :: !(route :- PublicAPI)
+      , protectedSite :: !(route :- ProtectedAPI)
       }
   deriving (Generic)
 
 type ProtectedAPI = ToApi ProtectedSite
+
+data PublicSite route
+    = PublicSite { postLogin :: !(route :- PostLogin) }
+  deriving (Generic)
+
+
+type PublicAPI = ToApi PublicSite
 
 data ProtectedSite route
   = ProtectedSite
@@ -185,4 +283,7 @@ data ProtectedSite route
       }
   deriving (Generic)
 
-type GetPermissions = ProtectAPI :> "permissions" :> Get '[JSON] ([Permission])
+type GetPermissions = ProtectAPI :> "permissions" :> Get '[JSON] [Permission]
+
+type PostLogin = "login" :> ReqBody '[JSON] LoginForm :> Post '[JSON] (Headers '[Header "Set-Cookie" Text] NoContent)
+   --- PostNoContent '[JSON] (Headers '[Header "Set-Cookie" Text] NoContent)

@@ -1,12 +1,6 @@
 module Lib.Server.Auth
     ( LoginRequest(..)
     , LoginResponse(..)
-    , AuthApi
-    , AuthSite
-    , authServer
---    , loginHandler
---    , isLoggedInHandler
---    , logoutHandler
     )
 where
 
@@ -79,11 +73,3 @@ instance ToCapture (Capture "JWT" String) where
   toCapture _ = DocCapture "JWT" "No description"
 
 
-type AuthApi = ToApi AuthSite
-
-
-authServer :: AuthSite AppServer
-authServer = AuthSite { loginRoute      = undefined -- loginHandler
-                      , isLoggedInRoute = undefined -- isLoggedInHandler
-                      , logoutRoute     = undefined -- logoutHandler
-                      }
