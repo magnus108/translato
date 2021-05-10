@@ -42,6 +42,9 @@ import           Servant                 hiding ( throwError
                                                 , ServerError
                                                 )
 import           Servant.Client
+import Servant.Auth.Server as Auth
+
+import Crypto.JOSE.JWK (JWK)
 
 mkAppEnv :: Int -> Config.Config -> IO AppEnv
 mkAppEnv clientPort Config.Config {..} = do
@@ -58,7 +61,16 @@ mkAppEnv clientPort Config.Config {..} = do
     manager' <- newManager defaultManagerSettings
     let cenv      = mkClientEnv manager' baseUrl'
 
+    let cookieSettings = defaultCookieSettings
+    signingKey <- loadSigningKey -- serveSetSigningKeyFile
+    let jwtSettings =  defaultJWTSettings signingKey
+
     pure Env { .. }
+
+loadSigningKey :: IO JWK
+loadSigningKey = do
+    key <- Auth.generateKey
+    pure key
 
 
 runClient :: AppEnv -> IO ()

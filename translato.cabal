@@ -82,6 +82,7 @@ library
     , filepath
     , generic-lens
     , http-client
+    , jose
     , lens
     , mtl
     , optparse-generic
@@ -102,6 +103,7 @@ library
     , typed-uuid
     , unagi-chan
     , uuid
+    , wai-cors
     , warp
   mixins:
       base hiding (Prelude)
@@ -149,6 +151,7 @@ executable translato-exe
     , filepath
     , generic-lens
     , http-client
+    , jose
     , lens
     , mtl
     , optparse-generic
@@ -170,6 +173,7 @@ executable translato-exe
     , typed-uuid
     , unagi-chan
     , uuid
+    , wai-cors
     , warp
   mixins:
       base hiding (Prelude)
@@ -218,6 +222,7 @@ test-suite translato-test
     , filepath
     , generic-lens
     , http-client
+    , jose
     , lens
     , mtl
     , optparse-generic
@@ -239,6 +244,7 @@ test-suite translato-test
     , typed-uuid
     , unagi-chan
     , uuid
+    , wai-cors
     , warp
   mixins:
       base hiding (Prelude)

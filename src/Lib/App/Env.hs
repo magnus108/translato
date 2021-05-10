@@ -16,6 +16,7 @@ import qualified Control.Concurrent.Chan.Unagi.Bounded
 import qualified Lib.Message                   as Message
 
 import           Servant.Client
+import           Servant.Auth.Server
 
 data Env (m :: Type -> Type) = Env
     { inChan :: InChan
@@ -25,6 +26,9 @@ data Env (m :: Type -> Type) = Env
     , static :: !FilePath
     , index :: !FilePath
     , cenv :: !ClientEnv
+
+    , cookieSettings :: !CookieSettings
+    , jwtSettings :: !JWTSettings
     }
 
 
@@ -32,8 +36,11 @@ newtype InChan = InChan { unInChan :: Chan.InChan Message.Message }
 newtype OutChan = OutChan { unOutChan :: Chan.OutChan Message.Message }
 
 
-instance Has InChan              (Env m) where
-    obtain = inChan
+instance Has CookieSettings              (Env m) where
+    obtain = cookieSettings
+
+instance Has JWTSettings              (Env m) where
+    obtain = jwtSettings
 
 instance Has OutChan              (Env m) where
     obtain = outChan

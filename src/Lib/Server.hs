@@ -4,6 +4,10 @@ module Lib.Server
     )
 where
 
+import           Lib.App.Error                  ( throwError
+                                                , AppErrorType(..)
+                                                , WithError(..)
+                                                )
 import           Servant.API.Generic            ( toServant )
 import           Servant.Server                 ( Application
                                                 , Server
@@ -14,6 +18,7 @@ import           Servant.Server                 ( Application
 
 import           Lib.App                        ( AppEnv
                                                 , App
+                                                , Env(..)
                                                 , runApp
                                                 )
 
@@ -21,10 +26,15 @@ import           Lib.Server.Auth                ( AuthApi
                                                 , authServer
                                                 , AuthSite
                                                 )
+import           Lib.Server.Types               ( AuthCookie(..)
+                                                , Permission(..)
+                                                )
 
 
-import Servant.Auth.Server (JWTSettings, CookieSettings)
-import Servant.Auth.Docs
+import           Servant.Auth.Server            ( JWTSettings
+                                                , CookieSettings
+                                                )
+import           Servant.Auth.Docs
 import qualified Servant.Docs                  as Docs
 
 import           Servant.API                   as Web
@@ -41,7 +51,11 @@ import           Servant.API                   as Web
                                                 , ReqBody
                                                 , (:<|>)
                                                 )
-import           Servant
+import           Servant                 hiding ( throwError
+                                                , ServerError
+                                                )
+import           Servant.Auth.Server
+import           Servant.Server.Generic         ( genericServerT )
 
 import           Servant.API.Generic           as Web
                                                 ( (:-)
@@ -54,9 +68,10 @@ import           Lib.Server.Types               ( AppServer
                                                 , Permission
                                                 , ProtectAPI
                                                 )
-import Lib.Server.Protected.AccessKey 
+import           Lib.Server.Protected.AccessKey
 
 
+import           Network.Wai.Middleware.Cors
 
 
 runAppAsHandler :: AppEnv -> App a -> Handler a
@@ -64,18 +79,81 @@ runAppAsHandler env app = do
     -- not save
     liftIO $ runApp env app
 
+-- does not match layercake
 siteServer :: Site AppServer
-siteServer = Site { protectedSite      = undefined -- loginHandler
-                  }
+siteServer = Site { protectedSite = genericServerT protectedServer }
+
+-- does not match layercake
+protectedServer :: ProtectedSite AppServer
+protectedServer = ProtectedSite
+    { protectedAccessKeySite = undefined ---genericServerT protectedAccessKeyServer
+    , getPermissions = withAuthResultAndPermission PermitAdd serveGetPermissions
+    }
+
+    {-
+protectedAccessKeyServer :: ProtectedAccessKeySite AppServer
+protectedAccessKeyServer = ProtectedAccessKeySite
+    { postAddAccessKey = withAuthResultAndPermission PermitAdd
+                                                     servePostAddAccessKey
+    , getAccessKey     = withAuthResultAndPermission PermitAdd serveGetAccessKey
+    , getAccessKeys = withAuthResultAndPermission PermitAdd serveGetAccessKeys
+    , deleteAccessKey  = withAuthResultAndPermission PermitAdd
+                                                     serveDeleteAccessKey
+    }
+
+-}
+serveGetPermissions :: AuthCookie -> [Permission]
+serveGetPermissions AuthCookie {..} = permissions
+
+    {-
+serveDeleteAccessKey :: AuthCookie -> AccessKeyUUID -> App NoContent
+serveDeleteAccessKey AuthCookie {..} uuid = do
+    undefined
+  --runDb $ deleteWhere [AccessKeyIdentifier ==. uuid]
+  --pure NoContent
+
+serveGetAccessKey :: AuthCookie -> AccessKeyUUID -> App AccessKeyInfo
+serveGetAccessKey AuthCookie {..} uuid = do
+    undefined
+  --mac <- runDb $ getBy $ UniqueAccessKeyIdentifier uuid
+  --case mac of
+   -- Nothing -> throwAll err404 {errBody = "AccessKey not found."}
+  --  Just (Entity _ ak) -> pure $ makeAccessKeyInfo ak
+
+serveGetAccessKeys :: AuthCookie -> App [AccessKeyInfo]
+serveGetAccessKeys AuthCookie {..} = do
+    undefined
+--  aks <- runDb $ selectList [AccessKeyUser ==. authCookieUserUUID] []
+ -- pure $ map (makeAccessKeyInfo . entityVal) aks
+
+servePostAddAccessKey :: AuthCookie -> AddAccessKey -> App AccessKeyCreated
+servePostAddAccessKey AuthCookie {..} AddAccessKey {..} = undefined
+-}
+
+
+-- the fuck are these?
+withAuthResult :: WithError m => (AuthCookie -> m a) -> (AuthResult AuthCookie -> m a)
+withAuthResult func ar = case ar of
+    Authenticated ac -> func ac
+    _                -> throwError $ ServerError "servantErr"
+
+-- the fuck are these?
+withAuthResultAndPermission :: WithError m =>
+    Permission -> (AuthCookie -> a) -> (AuthResult AuthCookie -> m a)
+withAuthResultAndPermission p func =
+    withAuthResult (\ac -> withPermission (permissions ac) p (func ac))
+
+-- the fuck are these?
+withPermission :: WithError m => [Permission] -> Permission -> a -> m a
+withPermission ps p func =
+    if elem p ps then return func else throwError $ ServerError "servantErr"
 
 
 server :: AppEnv -> Server SiteApi
-server env = 
-    hoistServerWithContext
-        siteAPI
-        (Proxy :: Proxy SiteContext)
-        (runAppAsHandler env)
-        (toServant siteServer)
+server env = hoistServerWithContext siteAPI
+                                    (Proxy :: Proxy SiteContext)
+                                    (runAppAsHandler env)
+                                    (toServant siteServer)
 
 type SiteContext = '[CookieSettings, JWTSettings]
 
@@ -83,11 +161,18 @@ docs :: Docs.API
 docs = Docs.docs siteAPI
 
 application :: AppEnv -> Application
-application env = serveWithContext siteAPI (siteContext env) (server env)
+application env = addPolicy
+    $ serveWithContext siteAPI (siteContext env) (server env)
+  where
+    addPolicy = cors (const $ Just policy)
+    policy    = simpleCorsResourcePolicy
+        { corsRequestHeaders = ["content-type"]
+        , corsMethods        = ["GET", "POST", "HEAD", "DELETE"]
+        }
 
 
 siteContext :: AppEnv -> Context SiteContext
-siteContext env = undefined --envCookieSettings :. envJWTSettings :. EmptyContext
+siteContext Env {..} = cookieSettings :. jwtSettings :. EmptyContext
 
 -------------------------------------------------------------------------------
 siteAPI :: Proxy SiteApi
