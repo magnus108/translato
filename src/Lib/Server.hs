@@ -74,6 +74,14 @@ import           Lib.Server.Protected.AccessKey
 import           Network.Wai.Middleware.Cors
 import Data.UUID.Typed
 
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
+import qualified Data.Text.Lazy as LT
+import qualified Text.Markdown as Markdown
+
+import Servant.HTML.Blaze
+import Text.Blaze as HTML
+import Text.Blaze.Html as HTML
 
 runAppAsHandler :: AppEnv -> App a -> Handler a
 runAppAsHandler env app = do
@@ -111,7 +119,48 @@ instance Docs.ToSample Username
 publicServer :: PublicSite AppServer
 publicServer = PublicSite
     { postLogin = servePostLogin
+    , getDocs = serveGetDocs
     }
+
+newtype GetDocsResponse
+  = GetDocsResponse
+      { unGetDocsResponse :: HTML.Html
+      }
+        deriving Generic
+
+instance Docs.ToSample GetDocsResponse where
+  toSamples Proxy = Docs.singleSample $ GetDocsResponse "Documentation (In HTML)."
+instance ToMarkup GetDocsResponse where
+  toMarkup (GetDocsResponse html) = toMarkup html
+
+serveGetDocs :: App GetDocsResponse
+serveGetDocs = do
+  pure $ htmlResponse
+
+htmlResponse :: GetDocsResponse
+htmlResponse =
+  GetDocsResponse
+    $ Markdown.markdown Markdown.defaultMarkdownSettings {Markdown.msXssProtect = False}
+    $ LT.fromStrict
+    $ docs2
+
+docs2 :: Text
+docs2 =
+  T.unlines
+    . map
+      ( \t ->
+          if T.isPrefixOf "```" (T.stripStart t)
+            then T.stripStart t
+            else t
+      )
+    . T.lines
+    . T.pack
+    $ Docs.markdown
+    $ docs'
+
+
+
+
 
 servePostLogin :: LoginForm -> App (Headers '[Header "Set-Cookie" Text] NoContent)
 servePostLogin LoginForm {..} = do
@@ -241,6 +290,11 @@ type SiteContext = '[CookieSettings, JWTSettings]
 docs :: Docs.API
 docs = Docs.docs siteAPI
 
+
+docs' :: Docs.API
+docs' = Docs.docs publicSiteAPI
+
+
 application :: AppEnv -> Application
 application env = addPolicy
     $ serveWithContext siteAPI (siteContext env) (server env)
@@ -259,6 +313,10 @@ siteContext Env {..} = cookieSettings :. jwtSettings :. EmptyContext
 siteAPI :: Proxy SiteApi
 siteAPI = genericApi $ (Proxy :: Proxy Site)
 
+publicSiteAPI :: Proxy PublicAPI
+publicSiteAPI = genericApi $ (Proxy :: Proxy PublicSite)
+
+
 type SiteApi = ToApi Site
 
 data Site route = Site
@@ -270,9 +328,12 @@ data Site route = Site
 type ProtectedAPI = ToApi ProtectedSite
 
 data PublicSite route
-    = PublicSite { postLogin :: !(route :- PostLogin) }
+    = PublicSite { postLogin :: !(route :- PostLogin)
+                 , getDocs :: !(route :- GetDocs)
+                 }
   deriving (Generic)
 
+type GetDocs = Get '[HTML] GetDocsResponse
 
 type PublicAPI = ToApi PublicSite
 

@@ -80,6 +80,11 @@ dependencies:
 - name: random
 - name: jose
 - name: wai-cors
+- name: blaze-html
+- name: blaze-markup
+- name: servant-blaze
+- name: markdown
+
 
 library:
   source-dirs: src
