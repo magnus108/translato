@@ -73,12 +73,14 @@ library
     , async
     , base
     , base16-bytestring
+    , blaze-builder
     , blaze-html
     , blaze-markup
     , bytestring
     , comonad
     , cond
     , containers
+    , cookie
     , data-fix
     , exceptions
     , filepath
@@ -146,12 +148,14 @@ executable translato-exe
     , async
     , base
     , base16-bytestring
+    , blaze-builder
     , blaze-html
     , blaze-markup
     , bytestring
     , comonad
     , cond
     , containers
+    , cookie
     , data-fix
     , exceptions
     , filepath
@@ -221,12 +225,14 @@ test-suite translato-test
     , async
     , base
     , base16-bytestring
+    , blaze-builder
     , blaze-html
     , blaze-markup
     , bytestring
     , comonad
     , cond
     , containers
+    , cookie
     , data-fix
     , exceptions
     , filepath

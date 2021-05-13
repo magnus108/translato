@@ -61,7 +61,7 @@ mkAppEnv clientPort Config.Config {..} = do
     manager' <- newManager defaultManagerSettings
     let cenv      = mkClientEnv manager' baseUrl'
 
-    let cookieSettings = defaultCookieSettings
+    let cookieSettings = defaultCookieSettings { cookieIsSecure = NotSecure }
     signingKey <- loadSigningKey -- serveSetSigningKeyFile
     let jwtSettings =  defaultJWTSettings signingKey
 

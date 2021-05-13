@@ -4,6 +4,8 @@ module Lib.Server
     )
 where
 
+import           Blaze.ByteString.Builder       ( toByteString )
+import           Web.Cookie
 import           Lib.App.Error                  ( throwError
                                                 , AppErrorType(..)
                                                 , WithError(..)
@@ -27,7 +29,7 @@ import           Lib.Server.Types               ( AuthCookie(..)
                                                 , adminPermissions
                                                 )
 
-import Data.Aeson
+import           Data.Aeson
 
 import           Servant.Auth.Server            ( JWTSettings
                                                 , CookieSettings
@@ -72,16 +74,16 @@ import           Lib.Server.Protected.AccessKey
 
 
 import           Network.Wai.Middleware.Cors
-import Data.UUID.Typed
+import           Data.UUID.Typed
 
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as TE
-import qualified Data.Text.Lazy as LT
-import qualified Text.Markdown as Markdown
+import qualified Data.Text                     as T
+import qualified Data.Text.Encoding            as TE
+import qualified Data.Text.Lazy                as LT
+import qualified Text.Markdown                 as Markdown
 
-import Servant.HTML.Blaze
-import Text.Blaze as HTML
-import Text.Blaze.Html as HTML
+import           Servant.HTML.Blaze
+import           Text.Blaze                    as HTML
+import           Text.Blaze.Html               as HTML
 
 runAppAsHandler :: AppEnv -> App a -> Handler a
 runAppAsHandler env app = do
@@ -90,7 +92,7 @@ runAppAsHandler env app = do
 
 -- does not match layercake
 siteServer :: Site AppServer
-siteServer = Site { publicSite = genericServerT publicServer
+siteServer = Site { publicSite    = genericServerT publicServer
                   , protectedSite = genericServerT protectedServer
                   }
 
@@ -117,10 +119,8 @@ instance Docs.ToSample Username
 
 
 publicServer :: PublicSite AppServer
-publicServer = PublicSite
-    { postLogin = servePostLogin
-    , getDocs = serveGetDocs
-    }
+publicServer =
+    PublicSite { postLogin = servePostLogin, getDocs = serveGetDocs }
 
 newtype GetDocsResponse
   = GetDocsResponse
@@ -129,57 +129,67 @@ newtype GetDocsResponse
         deriving Generic
 
 instance Docs.ToSample GetDocsResponse where
-  toSamples Proxy = Docs.singleSample $ GetDocsResponse "Documentation (In HTML)."
+    toSamples Proxy =
+        Docs.singleSample $ GetDocsResponse "Documentation (In HTML)."
 instance ToMarkup GetDocsResponse where
-  toMarkup (GetDocsResponse html) = toMarkup html
+    toMarkup (GetDocsResponse html) = toMarkup html
 
 serveGetDocs :: App GetDocsResponse
 serveGetDocs = do
-  pure $ htmlResponse
+    pure $ htmlResponse
 
 htmlResponse :: GetDocsResponse
 htmlResponse =
-  GetDocsResponse
-    $ Markdown.markdown Markdown.defaultMarkdownSettings {Markdown.msXssProtect = False}
-    $ LT.fromStrict
-    $ docs2
+    GetDocsResponse
+        $ Markdown.markdown Markdown.defaultMarkdownSettings
+              { Markdown.msXssProtect = False
+              }
+        $ LT.fromStrict
+        $ docs2
 
 docs2 :: Text
 docs2 =
-  T.unlines
-    . map
-      ( \t ->
-          if T.isPrefixOf "```" (T.stripStart t)
-            then T.stripStart t
-            else t
-      )
-    . T.lines
-    . T.pack
-    $ Docs.markdown
-    $ docs'
+    T.unlines
+        . map
+              (\t -> if T.isPrefixOf "```" (T.stripStart t)
+                  then T.stripStart t
+                  else t
+              )
+        . T.lines
+        . T.pack
+        $ Docs.markdown
+        $ docs'
 
 
 
 
 
-servePostLogin :: LoginForm -> App (Headers '[Header "Set-Cookie" Text] NoContent)
+servePostLogin
+    :: LoginForm -> App (Headers '[Header "Set-Cookie" Text] NoContent)
 servePostLogin LoginForm {..} = do
     let perms = adminPermissions
-        uid = 1
+        uid   = 1
         --Find ud af hvordan User virker??
     userIdentifier <- liftIO nextRandomUUID
+    traceShowM "lol"
     setLoggedIn uid userIdentifier perms
-        where
-            setLoggedIn uid userIdentifier perms = do
-                    let cookie = AuthCookie {userUUID = userIdentifier, permissions = perms}
-                    Env {..} <- ask -- this is wrong
-                    mCookie <- liftIO $ makeSessionCookieBS cookieSettings jwtSettings cookie
-                    case mCookie of
-                        Nothing -> throwError $ ServerError "servantErr"
-                        Just setCookie -> do
-                            --now <- liftIO getCurrentTime
-                            --runDb $ update uid [UserLastLogin =. Just now]
-                            return $ addHeader (decodeUtf8 setCookie) NoContent
+  where
+    setLoggedIn uid userIdentifier perms = do
+        let cookie =
+                AuthCookie { userUUID = userIdentifier, permissions = perms }
+        Env {..} <- ask -- this is wrong
+        mCookie  <- liftIO $ makeSessionCookie cookieSettings jwtSettings cookie
+        case mCookie of
+            Nothing        -> throwError $ ServerError "servantErr"
+            Just setCookie -> do
+                --now <- liftIO getCurrentTime
+                --runDb $ update uid [UserLastLogin =. Just now]
+                return $ addHeader
+                    (decodeUtf8
+                        ((toByteString . renderSetCookie) (setCookie { setCookieHttpOnly = False })
+                        )
+                    )
+                    NoContent
         {-
   me <- runDb $ getBy $ UniqueUsername loginFormUsername
   case me of
@@ -222,15 +232,18 @@ servePostLogin LoginForm {..} = do
 protectedServer :: ProtectedSite AppServer
 protectedServer = ProtectedSite
     { protectedAccessKeySite = genericServerT protectedAccessKeyServer
-    , getPermissions = withAuthResultAndPermission PermitAdd serveGetPermissions
+    , getPermissions         = withAuthResultAndPermission ReadSomthing
+                                                           serveGetPermissions
     }
 
 protectedAccessKeyServer :: ProtectedAccessKeySite AppServer
 protectedAccessKeyServer = ProtectedAccessKeySite
-    { postAddAccessKey = withAuthResultAndPermission PermitAdd servePostAddAccessKey
+    { postAddAccessKey = withAuthResultAndPermission PermitAdd
+                                                     servePostAddAccessKey
     , getAccessKey     = withAuthResultAndPermission PermitAdd serveGetAccessKey
     , getAccessKeys = withAuthResultAndPermission PermitAdd serveGetAccessKeys
-    , deleteAccessKey = withAuthResultAndPermission PermitAdd serveDeleteAccessKey
+    , deleteAccessKey  = withAuthResultAndPermission PermitAdd
+                                                     serveDeleteAccessKey
     }
 
 serveGetPermissions :: AuthCookie -> App [Permission]
@@ -265,17 +278,23 @@ servePostAddAccessKey AuthCookie {..} AddAccessKey {..} = undefined
 
 
 
-withAuthResult :: WithError m => (AuthCookie -> m a) -> (AuthResult AuthCookie -> m a)
+withAuthResult
+    :: WithError m => (AuthCookie -> m a) -> (AuthResult AuthCookie -> m a)
 withAuthResult func ar = case ar of
     Authenticated ac -> func ac
     _                -> throwError $ ServerError "servantErr"
 
-withAuthResultAndPermission :: WithError m => Permission -> (AuthCookie -> m a) -> (AuthResult AuthCookie -> m a)
+withAuthResultAndPermission
+    :: WithError m
+    => Permission
+    -> (AuthCookie -> m a)
+    -> (AuthResult AuthCookie -> m a)
 withAuthResultAndPermission p func =
     withAuthResult (\ac -> withPermission (permissions ac) p =<< (func ac))
 
 withPermission :: WithError m => [Permission] -> Permission -> a -> m a
-withPermission ps p func =
+withPermission ps p func = do
+    traceShowM "fuck"
     if elem p ps then return func else throwError $ ServerError "servantErr"
 
 
@@ -346,5 +365,6 @@ data ProtectedSite route
 
 type GetPermissions = ProtectAPI :> "permissions" :> Get '[JSON] [Permission]
 
-type PostLogin = "login" :> ReqBody '[JSON] LoginForm :> Post '[JSON] (Headers '[Header "Set-Cookie" Text] NoContent)
+type PostLogin
+    = "login" :> ReqBody '[JSON] LoginForm :> Post '[JSON] (Headers '[Header "Set-Cookie" Text] NoContent)
    --- PostNoContent '[JSON] (Headers '[Header "Set-Cookie" Text] NoContent)

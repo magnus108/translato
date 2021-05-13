@@ -82,8 +82,10 @@ dependencies:
 - name: wai-cors
 - name: blaze-html
 - name: blaze-markup
+- name: blaze-builder
 - name: servant-blaze
 - name: markdown
+- name: cookie
 
 
 library:
