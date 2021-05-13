@@ -4,6 +4,8 @@ module Lib.Server
     )
 where
 
+import System.IO.Error
+import Control.Exception hiding (Handler)
 import qualified Utils.ListZipper              as ListZipper
 
 import           Blaze.ByteString.Builder       ( toByteString )
@@ -12,6 +14,8 @@ import           Lib.App.Error                  ( throwError
                                                 , AppErrorType(..)
                                                 , WithError(..)
                                                 )
+
+import Lib.App.Error (throwError, WithError)
 import           Servant.API.Generic            ( toServant )
 import           Servant.Server                 ( Application
                                                 , Server
@@ -20,7 +24,10 @@ import           Servant.Server                 ( Application
                                                 , serve
                                                 )
 
+import qualified Lib.App                       as App
 import           Lib.App                        ( AppEnv
+                                                , Has(..)
+                                                , AppError(..)
                                                 , App
                                                 , Env(..)
                                                 , runApp
@@ -39,6 +46,7 @@ import           Servant.Auth.Server            ( JWTSettings
 import           Servant.Auth.Docs
 import qualified Servant.Docs                  as Docs
 
+import           Lib.Config                         ( readJSONFileStrict )
 import           Servant.API                   as Web
                                                 ( (:>)
                                                 , Capture
@@ -262,8 +270,23 @@ photographerServer = PhotographerSite
     }
 
 serveGetPhotographers :: AuthCookie -> App Photographers
-serveGetPhotographers AuthCookie {..} =
-    pure $ Photographers (ListZipper.ListZipper [] (Photographer "gg" "g2g") [])
+serveGetPhotographers AuthCookie {..} = do
+    photographers <- readPhotographers
+    pure $ photographers
+
+
+type WithPhotographers r m
+    = (MonadReader r m, MonadIO m, Has App.MPhotographersFile r)
+
+
+readPhotographers :: forall  r m . WithPhotographers r m => m Photographers
+readPhotographers = do
+    mPhotographersFile <-
+        App.unMPhotographersFile <$> App.grab @App.MPhotographersFile
+    photographersFile <- liftIO $ takeMVar mPhotographersFile
+    content <- liftIO $ (readJSONFileStrict photographersFile) `finally` (putMVar mPhotographersFile photographersFile)
+    return content
+
 
 serveGetPermissions :: AuthCookie -> App [Permission]
 serveGetPermissions AuthCookie {..} = pure permissions

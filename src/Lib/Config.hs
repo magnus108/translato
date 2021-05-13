@@ -1,6 +1,7 @@
 module Lib.Config
     ( Config(..)
     , loadConfig
+    , readJSONFileStrict
     )
 where
 
@@ -15,6 +16,7 @@ import           System.IO.Error
 
 data Config = Config
     { dumpFile :: !FilePath
+    , photographersFile :: !FilePath
     }
     deriving (Show, Eq)
     deriving Generic

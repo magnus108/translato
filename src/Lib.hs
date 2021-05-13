@@ -14,6 +14,7 @@ import           Control.Monad
 import qualified Control.Concurrent.Async      as Async
 import qualified Lib.Config                    as Config
 
+import qualified Lib.App                        as App
 import           Lib.App                        ( AppEnv
                                                 , Env(..)
                                                 , InChan(..)
@@ -42,15 +43,19 @@ import           Servant                 hiding ( throwError
                                                 , ServerError
                                                 )
 import           Servant.Client
-import Servant.Auth.Server as Auth
+import           Servant.Auth.Server           as Auth
 
-import Crypto.JOSE.JWK (JWK)
+import           Crypto.JOSE.JWK                ( JWK )
 
 mkAppEnv :: Int -> Config.Config -> IO AppEnv
 mkAppEnv clientPort Config.Config {..} = do
     (inChan', outChan') <- Chan.newChan 200
     let inChan     = InChan inChan'
     let outChan    = OutChan outChan'
+
+
+    mPhotographersFile' <- newMVar photographersFile
+    let mPhotographersFile = App.MPhotographersFile mPhotographersFile'
 
     let static     = "static"
     let index      = "index.html"
@@ -59,11 +64,11 @@ mkAppEnv clientPort Config.Config {..} = do
 
     let baseUrl' = BaseUrl Http "localhost" serverPort ""
     manager' <- newManager defaultManagerSettings
-    let cenv      = mkClientEnv manager' baseUrl'
+    let cenv           = mkClientEnv manager' baseUrl'
 
-    let cookieSettings = defaultCookieSettings { cookieIsSecure    = NotSecure}
+    let cookieSettings = defaultCookieSettings { cookieIsSecure = NotSecure }
     signingKey <- loadSigningKey -- serveSetSigningKeyFile
-    let jwtSettings =  defaultJWTSettings signingKey
+    let jwtSettings = defaultJWTSettings signingKey
 
     pure Env { .. }
 

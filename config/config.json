@@ -1,1 +1,3 @@
-{ "dumpFile" : "" }
+{ "dumpFile" : ""
+, "photographersFile": "config/photographers.json"
+}

@@ -6,6 +6,7 @@ module Lib.App.Env
     , Has(..)
     , InChan(..)
     , OutChan(..)
+    , MPhotographersFile(..)
     , grab
     )
 where
@@ -27,14 +28,21 @@ data Env (m :: Type -> Type) = Env
     , index :: !FilePath
     , cenv :: !ClientEnv
 
+
+    , mPhotographersFile :: MPhotographersFile
+
     , cookieSettings :: !CookieSettings
     , jwtSettings :: !JWTSettings
     }
 
 
+newtype MPhotographersFile = MPhotographersFile { unMPhotographersFile :: MVar FilePath }
 newtype InChan = InChan { unInChan :: Chan.InChan Message.Message }
 newtype OutChan = OutChan { unOutChan :: Chan.OutChan Message.Message }
 
+
+instance Has MPhotographersFile              (Env m) where
+    obtain = mPhotographersFile
 
 instance Has CookieSettings              (Env m) where
     obtain = cookieSettings
