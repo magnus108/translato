@@ -186,7 +186,7 @@ servePostLogin LoginForm {..} = do
                 --runDb $ update uid [UserLastLogin =. Just now]
                 return $ addHeader
                     (decodeUtf8
-                        ((toByteString . renderSetCookie) (setCookie { setCookieHttpOnly = False })
+                        ((toByteString . renderSetCookie) (setCookie { setCookieSecure = False, setCookieHttpOnly = False })
                         )
                     )
                     NoContent
