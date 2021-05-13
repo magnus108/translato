@@ -4,6 +4,8 @@ module Lib.Server
     )
 where
 
+import qualified Utils.ListZipper              as ListZipper
+
 import           Blaze.ByteString.Builder       ( toByteString )
 import           Web.Cookie
 import           Lib.App.Error                  ( throwError
@@ -71,6 +73,7 @@ import           Lib.Server.Types               ( AppServer
                                                 , ProtectAPI
                                                 )
 import           Lib.Server.Protected.AccessKey
+import           Lib.Server.Protected.Photographer
 
 
 import           Network.Wai.Middleware.Cors
@@ -186,7 +189,11 @@ servePostLogin LoginForm {..} = do
                 --runDb $ update uid [UserLastLogin =. Just now]
                 return $ addHeader
                     (decodeUtf8
-                        ((toByteString . renderSetCookie) (setCookie { setCookieSecure = False, setCookieHttpOnly = False })
+                        ((toByteString . renderSetCookie)
+                            (setCookie { setCookieSecure   = False
+                                       , setCookieHttpOnly = False
+                                       }
+                            )
                         )
                     )
                     NoContent
@@ -232,6 +239,8 @@ servePostLogin LoginForm {..} = do
 protectedServer :: ProtectedSite AppServer
 protectedServer = ProtectedSite
     { protectedAccessKeySite = genericServerT protectedAccessKeyServer
+    , photographers          = withAuthResultAndPermission ReadSomthing
+                                                           serveGetPhotographers
     , getPermissions         = withAuthResultAndPermission ReadSomthing
                                                            serveGetPermissions
     }
@@ -245,6 +254,16 @@ protectedAccessKeyServer = ProtectedAccessKeySite
     , deleteAccessKey  = withAuthResultAndPermission PermitAdd
                                                      serveDeleteAccessKey
     }
+
+photographerServer :: PhotographerSite AppServer
+photographerServer = PhotographerSite
+    { getPhotographers = withAuthResultAndPermission ReadSomthing
+                                                     serveGetPhotographers
+    }
+
+serveGetPhotographers :: AuthCookie -> App Photographers
+serveGetPhotographers AuthCookie {..} =
+    pure $ Photographers (ListZipper.ListZipper [] (Photographer "gg" "g2g") [])
 
 serveGetPermissions :: AuthCookie -> App [Permission]
 serveGetPermissions AuthCookie {..} = pure permissions
@@ -359,9 +378,11 @@ type PublicAPI = ToApi PublicSite
 data ProtectedSite route
   = ProtectedSite
       { protectedAccessKeySite :: !(route :- "access-key" :> ToApi ProtectedAccessKeySite)
+      , photographers :: !(route :- "photographer" :> PhotographerAPI)
       , getPermissions :: !(route :- GetPermissions)
       }
   deriving (Generic)
+
 
 type GetPermissions = ProtectAPI :> "permissions" :> Get '[JSON] [Permission]
 

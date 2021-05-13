@@ -39,6 +39,8 @@ library
       Lib.Server.Auth
       Lib.Server.Protected.AccessKey
       Lib.Server.Protected.AccessKey.Types
+      Lib.Server.Protected.Photographer
+      Lib.Server.Protected.Types
       Lib.Server.Types
       Lib2
       Model

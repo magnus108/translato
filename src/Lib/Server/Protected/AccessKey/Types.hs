@@ -5,7 +5,7 @@ module Lib.Server.Protected.AccessKey.Types
     , AccessKeyCreated(..)
     )
 where
-
+import Lib.Server.Protected.Types
 import qualified Data.UUID as UUID
 import Servant.Docs
 import           Lib.Server.Types               ( Permission )
@@ -95,9 +95,6 @@ data AccessKeyCreated
     deriving anyclass (FromJSON, ToJSON)
 
 instance ToSample AccessKeyCreated
-
-instance ToSample Text where
-    toSamples Proxy = singleSample "Example Text"
 
 instance ToSample UTCTime where
       toSamples Proxy = singleSample $ UTCTime (fromGregorian 2018 2 10) 42
