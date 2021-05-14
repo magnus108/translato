@@ -32,16 +32,11 @@ library
       Lib.App
       Lib.App.Env
       Lib.App.Error
-      Lib.App.Monad
+      Lib.Client
       Lib.Config
       Lib.Message
       Lib.Server
-      Lib.Server.Auth
-      Lib.Server.Protected.AccessKey
-      Lib.Server.Protected.AccessKey.Types
-      Lib.Server.Protected.Photographer
       Lib.Server.Protected.Types
-      Lib.Server.Types
       Lib2
       Model
       Text

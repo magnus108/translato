@@ -1,5 +1,6 @@
 module Lib.Server
     ( application
+    , LoginForm
     , docs
     )
 where
@@ -31,12 +32,27 @@ import           Lib.App                        ( AppEnv
                                                 , App
                                                 , Env(..)
                                                 , runApp
+                                                , Site
+                                                , LoginForm(..)
+                                                , AuthCookie(..)
+                                                , ProtectedSite
+                                                , Permission
+                                                , SiteApi
+                                                , AddAccessKey(..)
+                                                , AccessKeyCreated(..)
+                                                , AccessKeyInfo(..)
+                                                , AccessKeyUUID(..)
+                                                , Photographers(..)
+                                                , Photographer(..)
+                                                , PhotographerSite
+                                                , AppServer
+                                                , ProtectedAccessKeySite(..)
+                                                , ProtectedSite(..)
+                                                , PublicSite(..)
+                                                , Site(..)
+                                                , GetDocsResponse(..)
                                                 )
 
-import           Lib.Server.Types               ( AuthCookie(..)
-                                                , Permission(..)
-                                                , adminPermissions
-                                                )
 
 import           Data.Aeson
 
@@ -75,13 +91,6 @@ import           Servant.API.Generic           as Web
                                                 , ToServant
                                                 )
 
-import           Lib.Server.Types               ( AppServer
-                                                , ToApi
-                                                , Permission
-                                                , ProtectAPI
-                                                )
-import           Lib.Server.Protected.AccessKey
-import           Lib.Server.Protected.Photographer
 
 
 import           Network.Wai.Middleware.Cors
@@ -96,6 +105,7 @@ import           Servant.HTML.Blaze
 import           Text.Blaze                    as HTML
 import           Text.Blaze.Html               as HTML
 
+
 runAppAsHandler :: AppEnv -> App a -> Handler a
 runAppAsHandler env app = do
     -- not save
@@ -108,77 +118,21 @@ siteServer = Site { publicSite    = genericServerT publicServer
                   }
 
 
-newtype Username
-  = Username
-      { usernameText :: Text
-      }
-        deriving (Show, Eq, Ord)
-        deriving Generic
-        deriving anyclass (FromJSON, ToJSON)
 
-data LoginForm
-  = LoginForm
-      { loginFormUsername :: Username
-      , loginFormPassword :: Text
-      }
-        deriving (Show, Eq, Ord)
-        deriving Generic
-        deriving anyclass (FromJSON, ToJSON)
 
-instance Docs.ToSample LoginForm
-instance Docs.ToSample Username
+serveGetDocs :: App GetDocsResponse
+serveGetDocs = do
+    pure $ App.htmlResponse
 
 
 publicServer :: PublicSite AppServer
 publicServer =
     PublicSite { postLogin = servePostLogin, getDocs = serveGetDocs }
 
-newtype GetDocsResponse
-  = GetDocsResponse
-      { unGetDocsResponse :: HTML.Html
-      }
-        deriving Generic
-
-instance Docs.ToSample GetDocsResponse where
-    toSamples Proxy =
-        Docs.singleSample $ GetDocsResponse "Documentation (In HTML)."
-instance ToMarkup GetDocsResponse where
-    toMarkup (GetDocsResponse html) = toMarkup html
-
-serveGetDocs :: App GetDocsResponse
-serveGetDocs = do
-    pure $ htmlResponse
-
-htmlResponse :: GetDocsResponse
-htmlResponse =
-    GetDocsResponse
-        $ Markdown.markdown Markdown.defaultMarkdownSettings
-              { Markdown.msXssProtect = False
-              }
-        $ LT.fromStrict
-        $ docs2
-
-docs2 :: Text
-docs2 =
-    T.unlines
-        . map
-              (\t -> if T.isPrefixOf "```" (T.stripStart t)
-                  then T.stripStart t
-                  else t
-              )
-        . T.lines
-        . T.pack
-        $ Docs.markdown
-        $ docs'
-
-
-
-
-
 servePostLogin
     :: LoginForm -> App (Headers '[Header "Set-Cookie" Text] NoContent)
 servePostLogin LoginForm {..} = do
-    let perms = adminPermissions
+    let perms = App.adminPermissions
         uid   = 1
         --Find ud af hvordan User virker??
     userIdentifier <- liftIO nextRandomUUID
@@ -247,25 +201,25 @@ servePostLogin LoginForm {..} = do
 protectedServer :: ProtectedSite AppServer
 protectedServer = ProtectedSite
     { protectedAccessKeySite = genericServerT protectedAccessKeyServer
-    , photographers          = withAuthResultAndPermission ReadSomthing
+    , photographers          = withAuthResultAndPermission App.ReadSomthing
                                                            serveGetPhotographers
-    , getPermissions         = withAuthResultAndPermission ReadSomthing
+    , getPermissions         = withAuthResultAndPermission App.ReadSomthing
                                                            serveGetPermissions
     }
 
 protectedAccessKeyServer :: ProtectedAccessKeySite AppServer
 protectedAccessKeyServer = ProtectedAccessKeySite
-    { postAddAccessKey = withAuthResultAndPermission PermitAdd
+    { postAddAccessKey = withAuthResultAndPermission App.PermitAdd
                                                      servePostAddAccessKey
-    , getAccessKey     = withAuthResultAndPermission PermitAdd serveGetAccessKey
-    , getAccessKeys = withAuthResultAndPermission PermitAdd serveGetAccessKeys
-    , deleteAccessKey  = withAuthResultAndPermission PermitAdd
+    , getAccessKey     = withAuthResultAndPermission App.PermitAdd serveGetAccessKey
+    , getAccessKeys = withAuthResultAndPermission App.PermitAdd serveGetAccessKeys
+    , deleteAccessKey  = withAuthResultAndPermission App.PermitAdd
                                                      serveDeleteAccessKey
     }
 
-photographerServer :: PhotographerSite AppServer
-photographerServer = PhotographerSite
-    { getPhotographers = withAuthResultAndPermission ReadSomthing
+photographerServer :: App.PhotographerSite AppServer
+photographerServer = App.PhotographerSite
+    { getPhotographers = withAuthResultAndPermission App.ReadSomthing
                                                      serveGetPhotographers
     }
 
@@ -341,7 +295,7 @@ withPermission ps p func = do
 
 
 server :: AppEnv -> Server SiteApi
-server env = hoistServerWithContext siteAPI
+server env = hoistServerWithContext App.siteAPI
                                     (Proxy :: Proxy SiteContext)
                                     (runAppAsHandler env)
                                     (genericServerT siteServer)
@@ -349,16 +303,14 @@ server env = hoistServerWithContext siteAPI
 type SiteContext = '[CookieSettings, JWTSettings]
 
 docs :: Docs.API
-docs = Docs.docs siteAPI
+docs = Docs.docs App.siteAPI
 
 
-docs' :: Docs.API
-docs' = Docs.docs publicSiteAPI
 
 
 application :: AppEnv -> Application
 application env = addPolicy
-    $ serveWithContext siteAPI (siteContext env) (server env)
+    $ serveWithContext App.siteAPI (siteContext env) (server env)
   where
     addPolicy = cors (const $ Just policy)
     policy    = simpleCorsResourcePolicy
@@ -370,45 +322,3 @@ application env = addPolicy
 siteContext :: AppEnv -> Context SiteContext
 siteContext Env {..} = cookieSettings :. jwtSettings :. EmptyContext
 
--------------------------------------------------------------------------------
-siteAPI :: Proxy SiteApi
-siteAPI = genericApi $ (Proxy :: Proxy Site)
-
-publicSiteAPI :: Proxy PublicAPI
-publicSiteAPI = genericApi $ (Proxy :: Proxy PublicSite)
-
-
-type SiteApi = ToApi Site
-
-data Site route = Site
-      { publicSite :: !(route :- PublicAPI)
-      , protectedSite :: !(route :- ProtectedAPI)
-      }
-  deriving (Generic)
-
-type ProtectedAPI = ToApi ProtectedSite
-
-data PublicSite route
-    = PublicSite { postLogin :: !(route :- PostLogin)
-                 , getDocs :: !(route :- GetDocs)
-                 }
-  deriving (Generic)
-
-type GetDocs = Get '[HTML] GetDocsResponse
-
-type PublicAPI = ToApi PublicSite
-
-data ProtectedSite route
-  = ProtectedSite
-      { protectedAccessKeySite :: !(route :- "access-key" :> ToApi ProtectedAccessKeySite)
-      , photographers :: !(route :- "photographer" :> PhotographerAPI)
-      , getPermissions :: !(route :- GetPermissions)
-      }
-  deriving (Generic)
-
-
-type GetPermissions = ProtectAPI :> "permissions" :> Get '[JSON] [Permission]
-
-type PostLogin
-    = "login" :> ReqBody '[JSON] LoginForm :> Post '[JSON] (Headers '[Header "Set-Cookie" Text] NoContent)
-   --- PostNoContent '[JSON] (Headers '[Header "Set-Cookie" Text] NoContent)
