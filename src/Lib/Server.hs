@@ -5,8 +5,14 @@ module Lib.Server
     )
 where
 
-import System.IO.Error
-import Control.Exception hiding (Handler)
+import           Lib.Api.GetDocsResponse
+import           Lib.Api.Types
+import           Lib.Client.Types
+import           Lib.Data.Photographer          ( Photographers )
+import           Lib.Data.LoginForm             ( LoginForm(..) )
+
+import           System.IO.Error
+import           Control.Exception       hiding ( Handler )
 import qualified Utils.ListZipper              as ListZipper
 
 import           Blaze.ByteString.Builder       ( toByteString )
@@ -16,7 +22,9 @@ import           Lib.App.Error                  ( throwError
                                                 , WithError(..)
                                                 )
 
-import Lib.App.Error (throwError, WithError)
+import           Lib.App.Error                  ( throwError
+                                                , WithError
+                                                )
 import           Servant.API.Generic            ( toServant )
 import           Servant.Server                 ( Application
                                                 , Server
@@ -32,25 +40,7 @@ import           Lib.App                        ( AppEnv
                                                 , App
                                                 , Env(..)
                                                 , runApp
-                                                , Site
-                                                , LoginForm(..)
-                                                , AuthCookie(..)
-                                                , ProtectedSite
-                                                , Permission
-                                                , SiteApi
-                                                , AddAccessKey(..)
-                                                , AccessKeyCreated(..)
-                                                , AccessKeyInfo(..)
-                                                , AccessKeyUUID(..)
-                                                , Photographers(..)
-                                                , Photographer(..)
-                                                , PhotographerSite
                                                 , AppServer
-                                                , ProtectedAccessKeySite(..)
-                                                , ProtectedSite(..)
-                                                , PublicSite(..)
-                                                , Site(..)
-                                                , GetDocsResponse(..)
                                                 )
 
 
@@ -62,7 +52,7 @@ import           Servant.Auth.Server            ( JWTSettings
 import           Servant.Auth.Docs
 import qualified Servant.Docs                  as Docs
 
-import           Lib.Config                         ( readJSONFileStrict )
+import           Lib.Config                     ( readJSONFileStrict )
 import           Servant.API                   as Web
                                                 ( (:>)
                                                 , Capture
@@ -132,7 +122,7 @@ publicServer =
 servePostLogin
     :: LoginForm -> App (Headers '[Header "Set-Cookie" Text] NoContent)
 servePostLogin LoginForm {..} = do
-    let perms = App.adminPermissions
+    let perms = adminPermissions
         uid   = 1
         --Find ud af hvordan User virker??
     userIdentifier <- liftIO nextRandomUUID
@@ -201,25 +191,26 @@ servePostLogin LoginForm {..} = do
 protectedServer :: ProtectedSite AppServer
 protectedServer = ProtectedSite
     { protectedAccessKeySite = genericServerT protectedAccessKeyServer
-    , photographers          = withAuthResultAndPermission App.ReadSomthing
+    , photographers          = withAuthResultAndPermission ReadSomthing
                                                            serveGetPhotographers
-    , getPermissions         = withAuthResultAndPermission App.ReadSomthing
+    , getPermissions         = withAuthResultAndPermission ReadSomthing
                                                            serveGetPermissions
     }
 
 protectedAccessKeyServer :: ProtectedAccessKeySite AppServer
 protectedAccessKeyServer = ProtectedAccessKeySite
-    { postAddAccessKey = withAuthResultAndPermission App.PermitAdd
+    { postAddAccessKey = withAuthResultAndPermission PermitAdd
                                                      servePostAddAccessKey
-    , getAccessKey     = withAuthResultAndPermission App.PermitAdd serveGetAccessKey
-    , getAccessKeys = withAuthResultAndPermission App.PermitAdd serveGetAccessKeys
-    , deleteAccessKey  = withAuthResultAndPermission App.PermitAdd
+    , getAccessKey = withAuthResultAndPermission PermitAdd serveGetAccessKey
+    , getAccessKeys    = withAuthResultAndPermission PermitAdd
+                                                     serveGetAccessKeys
+    , deleteAccessKey  = withAuthResultAndPermission PermitAdd
                                                      serveDeleteAccessKey
     }
 
-photographerServer :: App.PhotographerSite AppServer
-photographerServer = App.PhotographerSite
-    { getPhotographers = withAuthResultAndPermission App.ReadSomthing
+photographerServer :: PhotographerSite AppServer
+photographerServer = PhotographerSite
+    { getPhotographers = withAuthResultAndPermission ReadSomthing
                                                      serveGetPhotographers
     }
 
@@ -238,7 +229,10 @@ readPhotographers = do
     mPhotographersFile <-
         App.unMPhotographersFile <$> App.grab @App.MPhotographersFile
     photographersFile <- liftIO $ takeMVar mPhotographersFile
-    content <- liftIO $ (readJSONFileStrict photographersFile) `finally` (putMVar mPhotographersFile photographersFile)
+    content           <-
+        liftIO
+        $         (readJSONFileStrict photographersFile)
+        `finally` (putMVar mPhotographersFile photographersFile)
     return content
 
 
@@ -295,7 +289,7 @@ withPermission ps p func = do
 
 
 server :: AppEnv -> Server SiteApi
-server env = hoistServerWithContext App.siteAPI
+server env = hoistServerWithContext siteAPI
                                     (Proxy :: Proxy SiteContext)
                                     (runAppAsHandler env)
                                     (genericServerT siteServer)
@@ -303,14 +297,14 @@ server env = hoistServerWithContext App.siteAPI
 type SiteContext = '[CookieSettings, JWTSettings]
 
 docs :: Docs.API
-docs = Docs.docs App.siteAPI
+docs = Docs.docs siteAPI
 
 
 
 
 application :: AppEnv -> Application
 application env = addPolicy
-    $ serveWithContext App.siteAPI (siteContext env) (server env)
+    $ serveWithContext siteAPI (siteContext env) (server env)
   where
     addPolicy = cors (const $ Just policy)
     policy    = simpleCorsResourcePolicy

@@ -7,6 +7,8 @@ module Lib
 where
 
 
+import Lib.Client.Types
+
 
 import Servant.Auth.Client
 
@@ -15,6 +17,8 @@ import Web.Cookie (parseSetCookie, setCookieName, setCookieValue)
 import           Network.HTTP.Client            ( newManager
                                                 , defaultManagerSettings
                                                 )
+import           Lib.Data.Photographer          ( Photographers(..))
+import           Lib.Data.LoginForm             ( LoginForm(..), Username(..))
 import           Servant.API
 import           Control.Monad
 import qualified Control.Concurrent.Async      as Async
@@ -48,12 +52,12 @@ import qualified Control.Concurrent.Chan.Unagi.Bounded
 import           Servant                 hiding ( throwError
                                                 , ServerError
                                                 )
-import           Servant.Client
+import           qualified Servant.Client as ServantClient
+import           Servant.Client hiding (ClientEnv)
 import           Servant.Auth.Server           as Auth
 
 import           Crypto.JOSE.JWK                ( JWK )
 
-import qualified Lib.Client as Client
 
 mkAppEnv :: Int -> Config.Config -> IO AppEnv
 mkAppEnv clientPort Config.Config {..} = do
@@ -65,15 +69,11 @@ mkAppEnv clientPort Config.Config {..} = do
     mPhotographersFile' <- newMVar photographersFile
     let mPhotographersFile = App.MPhotographersFile mPhotographersFile'
 
+    let serverPort = 8080
+
     let static     = "static"
     let index      = "index.html"
 
-    let serverPort = 8080
-
-    let baseUrl' = BaseUrl Http "localhost" serverPort ""
-    manager' <- newManager defaultManagerSettings
-    let cenv           = mkClientEnv manager' baseUrl'
-    let clients = Client.clients cenv
 
     let cookieSettings = defaultCookieSettings { cookieIsSecure = NotSecure }
     signingKey <- loadSigningKey -- serveSetSigningKeyFile
@@ -107,38 +107,21 @@ clientGG win = do
 
 runClientGG :: AppEnv -> IO ()
 runClientGG env@Env {..} = do 
+    clientEnv <- mkClientAppEnv
     startGUI defaultConfig { jsWindowReloadOnDisconnect = False
                            , jsPort                     = Just clientPort
                            , jsStatic                   = Just static
                            , jsCustomHTML               = Just index
                            , jsCallBufferMode           = NoBuffering
                            }
-        $ runClientApp ClientEnvv . clientGG
-
-type ClientAppEnv = ClientEnvv ClientApp
-
-newtype ClientApp a = ClientApp
-    { unClientApp :: ReaderT ClientAppEnv UI a
-    } deriving newtype ( Functor
-                        , Applicative
-                        , Monad
-                        , MonadIO
-                        , MonadReader ClientAppEnv
-                        )
-
-instance MonadUI ClientApp where
-    liftUI m = ClientApp (ReaderT (const m))
-
-runClientApp :: ClientAppEnv -> ClientApp a -> UI a
-runClientApp env = usingReaderT env . unClientApp
-
-data ClientEnvv (m :: Type -> Type) = ClientEnvv
+        $ runClientApp clientEnv . clientGG
 
 -------------------------------------------------------------------------------
 
 setup :: AppEnv -> Window -> UI ()
 setup env@Env {..} win = do
-    gg <- liftIO $ runAppAsIO env $ (App.login clients) (App.LoginForm (App.Username "bob") "tste")
+    {-
+    gg <- liftIO $ runAppAsIO env $ (login clients) (LoginForm (Username "bob") "tste")
     --- https://github.com/NorfairKing/intray/blob/f8ed32c79d8b3159a4c82cd8cc5c5aeeb92c2c90/intray-cli/src/Intray/Cli/Commands/Login.hs
     cook <- case gg of
             Left _  -> error "No server configured."
@@ -157,20 +140,13 @@ setup env@Env {..} win = do
                                     return $ setCookie
 
     let token = Token (setCookieValue  cook)
-    photographers <- liftIO $ runAppAsIO env $ (App.getPhotographers' clients) token
+    photographers <- liftIO $ runAppAsIO env $ (getPhotographers' clients) token
     traceShowM photographers
-
+-}
 -------------------------------------------------------------------------------
     return win # set title "test"
 
     return ()
-
-runClientM' :: ClientEnv -> ClientM a -> App a
-runClientM' clietEnv client = do
-    e <- liftIO $ runClientM client clietEnv
-    case e of
-        Left  servantErr -> throwError $ ServerError "servantErr" -- servantErr
-        Right a          -> pure a
 
 
 runServer :: AppEnv -> IO ()
