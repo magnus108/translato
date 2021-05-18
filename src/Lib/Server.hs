@@ -5,11 +5,10 @@ module Lib.Server
     )
 where
 
-import           Lib.Api.GetDocsResponse
+import           Lib.Api
 import           Lib.Api.Types
 import           Lib.Client.Types
 import           Lib.Data.Photographer          ( Photographers )
-import           Lib.Data.LoginForm             ( LoginForm(..) )
 
 import           System.IO.Error
 import           Control.Exception       hiding ( Handler )

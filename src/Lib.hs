@@ -18,7 +18,6 @@ import           Network.HTTP.Client            ( newManager
                                                 , defaultManagerSettings
                                                 )
 import           Lib.Data.Photographer          ( Photographers(..))
-import           Lib.Data.LoginForm             ( LoginForm(..), Username(..))
 import           Servant.API
 import           Control.Monad
 import qualified Control.Concurrent.Async      as Async

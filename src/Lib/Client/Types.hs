@@ -11,7 +11,6 @@ import           Control.Exception              ( catch
                                                 )
 import           Servant.Auth.Client
 import           Lib.Data.Photographer          ( Photographers )
-import           Lib.Data.LoginForm             ( LoginForm )
 import           Graphics.UI.Threepenny.Core
 import           Servant                 hiding ( throwError )
 import qualified Servant.Client                as Servant
@@ -25,10 +24,11 @@ import           Lib.Client.Error               ( ClientAppError
 import qualified Control.Monad.Except          as E
 
 import           Lib.Api.Types
+import           Lib.Api
 
 
 data ClientEnv (m :: Type -> Type) = ClientEnv
-    { login :: LoginForm -> ClientApp (Headers '[Header "Set-Cookie" Text] NoContent)
+    { postLogin :: LoginForm -> ClientApp (Headers '[Header "Set-Cookie" Text] NoContent)
     , getPhotographers :: Token -> ClientApp Photographers
     }
 

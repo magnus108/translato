@@ -10,8 +10,6 @@ import           Data.UUID.Typed
 import           Servant.Docs
 import           Servant.Auth.Server
 import           Data.Aeson
-import           Lib.Api.GetDocsResponse
-import           Lib.Data.LoginForm
 import           Lib.Data.Types
 import           Servant.HTML.Blaze
 import           Text.Blaze                    as HTML
@@ -53,52 +51,15 @@ import           Servant.API.Generic           as Web
                                                 , ToServant
                                                 )
 
+
 type ToApi (site :: Type -> Type) = ToServantApi site
 
 type RequiredHeader = Header' '[Required, Strict]
 
 
-publicSiteAPI :: Proxy PublicAPI
-publicSiteAPI = genericApi $ (Proxy :: Proxy PublicSite)
-
-siteAPI :: Proxy SiteApi
-siteAPI = genericApi $ (Proxy :: Proxy Site)
-
-
-type SiteApi = ToApi Site
-
-data Site route = Site
-      { publicSite :: !(route :- PublicAPI)
-      , protectedSite :: !(route :- ProtectedAPI)
-      }
-  deriving (Generic)
-
-type ProtectedAPI = ToApi ProtectedSite
-
-data PublicSite route
-    = PublicSite { postLogin :: !(route :- PostLogin)
-                 , getDocs :: !(route :- GetDocs)
-                 }
-  deriving (Generic)
-
-type GetDocs = Get '[HTML] GetDocsResponse
-
-type PublicAPI = ToApi PublicSite
-
-data ProtectedSite route
-  = ProtectedSite
-      { protectedAccessKeySite :: !(route :- "access-key" :> ToApi ProtectedAccessKeySite)
-      , photographers :: !(route :- "photographer" :> PhotographerAPI)
-      , getPermissions :: !(route :- GetPermissions)
-      }
-  deriving (Generic)
 
 
 type GetPermissions = ProtectAPI :> "permissions" :> Get '[JSON] [Permission]
-
- --- PostNoContent '[JSON] (Headers '[Header "Set-Cookie" Text] NoContent)
-type PostLogin
-    = "login" :> ReqBody '[JSON] LoginForm :> Post '[JSON] (Headers '[Header "Set-Cookie" Text] NoContent)
 
 -------------------------------------------------------------------------------
 
@@ -110,6 +71,43 @@ data Permission
         deriving Generic
         deriving anyclass (FromJSON, ToJSON)
 
+
+
+newtype Username
+  = Username
+      { usernameText :: Text
+      }
+        deriving (Show, Eq, Ord)
+        deriving Generic
+        deriving anyclass (FromJSON, ToJSON)
+
+data LoginForm
+  = LoginForm
+      { loginFormUsername :: Username
+      , loginFormPassword :: Text
+      }
+        deriving (Show, Eq, Ord)
+        deriving Generic
+        deriving anyclass (FromJSON, ToJSON)
+
+instance ToSample LoginForm
+instance ToSample Username
+
+newtype GetDocsResponse
+  = GetDocsResponse
+      { unGetDocsResponse :: HTML.Html
+      }
+        deriving Generic
+
+instance ToSample GetDocsResponse where
+    toSamples Proxy = singleSample $ GetDocsResponse "Documentation (In HTML)."
+
+instance ToMarkup GetDocsResponse where
+    toMarkup (GetDocsResponse html) = toMarkup html
+
+instance MimeUnrender HTML GetDocsResponse where
+    mimeUnrender Proxy bs =
+        Right $ GetDocsResponse $ HTML.unsafeLazyByteString bs
 
 instance ToSample Permission
 

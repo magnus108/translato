@@ -29,7 +29,7 @@ library
       Columns3
       Format
       Lib
-      Lib.Api.GetDocsResponse
+      Lib.Api
       Lib.Api.Types
       Lib.App
       Lib.App.Env
@@ -37,7 +37,6 @@ library
       Lib.Client.Error
       Lib.Client.Types
       Lib.Config
-      Lib.Data.LoginForm
       Lib.Data.Photographer
       Lib.Data.Types
       Lib.Message

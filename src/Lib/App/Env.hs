@@ -3,10 +3,10 @@
 
 module Lib.App.Env where
 
+import           Lib.Api
 import           Lib.Api.Types
 import           Lib.Data.Types
 import           Lib.Data.Photographer          ( Photographers )
-import           Lib.Data.LoginForm             ( LoginForm )
 
 import           Servant.API
 import           Servant.Auth.Client
@@ -51,7 +51,6 @@ import qualified Data.ByteString               as SB
 import qualified Data.ByteString.Base16        as SB16
 import qualified Data.Text.Encoding            as TE
 
-import           Lib.Api.GetDocsResponse
 import           System.Random
 import           System.IO.Unsafe
 import           Utils.ListZipper
