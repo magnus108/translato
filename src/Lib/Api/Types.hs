@@ -1,119 +1,41 @@
 module Lib.Api.Types where
 
-import           Data.Time
+
+import Data.Aeson
+import qualified Data.Text as T
+import Data.Time
+import qualified Data.UUID as UUID
+import Data.UUID.Typed
+import Servant.API
+import Servant.Auth
+import Servant.Auth.Docs
+import Servant.Auth.Server
+import Servant.Docs
+import Servant.HTML.Blaze
+import System.IO.Unsafe
+import Text.Blaze as HTML
+import Text.Blaze.Html as HTML
+import Lib.Data.Permission
+import Lib.Data.Username
+---------------------------------------------------------------------------------
+
 import qualified Data.ByteString as SB
 import qualified Data.ByteString.Base16 as SB16
 import qualified Data.Text.Encoding as TE
-
-import qualified Data.UUID as UUID
-import           Data.UUID.Typed
-import           Servant.Docs
-import           Servant.Auth.Server
-import           Data.Aeson
-import           Lib.Data.Types
-import           Servant.HTML.Blaze
-import           Text.Blaze                    as HTML
-import           Text.Blaze.Html               as HTML
-import           Servant.API                   as Web
-                                                ( (:>)
-                                                , Capture
-                                                , Headers
-                                                , Get
-                                                , Header
-                                                , Header'
-                                                , JSON
-                                                , PostNoContent(..)
-                                                , NoContent(NoContent)
-                                                , Post
-                                                , QueryParam
-                                                , QueryParam'
-                                                , ReqBody
-                                                , (:<|>)
-                                                )
-
-
-import System.Random
-import System.IO.Unsafe
 import Lib.Data.Photographer
 import           Servant.API.Generic           as Web
                                                 ( (:-)
                                                 , toServant
                                                 , genericApi
                                                 , ToServant
-                                                )
-
-import           Servant.API
-import           Servant.API.Generic           as Web
-                                                ( (:-)
-                                                , toServant
-                                                , genericApi
                                                 , ToServantApi
-                                                , ToServant
                                                 )
-
+import System.Random
+---------------------------------------------------------------------------------
 
 type ToApi (site :: Type -> Type) = ToServantApi site
 
 type RequiredHeader = Header' '[Required, Strict]
-
-
-
-
-type GetPermissions = ProtectAPI :> "permissions" :> Get '[JSON] [Permission]
-
--------------------------------------------------------------------------------
-
-data Permission
-    = PermitAdd
-    | WriteSomething
-    | ReadSomthing
-        deriving (Show, Read, Eq, Ord, Enum, Bounded)
-        deriving Generic
-        deriving anyclass (FromJSON, ToJSON)
-
-
-
-newtype Username
-  = Username
-      { usernameText :: Text
-      }
-        deriving (Show, Eq, Ord)
-        deriving Generic
-        deriving anyclass (FromJSON, ToJSON)
-
-data LoginForm
-  = LoginForm
-      { loginFormUsername :: Username
-      , loginFormPassword :: Text
-      }
-        deriving (Show, Eq, Ord)
-        deriving Generic
-        deriving anyclass (FromJSON, ToJSON)
-
-instance ToSample LoginForm
-instance ToSample Username
-
-newtype GetDocsResponse
-  = GetDocsResponse
-      { unGetDocsResponse :: HTML.Html
-      }
-        deriving Generic
-
-instance ToSample GetDocsResponse where
-    toSamples Proxy = singleSample $ GetDocsResponse "Documentation (In HTML)."
-
-instance ToMarkup GetDocsResponse where
-    toMarkup (GetDocsResponse html) = toMarkup html
-
-instance MimeUnrender HTML GetDocsResponse where
-    mimeUnrender Proxy bs =
-        Right $ GetDocsResponse $ HTML.unsafeLazyByteString bs
-
-instance ToSample Permission
-
-type AccountUUID = UUID User
-
-data User
 
 type ProtectAPI = Auth '[JWT] AuthCookie
 
@@ -127,17 +49,55 @@ data AuthCookie
     deriving anyclass (FromJSON, ToJSON)
     deriving anyclass (FromJWT, ToJWT)
 
-userPermissions :: [Permission]
-userPermissions = [ReadSomthing]
 
-adminOnlyPermissions :: [Permission]
-adminOnlyPermissions = [WriteSomething]
+newtype GetDocsResponse
+  = GetDocsResponse
+      { unGetDocsResponse :: HTML.Html
+      }
+        deriving Generic
 
-adminPermissions :: [Permission]
-adminPermissions = userPermissions ++ adminOnlyPermissions
+instance MimeUnrender HTML GetDocsResponse where
+    mimeUnrender Proxy bs =
+        Right $ GetDocsResponse $ HTML.unsafeLazyByteString bs
 
-allPermissions :: [Permission]
-allPermissions = [minBound .. maxBound]
+instance ToSample GetDocsResponse where
+    toSamples Proxy = singleSample $ GetDocsResponse "Documentation (In HTML)."
+
+instance ToMarkup GetDocsResponse where
+    toMarkup (GetDocsResponse html) = toMarkup html
+
+data LoginForm
+  = LoginForm
+      { loginFormUsername :: Username
+      , loginFormPassword :: Text
+      }
+        deriving (Show, Eq, Ord)
+        deriving Generic
+        deriving anyclass (FromJSON, ToJSON)
+
+instance ToSample LoginForm
+
+
+instance ToSample UTCTime where
+      toSamples Proxy = singleSample $ UTCTime (fromGregorian 2018 2 10) 42
+
+instance ToSample (UUID a) where
+  toSamples Proxy = singleSample (UUID $ UUID.fromWords 0 0 0 0)
+
+
+type GetPermissions = ProtectAPI :> "permissions" :> Get '[JSON] [Permission]
+
+
+
+-------------------------------------------------------------------------------
+
+
+
+type AccountUUID = UUID User
+
+data User
+
+
 
 -------------------------------------------------------------------------------
 type PhotographerAPI = ToApi PhotographerSite
@@ -255,11 +215,6 @@ data AccessKeyCreated
 
 instance ToSample AccessKeyCreated
 
-instance ToSample UTCTime where
-      toSamples Proxy = singleSample $ UTCTime (fromGregorian 2018 2 10) 42
-
-instance ToSample (UUID a) where
-  toSamples Proxy = singleSample (UUID $ UUID.fromWords 0 0 0 0)
 
 --------------------------------------------------------------------------------
 data LoginRequest = LoginRequest

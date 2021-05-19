@@ -5,6 +5,7 @@ module Lib.Server
     )
 where
 
+import Lib.Data.Permission
 import           Lib.Api
 import           Lib.Api.Types
 import           Lib.Client.Types

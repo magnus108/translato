@@ -37,8 +37,10 @@ library
       Lib.Client.Error
       Lib.Client.Types
       Lib.Config
+      Lib.Data.Permission
       Lib.Data.Photographer
       Lib.Data.Types
+      Lib.Data.Username
       Lib.Message
       Lib.Server
       Lib2
