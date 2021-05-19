@@ -1,37 +1,23 @@
 module Lib.Api.Types where
 
-
-import Data.Aeson
-import qualified Data.Text as T
-import Data.Time
-import qualified Data.UUID as UUID
-import Data.UUID.Typed
-import Servant.API
-import Servant.Auth
-import Servant.Auth.Docs
-import Servant.Auth.Server
-import Servant.Docs
-import Servant.HTML.Blaze
-import System.IO.Unsafe
-import Text.Blaze as HTML
-import Text.Blaze.Html as HTML
-import Lib.Data.Permission
-import Lib.Data.Username
----------------------------------------------------------------------------------
-
-import qualified Data.ByteString as SB
-import qualified Data.ByteString.Base16 as SB16
-import qualified Data.Text.Encoding as TE
-import Lib.Data.Photographer
-import           Servant.API.Generic           as Web
-                                                ( (:-)
-                                                , toServant
-                                                , genericApi
-                                                , ToServant
-                                                , ToServantApi
-                                                )
-import System.Random
----------------------------------------------------------------------------------
+import           Data.Aeson
+import qualified Data.Text                     as T
+import           Data.Time
+import qualified Data.UUID                     as UUID
+import           Data.UUID.Typed
+import           Servant.API
+import           Servant.Auth
+import           Servant.Auth.Docs
+import           Servant.Auth.Server
+import           Servant.Docs
+import           Servant.HTML.Blaze
+import           System.IO.Unsafe
+import           Text.Blaze                    as HTML
+import           Text.Blaze.Html               as HTML
+import           Lib.Data.Permission
+import           Lib.Data.Username
+import           Lib.Data.AccountUUID
+import           Servant.API.Generic            ( ToServantApi )
 
 type ToApi (site :: Type -> Type) = ToServantApi site
 
@@ -79,33 +65,10 @@ instance ToSample LoginForm
 
 
 instance ToSample UTCTime where
-      toSamples Proxy = singleSample $ UTCTime (fromGregorian 2018 2 10) 42
+    toSamples Proxy = singleSample $ UTCTime (fromGregorian 2018 2 10) 42
 
 instance ToSample (UUID a) where
-  toSamples Proxy = singleSample (UUID $ UUID.fromWords 0 0 0 0)
+    toSamples Proxy = singleSample (UUID $ UUID.fromWords 0 0 0 0)
 
 
 type GetPermissions = ProtectAPI :> "permissions" :> Get '[JSON] [Permission]
-
-
-
--------------------------------------------------------------------------------
-
-
-type AccountUUID = UUID User
-
-data User
-
-
--------------------------------------------------------------------------------
-type PhotographerAPI = ToApi PhotographerSite
-
-data PhotographerSite route
-  = PhotographerSite
-      { getPhotographers :: !(route :- GetPhotographers)
-      }
-  deriving (Generic)
-
-
-type GetPhotographers = ProtectAPI :> Get '[JSON] Photographers
-

@@ -37,6 +37,7 @@ library
       Lib.Client.Error
       Lib.Client.Types
       Lib.Config
+      Lib.Data.AccountUUID
       Lib.Data.Permission
       Lib.Data.Photographer
       Lib.Data.Types

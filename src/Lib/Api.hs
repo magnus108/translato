@@ -6,6 +6,7 @@ import           Servant.API
 import           Servant.API.Generic
 import           Servant.Auth.Docs
 import           Servant.HTML.Blaze
+import           Lib.Data.Photographer
 
 
 type SiteApi = ToApi Site
@@ -46,3 +47,16 @@ type PostLogin
     = "login" :> ReqBody '[JSON] LoginForm :> Post '[JSON] (Headers '[Header "Set-Cookie" Text] NoContent)
 
 type GetDocs = Get '[HTML] GetDocsResponse
+
+
+type PhotographerAPI = ToApi PhotographerSite
+
+data PhotographerSite route
+  = PhotographerSite
+      { getPhotographers :: !(route :- GetPhotographers)
+      }
+  deriving (Generic)
+
+
+type GetPhotographers = ProtectAPI :> Get '[JSON] Photographers
+
