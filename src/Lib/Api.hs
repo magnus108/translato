@@ -36,8 +36,7 @@ type ProtectedAPI = ToApi ProtectedSite
 
 data ProtectedSite route
   = ProtectedSite
-      { protectedAccessKeySite :: !(route :- "access-key" :> ProtectedAccessKeyAPI)
-      , photographers :: !(route :- "photographer" :> PhotographerAPI)
+      { photographers :: !(route :- "photographer" :> PhotographerAPI)
       , getPermissions :: !(route :- GetPermissions)
       }
   deriving (Generic)

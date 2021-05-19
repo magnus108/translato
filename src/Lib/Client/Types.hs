@@ -81,7 +81,7 @@ clients cenv =
                                   (Servant.client siteAPI)
         public                          :<|> protected      = api
         postLogin                       :<|> docs           = public
-        accessKey :<|> getPhotographers :<|> getPermissions = protected
+        getPhotographers :<|> getPermissions = protected
     in
         ClientEnv { .. }
 

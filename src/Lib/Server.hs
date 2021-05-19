@@ -190,23 +190,12 @@ servePostLogin LoginForm {..} = do
 -- does not match layercake
 protectedServer :: ProtectedSite AppServer
 protectedServer = ProtectedSite
-    { protectedAccessKeySite = genericServerT protectedAccessKeyServer
-    , photographers          = withAuthResultAndPermission ReadSomthing
+    { photographers          = withAuthResultAndPermission ReadSomthing
                                                            serveGetPhotographers
     , getPermissions         = withAuthResultAndPermission ReadSomthing
                                                            serveGetPermissions
     }
 
-protectedAccessKeyServer :: ProtectedAccessKeySite AppServer
-protectedAccessKeyServer = ProtectedAccessKeySite
-    { postAddAccessKey = withAuthResultAndPermission PermitAdd
-                                                     servePostAddAccessKey
-    , getAccessKey = withAuthResultAndPermission PermitAdd serveGetAccessKey
-    , getAccessKeys    = withAuthResultAndPermission PermitAdd
-                                                     serveGetAccessKeys
-    , deleteAccessKey  = withAuthResultAndPermission PermitAdd
-                                                     serveDeleteAccessKey
-    }
 
 photographerServer :: PhotographerSite AppServer
 photographerServer = PhotographerSite
@@ -238,33 +227,6 @@ readPhotographers = do
 
 serveGetPermissions :: AuthCookie -> App [Permission]
 serveGetPermissions AuthCookie {..} = pure permissions
-
-serveDeleteAccessKey :: AuthCookie -> AccessKeyUUID -> App NoContent
-serveDeleteAccessKey AuthCookie {..} uuid = do
-    -- RUN IN IO, read file ith array
-    -- delete item
-    -- write file
-    -- STRICT!
-    pure NoContent
-
-serveGetAccessKey :: AuthCookie -> AccessKeyUUID -> App AccessKeyInfo
-serveGetAccessKey AuthCookie {..} uuid = do
-    undefined
-  --mac <- runDb $ getBy $ UniqueAccessKeyIdentifier uuid
-  --case mac of
-   -- Nothing -> throwAll err404 {errBody = "AccessKey not found."}
-  --  Just (Entity _ ak) -> pure $ makeAccessKeyInfo ak
-
-serveGetAccessKeys :: AuthCookie -> App [AccessKeyInfo]
-serveGetAccessKeys AuthCookie {..} = do
-    undefined
---  aks <- runDb $ selectList [AccessKeyUser ==. authCookieUserUUID] []
- -- pure $ map (makeAccessKeyInfo . entityVal) aks
-
--- Shoud use withPattern
-servePostAddAccessKey :: AuthCookie -> AddAccessKey -> App AccessKeyCreated
-servePostAddAccessKey AuthCookie {..} AddAccessKey {..} = undefined
-
 
 
 
