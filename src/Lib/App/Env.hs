@@ -5,7 +5,6 @@ module Lib.App.Env where
 
 import           Lib.Api
 import           Lib.Api.Types
-import           Lib.Data.Types
 import           Lib.Data.Photographer          ( Photographers )
 
 import           Servant.API

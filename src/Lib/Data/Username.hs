@@ -1,6 +1,5 @@
 module Lib.Data.Username where
 
-import           Lib.Data.Types
 import           Data.Aeson
 import           Servant.Docs
 
@@ -12,4 +11,3 @@ newtype Username
         deriving Generic
         deriving anyclass (FromJSON, ToJSON)
 
-instance ToSample Username

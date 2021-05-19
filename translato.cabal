@@ -40,7 +40,6 @@ library
       Lib.Data.AccountUUID
       Lib.Data.Permission
       Lib.Data.Photographer
-      Lib.Data.Types
       Lib.Data.Username
       Lib.Message
       Lib.Server
