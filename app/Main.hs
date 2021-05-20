@@ -46,8 +46,6 @@ data Config = Config { port :: Int }
 main :: IO ()
 main = do
     Config (port) <- getRecord "Run"
-
-
     Lib.main port ""
 
     {-
