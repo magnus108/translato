@@ -14,11 +14,7 @@ import           Control.Comonad
 import           Data.Aeson
 
 import qualified Data.List.NonEmpty            as NE
-import           Data.List.NonEmpty             ( NonEmpty(..)
-                                                , (<|)
-                                                , tail
-                                                , cons
-                                                )
+import           Data.List.NonEmpty             ( (<|) )
 
 data ListZipper a = ListZipper [a] a [a]
     deriving (Eq, Ord, Show)

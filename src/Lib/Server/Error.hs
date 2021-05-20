@@ -13,7 +13,6 @@ where
 
 import qualified Control.Monad.Except          as E
                                                 ( throwError
-                                                , catchError
                                                 )
 import           Control.Monad.Except           ( MonadError )
 import           GHC.Stack                      ( SrcLoc
@@ -25,11 +24,6 @@ import           GHC.Stack                      ( SrcLoc
 
 type WithError m = (MonadError ServerAppError m, HasCallStack)
 
-
--- wtf is this
-instance MonadError ServerAppError ((->) a) where
-    throwError e = E.throwError e
-    catchError e = E.catchError e
 
 
 throwError :: WithError m => ServerAppErrorType -> m a

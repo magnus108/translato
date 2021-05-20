@@ -1,7 +1,6 @@
 module Lib.Data.Username where
 
 import           Data.Aeson
-import           Servant.Docs
 
 newtype Username
   = Username

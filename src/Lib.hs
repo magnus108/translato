@@ -6,18 +6,9 @@ module Lib
     )
 where
 
-import Lib.Utils
 import Lib.Client.Types
 
 
-import Servant.Auth.Client
-
-import Web.Cookie (parseSetCookie, setCookieName, setCookieValue)
-
-import           Network.HTTP.Client            ( newManager
-                                                , defaultManagerSettings
-                                                )
-import           Lib.Data.Photographer          ( Photographers(..))
 import           Servant.API
 import           Control.Monad
 import qualified Control.Concurrent.Async      as Async
@@ -29,30 +20,18 @@ import           Lib.App                        ( AppEnv
                                                 , Env(..)
                                                 , InChan(..)
                                                 , OutChan(..)
-                                                , runApp
-                                                , runAppAsIO
-                                                , App(..)
-                                                , throwError
-                                                , AppErrorType(..)
                                                 )
 
 
 import           Network.Wai.Handler.Warp       ( run )
 import           Lib.Server                     ( application
                                                 )
-import qualified Data.Text as T
-import qualified Servant.Docs                  as Docs
 
 import           Graphics.UI.Threepenny.Core
 
 import qualified Control.Concurrent.Chan.Unagi.Bounded
                                                as Chan
 
-import           Servant                 hiding ( throwError
-                                                , ServerError
-                                                )
-import           qualified Servant.Client as ServantClient
-import           Servant.Client hiding (ClientEnv)
 import           Servant.Auth.Server           as Auth
 
 import           Crypto.JOSE.JWK                ( JWK )

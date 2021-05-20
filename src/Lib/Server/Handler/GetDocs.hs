@@ -1,15 +1,11 @@
 module Lib.Server.Handler.GetDocs where
 
-import           Servant.HTML.Blaze
-import           Text.Blaze                    as HTML
-import           Text.Blaze.Html               as HTML
 import           Lib.Server.Types
 import           Lib.Api.Types
 import           Lib.Api
 
 import qualified Servant.Docs                  as Docs
 import qualified Data.Text                     as T
-import qualified Data.Text.Encoding            as TE
 import qualified Data.Text.Lazy                as LT
 import qualified Text.Markdown                 as Markdown
 

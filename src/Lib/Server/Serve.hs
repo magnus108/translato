@@ -1,7 +1,6 @@
 module Lib.Server.Serve where
 
 import           Servant.Auth.Server
-import           Servant.Server          hiding ( ServerError )
 import           Servant.Server.Generic
 
 import           Lib.Server.Handler.GetPermissions

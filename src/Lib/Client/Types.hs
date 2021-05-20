@@ -4,11 +4,6 @@ import           Network.HTTP.Client            ( newManager
                                                 , defaultManagerSettings
                                                 )
 
-import           Relude.Extra                   ( firstF )
-import           Control.Exception              ( catch
-                                                , throwIO
-                                                , try
-                                                )
 import           Servant.Auth.Client
 import           Lib.Data.Photographer          ( Photographers )
 import           Graphics.UI.Threepenny.Core
@@ -17,7 +12,6 @@ import qualified Servant.Client                as Servant
 
 import           Lib.Client.Error               ( ClientAppError
                                                 , throwError
-                                                , ClientAppException(..)
                                                 , ClientAppErrorType(..)
                                                 )
 

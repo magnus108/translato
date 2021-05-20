@@ -2,13 +2,12 @@
 {-# LANGUAGE DeriveTraversable #-}
 module Columns3 (Grouped(..), NestedOrSingle(..), Row(..), Grid(..), Item(..), toGrid, construct) where
 
-import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core hiding (grid, row, column)
 
 import Data.Fix
 
 import qualified Columns2
-import Columns2 (fromGrid2, gridToElem2)
+import Columns2 (gridToElem2)
 
 
 type SuperSingle = UI Element

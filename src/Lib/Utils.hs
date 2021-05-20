@@ -1,11 +1,9 @@
 module Lib.Utils where
 
-import           System.FilePath
 import           System.IO.Error
 import           Data.Aeson
 import qualified Data.ByteString               as B
-import           Control.Monad.Catch            ( MonadThrow
-                                                , throwM
+import           Control.Monad.Catch            ( throwM
                                                 )
 
 class Has field env where

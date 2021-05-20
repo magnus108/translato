@@ -5,13 +5,7 @@ module Lib.Config
 where
 
 import           System.FilePath
-import           Lib.App
 import           Data.Aeson
-import qualified Data.ByteString               as B
-import           Control.Monad.Catch            ( MonadThrow
-                                                , throwM
-                                                )
-import           System.IO.Error
 import           Lib.Utils
 
 data Config = Config

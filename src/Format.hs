@@ -3,13 +3,8 @@ module Format where
 import           Model
 import           Safe                           ( atMay )
 
-import           Data.Generics.Labels
-import           Options.Generic
-import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
-import qualified Control.Comonad
 import qualified Control.Comonad.Store as Store
-import qualified Control.Lens                  as Lens
 
 
 lookup :: PrintfType a => String -> a

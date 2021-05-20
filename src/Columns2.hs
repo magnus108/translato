@@ -75,8 +75,8 @@ superSingleToElem2 (SuperSingle x) = x
 
 itemToElem2 :: Item [UI Element] -> UI Element
 itemToElem2 (SuperSingle' x) = do
-    let elem = superSingleToElem2 x
-    elem #. "column"
+    let elem' = superSingleToElem2 x
+    elem' #. "column"
 itemToElem2 (Single' x) = do
     let children' = singleToElem2 x
     UI.div #. "column" #+ children'

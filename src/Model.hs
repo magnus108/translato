@@ -3,12 +3,10 @@ module Model where
 import           Data.Aeson
 
 import           Control.Comonad.Trans.Store
-import           Control.Comonad.Trans.Env
 
 import qualified Data.Map.Strict               as M
 
 import           Utils.ListZipper               ( ListZipper )
-import qualified Utils.ListZipper              as ListZipper
 
 
 

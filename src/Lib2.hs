@@ -23,16 +23,13 @@ import Data.Generics.Sum.Constructors (_Ctor)
 import Columns3
 import Columns2 (fromGrid2, fromGrid2)
 
-import           Control.Conditional            ( (?<>) )
+import           Control.Conditional            ( (?<>), ToBool)
 import Utils.ListZipper (ListZipper)
 import qualified Utils.ListZipper as ListZipper
-import qualified Control.Comonad.Env as Env
-import qualified Data.Map                          as Map
 
 import Format
 import Model
-import Data.Generics.Labels
-import           Options.Generic
+import Data.Generics.Labels ()
 
 import qualified Data.Map.Strict               as M
 import           Control.Comonad hiding ((<@>))
@@ -40,7 +37,6 @@ import Control.Comonad.Store hiding ((<@>))
 import qualified Control.Comonad.Store as Store
 
 import           Control.Lens                   ( (^.), (.~), (^?))
-import qualified Control.Lens as Lens
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core hiding (title, grid, column, row)
 import Reactive.Threepenny
@@ -93,6 +89,7 @@ brah translation run =
         getTrans u
                 | Just v <- u ^? _Ctor @"Danish"= Danish $ Translations $ M.insert (unPosition position) translation (unTranslations v)
                 | Just v <- u ^? _Ctor @"English" = English $ Translations $ M.insert (unPosition position) translation (unTranslations v)
+                | True = error "wtf"
 
         languages' = ListZipper.setter languages (getTrans language)
         status' =  status & #languages .~ languages'
@@ -110,10 +107,11 @@ brah3 run =
         getTrans u
                 | Just v <- u ^? _Ctor @"Danish"= v
                 | Just v <- u ^? _Ctor @"English" = v
+                | True = error "wtf"
 
         elems = M.keys (unTranslations (getTrans (status ^. #languages & extract)))
     in
-        Store.experiment (\position' -> fmap (Position) elems) wPosition
+        Store.experiment (\_ -> fmap (Position) elems) wPosition
 
 
 kv :: (ComonadStore Position w, ComonadStore Status (t w), ComonadTrans t) => t w Translation -> t w Translation -> (String, String, Bool)
@@ -123,7 +121,7 @@ extendi :: Comonad w => (w a -> w a -> b) -> w a -> w b
 extendi f w = extend (f w) w
 
 fst3 :: (a,b,c) -> a
-fst3 (a,b,c) = a
+fst3 (a,_,_) = a
 
 -------------------------------------------------------------------------------
 myBox :: Behavior Run ->  Behavior (String -> Bool) -> UI (Element, Event String)
@@ -150,13 +148,17 @@ myBox bRun bFilter = do
 
 ------------------------------------------------------------------------------
 --GENBRUG
-displayOpen f run handler center items = do
+displayOpen :: (Control.Conditional.ToBool bool,
+                      PrintfType (t1 -> Translation), Comonad w) =>
+                     (t2 -> String)
+                     -> t1 -> (w t2 -> IO void) -> bool -> w t2 -> UI Element
+displayOpen f run handler center items' = do
         button <- UI.button
                 #. (center ?<> "is-info is-seleceted" <> " " <> "button")
-                # set presentation (lookup (f (extract items)) run)
+                # set presentation (lookup (f (extract items')) run)
 
         UI.on UI.click button $ \_ -> do
-                liftIO $ handler items
+                liftIO $ handler items'
 
         return button
 

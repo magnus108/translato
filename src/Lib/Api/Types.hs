@@ -1,17 +1,14 @@
 module Lib.Api.Types where
 
 import           Data.Aeson
-import qualified Data.Text                     as T
 import           Data.Time
 import qualified Data.UUID                     as UUID
 import           Data.UUID.Typed
 import           Servant.API
 import           Servant.Auth
-import           Servant.Auth.Docs
 import           Servant.Auth.Server
 import           Servant.Docs
 import           Servant.HTML.Blaze
-import           System.IO.Unsafe
 import           Text.Blaze                    as HTML
 import           Text.Blaze.Html               as HTML
 import           Lib.Data.Permission

@@ -1,10 +1,8 @@
 module Lib.Api where
 
-import           Data.UUID.Typed
 import           Lib.Api.Types
 import           Servant.API
 import           Servant.API.Generic
-import           Servant.Auth.Docs
 import           Servant.HTML.Blaze
 import           Lib.Data.Photographer
 
