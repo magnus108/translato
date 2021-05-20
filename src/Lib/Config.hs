@@ -1,7 +1,6 @@
 module Lib.Config
     ( Config(..)
     , loadConfig
-    , readJSONFileStrict
     )
 where
 
@@ -13,6 +12,7 @@ import           Control.Monad.Catch            ( MonadThrow
                                                 , throwM
                                                 )
 import           System.IO.Error
+import           Lib.Utils
 
 data Config = Config
     { dumpFile :: !FilePath
@@ -21,14 +21,6 @@ data Config = Config
     deriving (Show, Eq)
     deriving Generic
     deriving anyclass (FromJSON, ToJSON)
-
-
-readJSONFileStrict :: (MonadIO m, FromJSON a) => FilePath -> m a
-readJSONFileStrict fp = liftIO $ do
-    bs <- B.readFile fp
-    case eitherDecodeStrict' bs of
-        Left  e -> throwM $ userError e
-        Right x -> return x
 
 
 loadConfig :: MonadIO m => FilePath -> FilePath -> m Config

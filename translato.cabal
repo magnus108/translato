@@ -43,6 +43,14 @@ library
       Lib.Data.Username
       Lib.Message
       Lib.Server
+      Lib.Server.Error
+      Lib.Server.Handler.GetDocs
+      Lib.Server.Handler.GetPermissions
+      Lib.Server.Handler.GetPhotographers
+      Lib.Server.Handler.PostLogin
+      Lib.Server.Serve
+      Lib.Server.Types
+      Lib.Utils
       Lib2
       Model
       Text

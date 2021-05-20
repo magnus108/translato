@@ -3,6 +3,7 @@
 
 module Lib.App.Env where
 
+import Lib.Utils
 import           Lib.Api
 import           Lib.Api.Types
 import           Lib.Data.Photographer          ( Photographers )
@@ -11,7 +12,6 @@ import           Servant.API
 import           Servant.Auth.Client
 import           Servant.Client
 import           Servant.Client
-import           Servant.Auth.Server
 
 
 
@@ -40,7 +40,6 @@ import           Servant.Auth.Server
 
 -------------------------------------------------------------------------------
 import qualified Data.UUID                     as UUID
-import           Servant.Docs
 import           Data.Aeson
 import           Data.Set                       ( Set )
 import           Data.Time
@@ -62,7 +61,6 @@ import           Data.UUID.Typed
 import           Data.Aeson
 import           Servant.Auth.Docs
 
-import qualified Servant.Docs                  as Docs
 
 import           Servant                 hiding ( throwError
                                                 , ServerError
@@ -82,14 +80,7 @@ import           Servant.API.Generic           as Web
                                                 )
 
 
-import qualified Data.Text                     as T
-import qualified Data.Text.Encoding            as TE
-import qualified Data.Text.Lazy                as LT
-import qualified Text.Markdown                 as Markdown
 
-import           Servant.HTML.Blaze
-import           Text.Blaze                    as HTML
-import           Text.Blaze.Html               as HTML
 
 -------------------------------------------------------------------------------
 
@@ -103,17 +94,15 @@ data Env (m :: Type -> Type) = Env
     , index :: !FilePath
 
     , mPhotographersFile :: MPhotographersFile
-
     , cookieSettings :: !CookieSettings
     , jwtSettings :: !JWTSettings
     }
 
 
-
 newtype MPhotographersFile = MPhotographersFile { unMPhotographersFile :: MVar FilePath }
+
 newtype InChan = InChan { unInChan :: Chan.InChan Message.Message }
 newtype OutChan = OutChan { unOutChan :: Chan.OutChan Message.Message }
-
 
 instance Has MPhotographersFile              (Env m) where
     obtain = mPhotographersFile
@@ -124,15 +113,9 @@ instance Has CookieSettings              (Env m) where
 instance Has JWTSettings              (Env m) where
     obtain = jwtSettings
 
+
 instance Has OutChan              (Env m) where
     obtain = outChan
-
-
-class Has field env where
-    obtain :: env -> field
-
-grab :: forall  field env m . (MonadReader env m, Has field env) => m field
-grab = asks $ obtain @field
 
 
 --------------------------------------------------------------------------------
@@ -164,44 +147,3 @@ runAppAsIO env = firstF unAppException . try . runApp env
 
 runApp :: AppEnv -> App a -> IO a
 runApp env = usingReaderT env . unApp
-
-
-
---------------------------------------------------------------------------------
-
-
-htmlResponse :: GetDocsResponse
-htmlResponse =
-    GetDocsResponse
-        $ Markdown.markdown Markdown.defaultMarkdownSettings
-              { Markdown.msXssProtect = False
-              }
-        $ LT.fromStrict
-        $ docs2
-
-docs2 :: Text
-docs2 =
-    T.unlines
-        . map
-              (\t -> if T.isPrefixOf "```" (T.stripStart t)
-                  then T.stripStart t
-                  else t
-              )
-        . T.lines
-        . T.pack
-        $ Docs.markdown
-        $ docs'
-
-
-
-
-docs' :: Docs.API
-docs' = Docs.docs publicSiteAPI
-
--------------------------------------------------------------------------------
-
-type AppServer = AsServerT App
-
-
-
-

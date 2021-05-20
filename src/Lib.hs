@@ -6,7 +6,7 @@ module Lib
     )
 where
 
-
+import Lib.Utils
 import Lib.Client.Types
 
 
@@ -23,6 +23,7 @@ import           Control.Monad
 import qualified Control.Concurrent.Async      as Async
 import qualified Lib.Config                    as Config
 
+import qualified Lib.Server.Types                 as ServerApp
 import qualified Lib.App                        as App
 import           Lib.App                        ( AppEnv
                                                 , Env(..)
@@ -38,7 +39,6 @@ import           Lib.App                        ( AppEnv
 
 import           Network.Wai.Handler.Warp       ( run )
 import           Lib.Server                     ( application
-                                                , docs
                                                 )
 import qualified Data.Text as T
 import qualified Servant.Docs                  as Docs
@@ -79,6 +79,17 @@ mkAppEnv clientPort Config.Config {..} = do
     let jwtSettings = defaultJWTSettings signingKey
 
     pure Env { .. }
+
+mkServerAppEnv :: AppEnv -> IO ServerApp.ServerAppEnv
+mkServerAppEnv Env{..}= do
+    let unMPhotographersFile = App.unMPhotographersFile mPhotographersFile
+    let mPhotographersFile = ServerApp.MPhotographersFile unMPhotographersFile 
+
+    let cookieSettings = defaultCookieSettings { cookieIsSecure = NotSecure }
+    signingKey <- loadSigningKey -- serveSetSigningKeyFile
+    let jwtSettings = defaultJWTSettings signingKey
+
+    pure ServerApp.ServerEnv { .. }
 
 loadSigningKey :: IO JWK
 loadSigningKey = do
@@ -150,8 +161,8 @@ setup env@Env {..} win = do
 
 runServer :: AppEnv -> IO ()
 runServer env@Env {..} = do
-    putStrLn $ Docs.markdown docs
-    run serverPort $ application env
+    serverEnv <- mkServerAppEnv env
+    run serverPort $ application serverEnv
 
 
 main :: Int -> FilePath -> IO ()
