@@ -19,8 +19,6 @@ import           Network.Wai.Middleware.Cors
 import           Lib.Server.Types
 
 
-
-
 application :: ServerAppEnv -> Application
 application env = addPolicy
     $ serveWithContext siteAPI (siteContext env) (server env)

@@ -3,7 +3,6 @@ module Lib.Server.Handler.PostLogin where
 import           Lib.Data.Permission
 import           Lib.Api.Types
 import           Lib.Server.Types
-import qualified Data.UUID
 
 import           Blaze.ByteString.Builder       ( toByteString )
 

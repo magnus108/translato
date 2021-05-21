@@ -25,15 +25,14 @@ source-repository head
 
 library
   exposed-modules:
-      Columns2
-      Columns3
-      Format
       Lib
       Lib.Api
       Lib.Api.Types
       Lib.App
+      Lib.App.App
       Lib.App.Env
       Lib.App.Error
+      Lib.Client
       Lib.Client.Error
       Lib.Client.Types
       Lib.Config
@@ -51,9 +50,6 @@ library
       Lib.Server.Serve
       Lib.Server.Types
       Lib.Utils
-      Lib2
-      Model
-      Text
       Utils.ListZipper
   other-modules:
       Paths_translato
