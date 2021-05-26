@@ -5,6 +5,7 @@ import           Servant.API
 import           Servant.API.Generic
 import           Servant.HTML.Blaze
 import           Lib.Data.Photographer
+import           Lib.Data.Tab
 
 
 type SiteApi = ToApi Site
@@ -36,6 +37,7 @@ type ProtectedAPI = ToApi ProtectedSite
 data ProtectedSite route
   = ProtectedSite
       { photographers :: !(route :- "photographer" :> PhotographerAPI)
+      , tabs :: !(route :- "tab" :> TabAPI)
       , getPermissions :: !(route :- GetPermissions)
       }
   deriving (Generic)
@@ -57,4 +59,16 @@ data PhotographerSite route
 
 
 type GetPhotographers = ProtectAPI :> Get '[JSON] Photographers
+
+
+type TabAPI = ToApi TabSite
+
+data TabSite route
+  = TabSite
+      { getTabs :: !(route :- GetTabs)
+      }
+  deriving (Generic)
+
+
+type GetTabs = ProtectAPI :> Get '[JSON] Tabs
 

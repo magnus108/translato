@@ -33,6 +33,9 @@ mkAppEnv clientPort Config.Config {..} = do
     mPhotographersFile' <- newMVar photographersFile
     let mPhotographersFile = App.MPhotographersFile mPhotographersFile'
 
+    mTabsFile' <- newMVar tabsFile
+    let mTabsFile = App.MTabsFile mTabsFile'
+
     let serverPort         = 8080
 
     let static             = "static"
@@ -45,6 +48,9 @@ mkServerAppEnv :: AppEnv -> IO ServerApp.ServerAppEnv
 mkServerAppEnv Env {..} = do
     let unMPhotographersFile = App.unMPhotographersFile mPhotographersFile
     let mPhotographersFile   = ServerApp.MPhotographersFile unMPhotographersFile
+
+    let unMTabsFile = App.unMTabsFile mTabsFile
+    let mTabsFile   = ServerApp.MTabsFile unMTabsFile
 
     let cookieSettings = defaultCookieSettings { cookieIsSecure = NotSecure }
     signingKey <- loadSigningKey -- serveSetSigningKeyFile

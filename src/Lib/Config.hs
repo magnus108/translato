@@ -11,6 +11,7 @@ import           Lib.Utils
 data Config = Config
     { dumpFile :: !FilePath
     , photographersFile :: !FilePath
+    , tabsFile :: !FilePath
     }
     deriving (Show, Eq)
     deriving Generic

@@ -5,6 +5,7 @@ import           Servant.Server.Generic
 
 import           Lib.Server.Handler.GetPermissions
 import           Lib.Server.Handler.GetPhotographers
+import           Lib.Server.Handler.GetTabs
 import           Lib.Server.Handler.GetDocs
 import           Lib.Server.Handler.PostLogin
 import           Lib.Api
@@ -31,6 +32,8 @@ protectedServer :: ProtectedSite AppServer
 protectedServer = ProtectedSite
     { photographers  = withAuthResultAndPermission Simple
                                                    serveGetPhotographers
+    , tabs  = withAuthResultAndPermission Simple
+                                                   serveGetTabs
     , getPermissions = withAuthResultAndPermission Simple
                                                    serveGetPermissions
     }

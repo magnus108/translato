@@ -14,16 +14,21 @@ import           Servant                 hiding ( BadPassword
 import           Lib.Server.Error
 import           Servant.Auth.Server           as Auth
 import           Web.Cookie
+import           Control.Lens                   ( (^.) )
+import           Lib.Server.Handler.GetPhotographers
+import           Lib.Data.Photographer
+import           Control.Comonad
+import Data.Generics.Labels ()
 
 servePostLogin
     :: LoginForm -> ServerApp (Headers '[Header "Set-Cookie" Text] NoContent)
 servePostLogin LoginForm = do
-    let perms = adminPermissions
+    (Photographers photographers) <- readPhotographers
+    let perms = (extract photographers) ^. #perms
     setLoggedIn perms
   where
     setLoggedIn perms = do
-        let cookie =
-                AuthCookie { permissions = perms }
+        let cookie = AuthCookie { permissions = perms }
         ServerEnv {..} <- ask
         mCookie <- liftIO $ makeSessionCookie cookieSettings jwtSettings cookie
         case mCookie of

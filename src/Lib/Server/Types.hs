@@ -11,7 +11,7 @@ import           Control.Exception              ( catch
                                                 , try
                                                 )
 
-import Lib.Utils
+import           Lib.Utils
 
 type AppServer = AsServerT ServerApp
 
@@ -19,14 +19,19 @@ type ServerAppEnv = ServerEnv ServerApp
 
 data ServerEnv (m :: Type -> Type) = ServerEnv
     { mPhotographersFile :: MPhotographersFile
+    , mTabsFile :: MTabsFile
     , cookieSettings :: !CookieSettings
     , jwtSettings :: !JWTSettings
     }
 
 newtype MPhotographersFile = MPhotographersFile { unMPhotographersFile :: MVar FilePath }
+newtype MTabsFile = MTabsFile { unMTabsFile :: MVar FilePath }
 
 instance Has MPhotographersFile              (ServerEnv m) where
     obtain = mPhotographersFile
+
+instance Has MTabsFile              (ServerEnv m) where
+    obtain = mTabsFile
 
 instance Has CookieSettings              (ServerEnv m) where
     obtain = cookieSettings

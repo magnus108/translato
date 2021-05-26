@@ -39,7 +39,7 @@ import qualified Control.Monad.Except          as E
 
 import           Lib.Utils
 import           Lib.Api.Types
-import           Lib.Api                 hiding ( GetPhotographers )
+import           Lib.Api                 hiding ( GetPhotographers, GetTabs)
 import qualified Utils.ListZipper              as ListZipper
 import qualified Control.Lens                  as Lens
 import qualified Lib.Data.Photographer as Photographer
@@ -51,6 +51,7 @@ setup win = do
 
     _               <- loginClient
     _               <- getPhotographersClient
+    _               <- getTabsClient
 
 
     (BToken bToken) <- grab @BToken
@@ -73,6 +74,19 @@ setup win = do
 
 items = mkWriteAttr $ \is x -> void $ do
     return x # set children [] #+ fmap (\i -> UI.string (show i)) is
+
+
+getTabsClient = do
+    (GetTabs getTabs) <- grab @GetTabs
+    (BToken           bToken          ) <- grab @BToken
+    (HTabs   hTabs ) <- grab @HTabs
+    token                               <- currentValue bToken
+    case token of
+        Nothing -> liftIO $ die "Missing token"
+        Just t  -> do
+            res <- getTabs (Token $ setCookieValue t)
+            case res of
+                _ -> liftIO $ hTabs (Just res)
 
 getPhotographersClient = do
     (GetPhotographers getPhotographers) <- grab @GetPhotographers

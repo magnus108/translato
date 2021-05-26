@@ -13,6 +13,7 @@ data Env (m :: Type -> Type) = Env
     , index :: !FilePath
 
     , mPhotographersFile :: MPhotographersFile
+    , mTabsFile :: MTabsFile
     }
 
 
@@ -20,4 +21,9 @@ newtype MPhotographersFile = MPhotographersFile { unMPhotographersFile :: MVar F
 
 instance Has MPhotographersFile              (Env m) where
     obtain = mPhotographersFile
+
+newtype MTabsFile = MTabsFile { unMTabsFile :: MVar FilePath }
+
+instance Has MTabsFile              (Env m) where
+    obtain = mTabsFile
 

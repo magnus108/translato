@@ -13,6 +13,7 @@ import           Control.Exception              ( catch
 
 import           Servant.Auth.Client
 import           Lib.Data.Photographer          ( Photographers )
+import           Lib.Data.Tab          ( Tabs )
 import           Graphics.UI.Threepenny.Core
 import           Servant                 hiding ( throwError, Handler)
 import qualified Servant.Client                as Servant
@@ -28,18 +29,22 @@ import qualified Control.Monad.Except          as E
 
 import           Lib.Utils
 import           Lib.Api.Types
-import           Lib.Api hiding (GetPhotographers, getPhotographers)
+import           Lib.Api hiding (GetPhotographers, getPhotographers, GetTabs, getTabs)
 
 
 data ClientEnv (m :: Type -> Type) = ClientEnv
     { login :: Login
     , getPhotographers :: GetPhotographers
+    , getTabs :: GetTabs
 
     , bToken :: BToken
     , hToken :: HToken
 
     , bPhotographers :: BPhotographers
     , hPhotographers :: HPhotographers
+
+    , bTabs :: BTabs
+    , hTabs :: HTabs
     }
 
 newtype BToken = BToken { unBToken :: Behavior (Maybe SetCookie) }
@@ -48,7 +53,11 @@ newtype HToken = HToken { unHToken :: Handler (Maybe SetCookie) }
 newtype BPhotographers = BPhotographers { unBPhotographers :: Behavior (Maybe Photographers) }
 newtype HPhotographers = HPhotographers { unHPhotographers :: Handler (Maybe Photographers) }
 
+newtype BTabs = BTabs { unBTabs :: Behavior (Maybe Tabs) }
+newtype HTabs = HTabs { unHTabs :: Handler (Maybe Tabs) }
+
 newtype GetPhotographers = GetPhotographers { unGetPhotographers :: Token -> ClientApp Photographers }
+newtype GetTabs = GetTabs { unGetTabs :: Token -> ClientApp Tabs }
 
 newtype Login = Login { unLogin :: LoginForm -> ClientApp (Headers '[Header "Set-Cookie" Text] NoContent) }
 
@@ -57,6 +66,9 @@ instance Has Login              (ClientEnv m) where
 
 instance Has GetPhotographers              (ClientEnv m) where
     obtain = getPhotographers
+
+instance Has GetTabs              (ClientEnv m) where
+    obtain = getTabs
 
 instance Has BToken              (ClientEnv m) where
     obtain = bToken
@@ -69,6 +81,13 @@ instance Has BPhotographers              (ClientEnv m) where
 
 instance Has HPhotographers              (ClientEnv m) where
     obtain = hPhotographers
+
+
+instance Has BTabs (ClientEnv m) where
+    obtain = bTabs
+
+instance Has HTabs              (ClientEnv m) where
+    obtain = hTabs
 
 type ClientAppEnv = ClientEnv ClientApp
 
@@ -121,11 +140,14 @@ clients cenv = do
                                   (Servant.client siteAPI)
     let public           :<|> protected      = api
     let postLogin        :<|> docs           = public
-    let getPhotographers' :<|> getPermissions = protected
+    let getPhotographers' :<|> getTabs' :<|> getPermissions = protected
 
     let login = Login $ postLogin
     let getPhotographers = GetPhotographers getPhotographers'
+    let getTabs = GetTabs getTabs'
 
+    (tabsE, tabsH) <- newEvent
+    bTabs' <- stepper Nothing tabsE
 
     (tokenE, tokenH) <- newEvent
     bToken' <- stepper Nothing tokenE
@@ -138,6 +160,9 @@ clients cenv = do
 
     let bPhotographers = BPhotographers bPhotographers'
     let hPhotographers = HPhotographers photographersH
+
+    let bTabs = BTabs bTabs'
+    let hTabs = HTabs tabsH
 
     pure $ ClientEnv { .. }
 

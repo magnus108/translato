@@ -38,12 +38,14 @@ library
       Lib.Config
       Lib.Data.Permission
       Lib.Data.Photographer
+      Lib.Data.Tab
       Lib.Message
       Lib.Server
       Lib.Server.Error
       Lib.Server.Handler.GetDocs
       Lib.Server.Handler.GetPermissions
       Lib.Server.Handler.GetPhotographers
+      Lib.Server.Handler.GetTabs
       Lib.Server.Handler.PostLogin
       Lib.Server.Serve
       Lib.Server.Types

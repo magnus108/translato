@@ -1,3 +1,4 @@
 { "dumpFile" : ""
 , "photographersFile": "config/photographers.json"
+, "tabsFile": "config/tabs.json"
 }
