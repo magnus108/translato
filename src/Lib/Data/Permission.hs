@@ -4,9 +4,8 @@ import           Data.Aeson
 import           Servant.Docs
 
 data Permission
-    = PermitAdd
-    | WriteSomething
-    | ReadSomthing
+    = Full
+    | Simple
         deriving (Show, Read, Eq, Ord, Enum, Bounded)
         deriving Generic
         deriving anyclass (FromJSON, ToJSON)
@@ -14,10 +13,10 @@ data Permission
 instance ToSample Permission
 
 userPermissions :: [Permission]
-userPermissions = [ReadSomthing]
+userPermissions = [Simple]
 
 adminOnlyPermissions :: [Permission]
-adminOnlyPermissions = [WriteSomething]
+adminOnlyPermissions = [Full]
 
 adminPermissions :: [Permission]
 adminPermissions = userPermissions ++ adminOnlyPermissions

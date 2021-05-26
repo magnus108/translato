@@ -6,7 +6,6 @@ import           Lib.Server.Types
 
 import           Blaze.ByteString.Builder       ( toByteString )
 
-import           Data.UUID.Typed
 import           Servant                 hiding ( BadPassword
                                                 , NoSuchUser
                                                 , throwError
@@ -20,22 +19,16 @@ servePostLogin
     :: LoginForm -> ServerApp (Headers '[Header "Set-Cookie" Text] NoContent)
 servePostLogin LoginForm = do
     let perms = adminPermissions
-        uid   = 1
-            --Find ud af hvordan User virker??
-    userIdentifier <- liftIO nextRandomUUID
-    traceShowM "lol"
-    setLoggedIn uid userIdentifier perms
+    setLoggedIn perms
   where
-    setLoggedIn uid userIdentifier perms = do
+    setLoggedIn perms = do
         let cookie =
-                AuthCookie { userUUID = userIdentifier, permissions = perms }
-        ServerEnv {..} <- ask -- this is wrong
+                AuthCookie { permissions = perms }
+        ServerEnv {..} <- ask
         mCookie <- liftIO $ makeSessionCookie cookieSettings jwtSettings cookie
         case mCookie of
             Nothing        -> throwError $ ServerError "servantErr"
             Just setCookie -> do
-                --now <- liftIO getCurrentTime
-                --runDb $ update uid [UserLastLogin =. Just now]
                 return $ addHeader
                     (decodeUtf8
                         ((toByteString . renderSetCookie)

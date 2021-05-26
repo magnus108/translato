@@ -29,9 +29,9 @@ publicServer =
 
 protectedServer :: ProtectedSite AppServer
 protectedServer = ProtectedSite
-    { photographers  = withAuthResultAndPermission ReadSomthing
+    { photographers  = withAuthResultAndPermission Simple
                                                    serveGetPhotographers
-    , getPermissions = withAuthResultAndPermission ReadSomthing
+    , getPermissions = withAuthResultAndPermission Simple
                                                    serveGetPermissions
     }
 

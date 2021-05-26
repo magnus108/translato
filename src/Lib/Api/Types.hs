@@ -12,8 +12,6 @@ import           Servant.HTML.Blaze
 import           Text.Blaze                    as HTML
 import           Text.Blaze.Html               as HTML
 import           Lib.Data.Permission
-import           Lib.Data.Username
-import           Lib.Data.AccountUUID
 import           Lib.Data.Photographer
 import           Utils.ListZipper
 import           Servant.API.Generic            ( ToServantApi )
@@ -26,8 +24,7 @@ type ProtectAPI = Auth '[JWT] AuthCookie
 
 data AuthCookie
   = AuthCookie
-      { userUUID :: AccountUUID,
-        permissions :: [Permission]
+      { permissions :: [Permission]
       }
     deriving Show
     deriving Generic
@@ -71,10 +68,9 @@ type GetPermissions = ProtectAPI :> "permissions" :> Get '[JSON] [Permission]
 instance ToSample Text where
   toSamples Proxy = singleSample "Example Text"
 
-instance ToSample Username
-
 
 instance (ToSample a) => ToSample (ListZipper a)
+
 
 instance ToSample Photographer
 instance ToSample Photographers
