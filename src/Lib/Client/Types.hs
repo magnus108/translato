@@ -5,6 +5,12 @@ import           Network.HTTP.Client            ( newManager
                                                 , defaultManagerSettings
                                                 )
 
+import           Relude.Extra                   ( firstF )
+import           Control.Exception              ( catch
+                                                , throwIO
+                                                , try
+                                                )
+
 import           Servant.Auth.Client
 import           Lib.Data.Photographer          ( Photographers )
 import           Graphics.UI.Threepenny.Core
@@ -14,6 +20,7 @@ import qualified Servant.Client                as Servant
 import           Lib.Client.Error               ( ClientAppError
                                                 , throwError
                                                 , ClientAppErrorType(..)
+                                                , ClientAppException(..)
                                                 )
 import           GHC.Base                       ( failIO )
 
@@ -84,15 +91,15 @@ instance MonadUI ClientApp where
 
 instance E.MonadError ClientAppError ClientApp where
     throwError :: ClientAppError -> ClientApp a
-    throwError = undefined
+    throwError = liftIO . throwIO . ClientAppException
 
     catchError :: ClientApp a -> (ClientAppError -> ClientApp a) -> ClientApp a
     catchError action handler = ClientApp $ ReaderT $ \env -> do
         undefined
 
 
-runClientAppAsUI :: ClientAppEnv -> ClientApp a -> UI (Either ClientAppError a)
-runClientAppAsUI env = undefined -- firstF unClientAppException . try . runClientApp env
+--runClientAppAsUI :: ClientAppEnv -> ClientApp a -> UI (Either ClientAppError a)
+--runClientAppAsUI env =  firstF unClientAppException . try . runClientApp env
 
 
 runClientApp :: ClientAppEnv -> ClientApp a -> UI a

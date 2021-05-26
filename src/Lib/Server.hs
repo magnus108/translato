@@ -40,7 +40,10 @@ server env = hoistServerWithContext siteAPI
 runServerAppAsHandler :: ServerAppEnv -> ServerApp a -> Handler a
 runServerAppAsHandler env app = do
     -- not save
-    liftIO $ runServerApp env app
+    res <- liftIO $ runServerAppAsIO env app
+    case res of
+      Left x -> error "fic"
+      Right y -> return y
 
 
 siteContext :: ServerAppEnv -> Context SiteContext

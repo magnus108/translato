@@ -67,15 +67,17 @@ runServer env@Env {..} = do
 
 runClient :: AppEnv -> IO ()
 runClient env@Env {..} = do
-    clientEnv <- mkClientAppEnv
     startGUI defaultConfig { jsWindowReloadOnDisconnect = False
                            , jsPort                     = Just clientPort
                            , jsStatic                   = Just static
                            , jsCustomHTML               = Just index
                            , jsCallBufferMode           = NoBuffering
                            }
-        $ runClientApp clientEnv
-        . setup
+        $ (\win -> do 
+                -- actually wrong. should use queue, because ioref
+                clientEnv <- liftIO $ mkClientAppEnv
+                runClientApp clientEnv (setup win)
+          )
 
 main :: Int -> FilePath -> IO ()
 main port root = do
