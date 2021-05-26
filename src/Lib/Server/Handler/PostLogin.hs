@@ -18,10 +18,10 @@ import           Web.Cookie
 
 servePostLogin
     :: LoginForm -> ServerApp (Headers '[Header "Set-Cookie" Text] NoContent)
-servePostLogin LoginForm {..} = do
+servePostLogin LoginForm = do
     let perms = adminPermissions
         uid   = 1
-        --Find ud af hvordan User virker??
+            --Find ud af hvordan User virker??
     userIdentifier <- liftIO nextRandomUUID
     traceShowM "lol"
     setLoggedIn uid userIdentifier perms

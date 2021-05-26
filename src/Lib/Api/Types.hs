@@ -51,11 +51,7 @@ instance ToSample GetDocsResponse where
 instance ToMarkup GetDocsResponse where
     toMarkup (GetDocsResponse html) = toMarkup html
 
-data LoginForm
-  = LoginForm
-      { loginFormUsername :: Username
-      , loginFormPassword :: Text
-      }
+data LoginForm = LoginForm
         deriving (Show, Eq, Ord)
         deriving Generic
         deriving anyclass (FromJSON, ToJSON)

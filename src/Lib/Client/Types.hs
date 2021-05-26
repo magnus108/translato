@@ -1,5 +1,6 @@
 module Lib.Client.Types where
 
+import           Web.Cookie                     ( SetCookie(..))
 import           Network.HTTP.Client            ( newManager
                                                 , defaultManagerSettings
                                                 )
@@ -7,25 +8,60 @@ import           Network.HTTP.Client            ( newManager
 import           Servant.Auth.Client
 import           Lib.Data.Photographer          ( Photographers )
 import           Graphics.UI.Threepenny.Core
-import           Servant                 hiding ( throwError )
+import           Servant                 hiding ( throwError, Handler)
 import qualified Servant.Client                as Servant
 
 import           Lib.Client.Error               ( ClientAppError
                                                 , throwError
                                                 , ClientAppErrorType(..)
                                                 )
+import           GHC.Base                       ( failIO )
 
 import qualified Control.Monad.Except          as E
 
+import           Lib.Utils
 import           Lib.Api.Types
-import           Lib.Api
+import           Lib.Api hiding (GetPhotographers, getPhotographers)
 
 
 data ClientEnv (m :: Type -> Type) = ClientEnv
-    { postLogin :: LoginForm -> ClientApp (Headers '[Header "Set-Cookie" Text] NoContent)
-    , getPhotographers :: Token -> ClientApp Photographers
+    { login :: Login
+    , getPhotographers :: GetPhotographers
+
+    , bToken :: BToken
+    , hToken :: HToken
+
+    , bPhotographers :: BPhotographers
+    , hPhotographers :: HPhotographers
     }
 
+newtype BToken = BToken { unBToken :: Behavior (Maybe SetCookie) }
+newtype HToken = HToken { unHToken :: Handler (Maybe SetCookie) }
+
+newtype BPhotographers = BPhotographers { unBPhotographers :: Behavior (Maybe Photographers) }
+newtype HPhotographers = HPhotographers { unHPhotographers :: Handler (Maybe Photographers) }
+
+newtype GetPhotographers = GetPhotographers { unGetPhotographers :: Token -> ClientApp Photographers }
+
+newtype Login = Login { unLogin :: LoginForm -> ClientApp (Headers '[Header "Set-Cookie" Text] NoContent) }
+
+instance Has Login              (ClientEnv m) where
+    obtain = login
+
+instance Has GetPhotographers              (ClientEnv m) where
+    obtain = getPhotographers
+
+instance Has BToken              (ClientEnv m) where
+    obtain = bToken
+
+instance Has HToken              (ClientEnv m) where
+    obtain = hToken
+
+instance Has BPhotographers              (ClientEnv m) where
+    obtain = bPhotographers
+
+instance Has HPhotographers              (ClientEnv m) where
+    obtain = hPhotographers
 
 type ClientAppEnv = ClientEnv ClientApp
 
@@ -36,8 +72,12 @@ newtype ClientApp a = ClientApp
                         , Applicative
                         , Monad
                         , MonadIO
+                        , MonadFail
                         , MonadReader ClientAppEnv
                         )
+
+instance MonadFail UI where
+    fail msg = liftIO $ failIO msg
 
 instance MonadUI ClientApp where
     liftUI m = ClientApp (ReaderT (const m))
@@ -67,17 +107,32 @@ runClientM cenv client = do
         Right a          -> pure a
 
 
-clients :: Servant.ClientEnv -> ClientAppEnv
-clients cenv =
-    let
-        api = Servant.hoistClient siteAPI
+clients :: Servant.ClientEnv -> IO ClientAppEnv
+clients cenv = do
+    let api = Servant.hoistClient siteAPI
                                   (runClientM cenv)
                                   (Servant.client siteAPI)
-        public                          :<|> protected      = api
-        postLogin                       :<|> docs           = public
-        getPhotographers :<|> getPermissions = protected
-    in
-        ClientEnv { .. }
+    let public           :<|> protected      = api
+    let postLogin        :<|> docs           = public
+    let getPhotographers' :<|> getPermissions = protected
+
+    let login = Login $ postLogin
+    let getPhotographers = GetPhotographers getPhotographers'
+
+
+    (tokenE, tokenH) <- newEvent
+    bToken' <- stepper Nothing tokenE
+
+    (photographersE, photographersH) <- newEvent
+    bPhotographers'                   <- stepper Nothing photographersE
+
+    let bToken = BToken bToken'
+    let hToken = HToken tokenH
+
+    let bPhotographers = BPhotographers bPhotographers'
+    let hPhotographers = HPhotographers photographersH
+
+    pure $ ClientEnv { .. }
 
 mkClientAppEnv :: IO ClientAppEnv
 mkClientAppEnv = do
@@ -85,4 +140,4 @@ mkClientAppEnv = do
     let baseUrl' = Servant.BaseUrl Servant.Http "localhost" serverPort ""
     manager' <- newManager defaultManagerSettings
     let cenv = Servant.mkClientEnv manager' baseUrl'
-    pure $ clients cenv
+    clients cenv
