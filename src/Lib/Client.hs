@@ -40,7 +40,9 @@ import qualified Control.Monad.Except          as E
 import           Lib.Utils
 import           Lib.Api.Types
 import           Lib.Api                 hiding ( GetPhotographers )
-
+import qualified Utils.ListZipper              as ListZipper
+import qualified Control.Lens                  as Lens
+import qualified Lib.Data.Photographer as Photographer
 
 setup :: Window -> ClientApp ()
 setup win = do
@@ -55,8 +57,22 @@ setup win = do
     elem            <- liftUI $ UI.p # sink
         text
         (show <$> (fromMaybe (B.empty)) <$> (fmap setCookieValue) <$> bToken)
-    liftUI $ getBody win #+ [element elem]
+
+
+
+    (BPhotographers bPhotographers) <- grab @BPhotographers
+    let what =
+            (   (fromMaybe [])
+            <$> (fmap (ListZipper.toList . Photographer.unPhotographers))
+            <$> bPhotographers
+            )
+    elemPhotographers <- liftUI $ UI.div # sink items what
+
+    liftUI $ getBody win #+ [element elem, element elemPhotographers]
     return ()
+
+items = mkWriteAttr $ \is x -> void $ do
+    return x # set children [] #+ fmap (\i -> UI.string (show i)) is
 
 getPhotographersClient = do
     (GetPhotographers getPhotographers) <- grab @GetPhotographers
