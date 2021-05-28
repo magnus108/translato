@@ -147,21 +147,19 @@ clients cenv = do
     let getTabs = GetTabs getTabs'
 
     (tabsE, tabsH) <- newEvent
-    bTabs' <- stepper Nothing tabsE
+    bTabs <- BTabs <$> stepper Nothing tabsE
 
     (tokenE, tokenH) <- newEvent
     bToken' <- stepper Nothing tokenE
 
     (photographersE, photographersH) <- newEvent
-    bPhotographers'                   <- stepper Nothing photographersE
+    bPhotographers                   <- BPhotographers <$> stepper Nothing photographersE
 
     let bToken = BToken bToken'
     let hToken = HToken tokenH
 
-    let bPhotographers = BPhotographers bPhotographers'
     let hPhotographers = HPhotographers photographersH
 
-    let bTabs = BTabs bTabs'
     let hTabs = HTabs tabsH
 
     pure $ ClientEnv { .. }

@@ -2,6 +2,7 @@
 module Lib.Client where
 
 import           Servant.Auth.Client
+import           Control.Conditional            ( (?<>) )
 import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
 import           Lib.Client.Types
@@ -49,11 +50,33 @@ import qualified Lib.Data.Tab                  as Tab
 import           Control.Comonad
 
 
+mkTabs :: ClientApp (Element, Event (Maybe Tab.Tabs))
 mkTabs = do
-    (BTabs bTabs) <- grab @BTabs
-    liftUI $ UI.div # sink
-        items
-        ((fromMaybe []) <$> (fmap (ListZipper.toList . Tab.unTabs)) <$> bTabs)
+    (BTabs bTabs)            <- grab @BTabs
+
+    (eSelection, hSelection) <- liftIO $ newEvent
+
+    let errorDisplay = UI.string "no text"
+    let showTab x = UI.string $ show x
+    let display center tabs = do
+            display <-
+                UI.button
+                #. (center ?<> "is-info is-seleceted" <> " " <> "button")
+                #+ [showTab (extract tabs)]
+
+            UI.on UI.click display $ \_ -> do
+                liftIO $ hSelection (Just (Tab.Tabs tabs))
+
+            return display
+
+    item <- liftUI $ UI.div #. "buttons has-addons" # sink
+        items'
+        (   fromMaybe [errorDisplay]
+        <$> (fmap (ListZipper.toList . ListZipper.bextend display . Tab.unTabs))
+        <$> bTabs
+        )
+
+    return (item, eSelection)
 
 mkToken = do
     (BToken bToken) <- grab @BToken
@@ -94,20 +117,26 @@ setup win = do
     _                               <- getPhotographersClient
     _                               <- getTabsClient
 
-    elemTabs                        <- mkTabs
+    (elemTabs, eTabs)               <- mkTabs
+    --- dont do this
+    (HTabs hTabs)            <- grab @HTabs
+    _ <- liftIO $ register eTabs hTabs
+
+
+
     elemToken                       <- mkToken
     elemContent                     <- mkContent
 
 
 
-
     (BPhotographers bPhotographers) <- grab @BPhotographers
-    let childs = (fmap lol
-                    <$> (fromMaybe [])
-                    <$> (fmap (ListZipper.toList . Photographer.unPhotographers))
-                    <$> bPhotographers
-                    )
-    elemPhotographers               <- liftUI $ UI.div # sink items' childs
+    let childs =
+            (   fmap toItem
+            <$> (fromMaybe [])
+            <$> (fmap (ListZipper.toList . Photographer.unPhotographers))
+            <$> bPhotographers
+            )
+    elemPhotographers <- liftUI $ UI.div # sink items' childs
 
     liftUI
         $  getBody win
@@ -116,12 +145,12 @@ setup win = do
            , UI.hr
            , element elemTabs
            , UI.hr
-           , element elemContent 
+           , element elemContent
            ]
     return ()
 
-lol :: Show a => a -> UI Element
-lol a =  UI.string (show a)
+toItem :: Show a => a -> UI Element
+toItem a = UI.string (show a)
 
 items :: Show a => ReadWriteAttr Element [a] ()
 items = mkWriteAttr $ \is x -> void $ do
