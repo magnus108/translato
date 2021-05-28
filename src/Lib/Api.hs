@@ -37,7 +37,7 @@ type ProtectedAPI = ToApi ProtectedSite
 data ProtectedSite route
   = ProtectedSite
       { photographers :: !(route :- "photographer" :> PhotographerAPI)
-      , tabs :: !(route :- "tab" :> TabAPI)
+      , tabSite :: !(route :- "tab" :> TabAPI)
       , getPermissions :: !(route :- GetPermissions)
       }
   deriving (Generic)
@@ -66,9 +66,12 @@ type TabAPI = ToApi TabSite
 data TabSite route
   = TabSite
       { getTabs :: !(route :- GetTabs)
+      , postTabs :: !(route :- PostTabs)
       }
   deriving (Generic)
 
+
+type PostTabs = ProtectAPI :> ReqBody '[JSON] Tabs :> Post '[JSON] NoContent
 
 type GetTabs = ProtectAPI :> Get '[JSON] Tabs
 

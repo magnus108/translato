@@ -47,6 +47,7 @@ library
       Lib.Server.Handler.GetPhotographers
       Lib.Server.Handler.GetTabs
       Lib.Server.Handler.PostLogin
+      Lib.Server.Handler.PostTabs
       Lib.Server.Serve
       Lib.Server.Types
       Lib.Utils

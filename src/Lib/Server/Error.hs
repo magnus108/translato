@@ -25,7 +25,6 @@ import           GHC.Stack                      ( SrcLoc
 type WithError m = (MonadError ServerAppError m, HasCallStack)
 
 
-
 throwError :: WithError m => ServerAppErrorType -> m a
 throwError = E.throwError . ServerAppError (toSourcePosition callStack)
 

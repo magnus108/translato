@@ -3,19 +3,18 @@ module Lib.Server.Serve where
 import           Servant.Auth.Server
 import           Servant.Server.Generic
 
+import           Control.Monad.Except           ( MonadError )
 import           Lib.Server.Handler.GetPermissions
 import           Lib.Server.Handler.GetPhotographers
 import           Lib.Server.Handler.GetTabs
 import           Lib.Server.Handler.GetDocs
 import           Lib.Server.Handler.PostLogin
+import           Lib.Server.Handler.PostTabs
 import           Lib.Api
 import           Lib.Api.Types
 import           Lib.Server.Types
 import           Lib.Data.Permission
-import           Lib.Server.Error               ( throwError
-                                                , WithError
-                                                , ServerAppErrorType(..)
-                                                )
+import          qualified Lib.Server.Error               as Err
 
 
 siteServer :: Site AppServer
@@ -32,29 +31,44 @@ protectedServer :: ProtectedSite AppServer
 protectedServer = ProtectedSite
     { photographers  = withAuthResultAndPermission Simple
                                                    serveGetPhotographers
-    , tabs  = withAuthResultAndPermission Simple
-                                                   serveGetTabs
+    , tabSite = genericServerT tabServer
     , getPermissions = withAuthResultAndPermission Simple
                                                    serveGetPermissions
     }
 
+tabServer :: TabSite AppServer
+tabServer = TabSite
+    { getTabs  = withAuthResultAndPermission Simple serveGetTabs
+    , postTabs = withAuthResultAndPermission Simple servePostTabs
+    }
+
+
+
+class WithError a where
+    throwError :: Err.ServerAppErrorType -> a
+
+instance WithError b => WithError (a -> b) where
+    throwError e = const $ throwError e
+
+instance WithError (ServerApp a) where
+    throwError e = Err.throwError e
+
 
 withAuthResult
-    :: WithError m => (AuthCookie -> m a) -> (AuthResult AuthCookie -> m a)
+    :: WithError a => (AuthCookie -> a) -> (AuthResult AuthCookie -> a)
 withAuthResult func ar = case ar of
     Authenticated ac -> func ac
-    _                -> throwError $ ServerError "servantErr"
+    _                -> throwError $ Err.ServerError "servantErr"
 
 withAuthResultAndPermission
-    :: WithError m
+    :: WithError a
     => Permission
-    -> (AuthCookie -> m a)
-    -> (AuthResult AuthCookie -> m a)
+    -> (AuthCookie -> a)
+    -> (AuthResult AuthCookie -> a)
 withAuthResultAndPermission p func =
-    withAuthResult (\ac -> withPermission (permissions ac) p =<< (func ac))
+    withAuthResult (\ac -> withPermission (permissions ac) p (func ac))
 
-withPermission :: WithError m => [Permission] -> Permission -> a -> m a
-withPermission ps p func = do
-    traceShowM "fuck"
-    if elem p ps then return func else throwError $ ServerError "servantErr"
+withPermission :: WithError a => [Permission] -> Permission -> a -> a
+withPermission ps p func = 
+    if elem p ps then func else throwError $ Err.ServerError "servantErr"
 

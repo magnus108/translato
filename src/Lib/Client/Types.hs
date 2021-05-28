@@ -29,13 +29,14 @@ import qualified Control.Monad.Except          as E
 
 import           Lib.Utils
 import           Lib.Api.Types
-import           Lib.Api hiding (GetPhotographers, getPhotographers, GetTabs, getTabs)
+import           Lib.Api hiding (PostTabs, postTabs, GetPhotographers, getPhotographers, GetTabs, getTabs)
 
 
 data ClientEnv (m :: Type -> Type) = ClientEnv
     { login :: Login
     , getPhotographers :: GetPhotographers
     , getTabs :: GetTabs
+    , postTabs :: PostTabs
 
     , bToken :: BToken
     , hToken :: HToken
@@ -58,6 +59,7 @@ newtype HTabs = HTabs { unHTabs :: Handler (Maybe Tabs) }
 
 newtype GetPhotographers = GetPhotographers { unGetPhotographers :: Token -> ClientApp Photographers }
 newtype GetTabs = GetTabs { unGetTabs :: Token -> ClientApp Tabs }
+newtype PostTabs = PostTabs { unPosTabs :: Token -> Tabs -> ClientApp NoContent }
 
 newtype Login = Login { unLogin :: LoginForm -> ClientApp (Headers '[Header "Set-Cookie" Text] NoContent) }
 
@@ -69,6 +71,9 @@ instance Has GetPhotographers              (ClientEnv m) where
 
 instance Has GetTabs              (ClientEnv m) where
     obtain = getTabs
+
+instance Has PostTabs              (ClientEnv m) where
+    obtain = postTabs
 
 instance Has BToken              (ClientEnv m) where
     obtain = bToken
@@ -129,7 +134,9 @@ runClientM :: Servant.ClientEnv -> Servant.ClientM a -> ClientApp a
 runClientM cenv client = do
     e <- liftIO $ Servant.runClientM client cenv
     case e of
-        Left  servantErr -> throwError $ ClientError "servantErr"
+        Left  servantErr -> do
+            traceShowM servantErr
+            throwError $ ClientError "servantErr"
         Right a          -> pure a
 
 
@@ -140,26 +147,25 @@ clients cenv = do
                                   (Servant.client siteAPI)
     let public           :<|> protected      = api
     let postLogin        :<|> docs           = public
-    let getPhotographers' :<|> getTabs' :<|> getPermissions = protected
+    let getPhotographers' :<|> tabs :<|> getPermissions = protected
+    let getTabs' :<|> postTabs' = tabs
 
     let login = Login $ postLogin
     let getPhotographers = GetPhotographers getPhotographers'
     let getTabs = GetTabs getTabs'
+    let postTabs = PostTabs postTabs'
 
     (tabsE, tabsH) <- newEvent
     bTabs <- BTabs <$> stepper Nothing tabsE
 
     (tokenE, tokenH) <- newEvent
-    bToken' <- stepper Nothing tokenE
+    bToken <- BToken <$> stepper Nothing tokenE
 
     (photographersE, photographersH) <- newEvent
     bPhotographers                   <- BPhotographers <$> stepper Nothing photographersE
 
-    let bToken = BToken bToken'
     let hToken = HToken tokenH
-
     let hPhotographers = HPhotographers photographersH
-
     let hTabs = HTabs tabsH
 
     pure $ ClientEnv { .. }

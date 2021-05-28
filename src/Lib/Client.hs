@@ -1,13 +1,13 @@
 {-# LANGUAGE GADTs #-}
 module Lib.Client where
 
+import qualified Foreign.JavaScript              as JS
 import           Servant.Auth.Client
 import           Control.Conditional            ( (?<>) )
 import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
 import           Lib.Client.Types
 import           Lib.Utils
-import           Lib.Api.Types
 import           Servant                 hiding ( Handler )
 
 import qualified Data.Text                     as T
@@ -41,6 +41,7 @@ import qualified Control.Monad.Except          as E
 import           Lib.Utils
 import           Lib.Api.Types
 import           Lib.Api                 hiding ( GetPhotographers
+                                                , PostTabs
                                                 , GetTabs
                                                 )
 import qualified Utils.ListZipper              as ListZipper
@@ -72,7 +73,9 @@ mkTabs = do
     item <- liftUI $ UI.div #. "buttons has-addons" # sink
         items'
         (   fromMaybe [errorDisplay]
-        <$> (fmap (ListZipper.toList . ListZipper.bextend display . Tab.unTabs))
+        <$> (fmap
+                (ListZipper.toList . ListZipper.bextend display . Tab.unTabs)
+            )
         <$> bTabs
         )
 
@@ -118,9 +121,6 @@ setup win = do
     _                               <- getTabsClient
 
     (elemTabs, eTabs)               <- mkTabs
-    --- dont do this
-    (HTabs hTabs)            <- grab @HTabs
-    _ <- liftIO $ register eTabs hTabs
 
 
 
@@ -147,7 +147,29 @@ setup win = do
            , UI.hr
            , element elemContent
            ]
+
+    onEvent' (filterJust eTabs) $ \e -> do
+            (BToken   bToken  ) <- grab @BToken
+            (PostTabs postTabs) <- grab @PostTabs
+            token               <- currentValue bToken
+            case token of
+                Nothing -> liftIO $ die "Missing token"
+                Just t  -> void $ do
+                    postTabs (Token $ setCookieValue t) e
+
     return ()
+
+onEvent' :: Event a -> (a -> ClientApp void) -> ClientApp (ClientApp ())
+onEvent' e h = do
+    env                 <- ask
+    window <- liftUI $ askWindow
+    let flush = liftUI $ liftJSWindow $ \w -> do
+            mode <- JS.getCallBufferMode w
+            case mode of
+                FlushOften -> JS.flushCallBuffer w
+                _          -> return ()
+    unregister <- liftIO $ register e (void . runUI window . runClientApp env . (>> flush) . h)
+    return (liftIO unregister)
 
 toItem :: Show a => a -> UI Element
 toItem a = UI.string (show a)
