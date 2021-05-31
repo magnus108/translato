@@ -155,7 +155,8 @@ setup win = do
             case token of
                 Nothing -> liftIO $ die "Missing token"
                 Just t  -> void $ do
-                    postTabs (Token $ setCookieValue t) e
+                    res <- postTabs (Token $ setCookieValue t) e
+                    traceShowM res
 
     return ()
 

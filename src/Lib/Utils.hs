@@ -1,5 +1,6 @@
 module Lib.Utils where
 
+import qualified Data.ByteString.Lazy          as BS
 import           System.IO.Error
 import           Data.Aeson
 import qualified Data.ByteString               as B
@@ -19,3 +20,6 @@ readJSONFileStrict fp = liftIO $ do
     case eitherDecodeStrict' bs of
         Left  e -> throwM $ userError e
         Right x -> return x
+
+writeJSONFile :: (MonadIO m, ToJSON a) => FilePath -> a -> m ()
+writeJSONFile fp item = liftIO $ BS.writeFile fp (encode item)
