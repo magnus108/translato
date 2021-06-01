@@ -5,6 +5,7 @@
 
 module Lib.Client where
 
+
 import qualified Lib.Client.Select             as Select
 import qualified Foreign.JavaScript            as JS
 import qualified Relude.Unsafe                 as Unsafe
@@ -112,14 +113,15 @@ mkPhotographersTab = mdo
     return (item, (fmap Photographer.Photographers <$> eSelection))
 
 
-electronFileHandler :: Handler (Maybe Dump.Dump) -> FilePath  -> IO ()
-electronFileHandler handler folder = when (folder /= "") $ handler (Just (Dump.Dump folder))
 
 mkDumpTab :: ClientApp (Element, Event (Maybe Dump.Dump))
 mkDumpTab = mdo
     (BDump bDump) <- grab @BDump
     (eDump, hDump) <- liftIO $ newEvent
     (eElectronDialog, hElectronDialog) <- liftIO $ newEvent
+
+    let electronFileHandler handler folder = when (folder /= "") $ handler (Just (Dump.Dump folder))
+    callback <- liftUI $ ffiExport (electronFileHandler hDump)
 
     let showIt x = UI.string x
 
@@ -136,9 +138,9 @@ mkDumpTab = mdo
 
             return display
 
-    callback <- liftUI $ ffiExport (electronFileHandler hDump)
     _ <- onEvent' eElectronDialog $ \_ -> do
-        liftUI $ runFunction $ electronDialog ["openDirectory"] callback
+        (EDialog eDialog) <- grab @EDialog
+        liftUI $ eDialog ["openDirectory"] callback
 
     let display bItem = do
             item <- bItem

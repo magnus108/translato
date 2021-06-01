@@ -1,5 +1,6 @@
 module Lib.Client.Types where
 
+import qualified Foreign.JavaScript            as JS
 import           Web.Cookie                     ( SetCookie(..))
 import           Network.HTTP.Client            ( newManager
                                                 , defaultManagerSettings
@@ -56,7 +57,11 @@ data ClientEnv (m :: Type -> Type) = ClientEnv
 
     , bDump :: BDump
     , hDump :: HDump
+
+    , eDialog :: EDialog
     }
+
+newtype EDialog = EDialog { unEDialog :: [String] -> JS.JSObject -> UI () }
 
 newtype BToken = BToken { unBToken :: Behavior (Maybe SetCookie) }
 newtype HToken = HToken { unHToken :: Handler (Maybe SetCookie) }
@@ -79,6 +84,10 @@ newtype GetDump = GetDump { unGetDump :: Token -> ClientApp Dump }
 newtype PostDump = PostDump { unPosDump :: Token -> Dump -> ClientApp NoContent }
 
 newtype Login = Login { unLogin :: LoginForm -> ClientApp (Headers '[Header "Set-Cookie" Text] NoContent) }
+
+instance Has EDialog              (ClientEnv m) where
+    obtain = eDialog
+
 
 instance Has Login              (ClientEnv m) where
     obtain = login
@@ -173,6 +182,13 @@ runClientM cenv client = do
         Right a          -> pure a
 
 
+electronDialog :: [String] -> JS.JSObject -> JSFunction ()
+electronDialog options callback = ffi
+    "require('electron').remote.dialog.showOpenDialog({properties: %2}).then(result => %1(result.filePaths[0]))"
+    callback
+    options
+
+
 clients :: Servant.ClientEnv -> IO ClientAppEnv
 clients cenv = do
     let api = Servant.hoistClient siteAPI
@@ -211,6 +227,8 @@ clients cenv = do
     let hDump = HDump dumpH
     let hPhotographers = HPhotographers photographersH
     let hTabs = HTabs tabsH
+
+    let eDialog = EDialog $ \xs cb -> runFunction $ electronDialog xs cb
 
     pure $ ClientEnv { .. }
 

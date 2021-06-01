@@ -72,10 +72,3 @@ items' :: ReadWriteAttr Element [UI Element] ()
 items' = mkWriteAttr $ \is x -> void $ do
     is' <- sequence is
     return x # set children is'
-
-
-electronDialog :: [String] -> JS.JSObject -> JSFunction ()
-electronDialog options callback = ffi
-    "require('electron').remote.dialog.showOpenDialog({properties: %2}).then(result => %1(result.filePaths[0]))"
-    callback
-    options
