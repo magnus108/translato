@@ -29,14 +29,17 @@ import qualified Control.Monad.Except          as E
 
 import           Lib.Utils
 import           Lib.Api.Types
-import           Lib.Api hiding (PostTabs, postTabs, GetPhotographers, getPhotographers, GetTabs, getTabs)
+import           Lib.Api hiding (PostTabs, postTabs, PostPhotographers, postPhotographers, GetPhotographers, getPhotographers, GetTabs, getTabs)
 
 
 data ClientEnv (m :: Type -> Type) = ClientEnv
     { login :: Login
     , getPhotographers :: GetPhotographers
+
     , getTabs :: GetTabs
     , postTabs :: PostTabs
+
+    , postPhotographers :: PostPhotographers
 
     , bToken :: BToken
     , hToken :: HToken
@@ -60,6 +63,7 @@ newtype HTabs = HTabs { unHTabs :: Handler (Maybe Tabs) }
 newtype GetPhotographers = GetPhotographers { unGetPhotographers :: Token -> ClientApp Photographers }
 newtype GetTabs = GetTabs { unGetTabs :: Token -> ClientApp Tabs }
 newtype PostTabs = PostTabs { unPosTabs :: Token -> Tabs -> ClientApp NoContent }
+newtype PostPhotographers = PostPhotographers { unPosPhotographers :: Token -> Photographers -> ClientApp NoContent }
 
 newtype Login = Login { unLogin :: LoginForm -> ClientApp (Headers '[Header "Set-Cookie" Text] NoContent) }
 
@@ -74,6 +78,9 @@ instance Has GetTabs              (ClientEnv m) where
 
 instance Has PostTabs              (ClientEnv m) where
     obtain = postTabs
+
+instance Has PostPhotographers              (ClientEnv m) where
+    obtain = postPhotographers
 
 instance Has BToken              (ClientEnv m) where
     obtain = bToken
@@ -104,6 +111,7 @@ newtype ClientApp a = ClientApp
                         , Monad
                         , MonadIO
                         , MonadFail
+                        , MonadFix
                         , MonadReader ClientAppEnv
                         )
 
@@ -147,13 +155,15 @@ clients cenv = do
                                   (Servant.client siteAPI)
     let public           :<|> protected      = api
     let postLogin        :<|> docs           = public
-    let getPhotographers' :<|> tabs :<|> getPermissions = protected
+    let photographers :<|> tabs :<|> getPermissions = protected
     let getTabs' :<|> postTabs' = tabs
+    let getPhotographers' :<|> postPhotographers' = photographers
 
     let login = Login $ postLogin
     let getPhotographers = GetPhotographers getPhotographers'
     let getTabs = GetTabs getTabs'
     let postTabs = PostTabs postTabs'
+    let postPhotographers = PostPhotographers postPhotographers'
 
     (tabsE, tabsH) <- newEvent
     bTabs <- BTabs <$> stepper Nothing tabsE

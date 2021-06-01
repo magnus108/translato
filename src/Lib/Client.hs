@@ -1,7 +1,12 @@
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE RecursiveDo #-}
+{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE ApplicativeDo #-}
+
 module Lib.Client where
 
-import qualified Foreign.JavaScript              as JS
+import qualified Foreign.JavaScript            as JS
+import qualified Relude.Unsafe as Unsafe
 import           Servant.Auth.Client
 import           Control.Conditional            ( (?<>) )
 import qualified Graphics.UI.Threepenny        as UI
@@ -43,12 +48,14 @@ import           Lib.Api.Types
 import           Lib.Api                 hiding ( GetPhotographers
                                                 , PostTabs
                                                 , GetTabs
+                                                , PostPhotographers
                                                 )
 import qualified Utils.ListZipper              as ListZipper
 import qualified Control.Lens                  as Lens
 import qualified Lib.Data.Photographer         as Photographer
 import qualified Lib.Data.Tab                  as Tab
-import           Control.Comonad
+import           Control.Comonad hiding ((<@))
+import           Lib.Client.Utils
 
 
 mkTabs :: ClientApp (Element, Event (Maybe Tab.Tabs))
@@ -88,11 +95,89 @@ mkToken = do
         (show <$> (fromMaybe (B.empty)) <$> (fmap setCookieValue) <$> bToken)
 
 
-mkContent :: ClientApp Element
+
+--------------------------------------------------------------------------------
+
+data Mode
+    = Closed
+    | Open
+    deriving (Eq, Show)
+
+
+switch :: Mode -> Mode
+switch Open = Closed
+switch Closed = Open
+
+
+
+mkPhotographersTab :: ClientApp (Element, Event (Maybe Photographer.Photographers))
+mkPhotographersTab = mdo
+    (BPhotographers bPhotographers)        <- grab @BPhotographers
+
+    (eSelection, hSelection) <- liftIO $ newEvent
+    (ePopup , hPopup      ) <- liftIO $ newEvent
+
+    let eSwitch = switch <$> Unsafe.head <$> unions
+            [ bDropMode <@ eSelection
+            , bDropMode <@ ePopup
+            ]
+
+    bDropMode <- stepper Closed $ eSwitch
+
+    let showPhotographer x = UI.string $ T.unpack $ Photographer.name x
+
+    let bDisplayOpen = pure $ \center photographers -> do
+            display <-
+                UI.button
+                #. (center ?<> "is-info is-seleceted" <> " " <> "button")
+                #+ [showPhotographer (extract photographers)]
+
+            UI.on UI.click display $ \_ -> do
+                liftIO $ hSelection (Just (Photographer.Photographers photographers))
+
+            return display
+
+
+    let bDisplayClosed = pure $ \photographers -> do
+            display <-
+                UI.button
+                #. "button"
+                #+ [ UI.span #. "icon" #+ [UI.mkElement "i" #. "fas fa-caret-down"]
+                   , showPhotographer (extract photographers)
+                   ]
+
+            UI.on UI.click display $ \_ -> do
+                    liftIO $ hPopup ()
+
+            return display
+
+    let errorDisplay = UI.string "no text"
+
+    let display bPhotographers = do
+            displayOpen <- bDisplayOpen
+            displayClosed <- bDisplayClosed
+            dropMode <- bDropMode
+            photographers <- bPhotographers
+            return $ case photographers of
+                       Nothing -> [errorDisplay]
+                       Just (Photographer.Photographers zipper) -> case dropMode of
+                            Open -> do
+                                [UI.div #. "buttons has-addons" #+ ListZipper.toList (ListZipper.bextend displayOpen zipper)]
+                            Closed -> do
+                                [displayClosed zipper]
+
+
+    item <- liftUI $ UI.div # sink items' (display bPhotographers)
+
+    return (item, eSelection)
+
+--------------------------------------------------------------------------------
+
+mkContent :: ClientApp (Element, Event (Maybe Photographer.Photographers))
 mkContent = do
     (BTabs bTabs)        <- grab @BTabs
 
-    photographersContent <- liftUI $ UI.string "fuck"
+    (photographersContent, ePhotographers) <- mkPhotographersTab
     elseContent          <- liftUI $ UI.string "fuck2"
     elseContent2         <- liftUI $ UI.string "fuck2nodATA"
 
@@ -106,7 +191,8 @@ mkContent = do
                     )
                 <$> bTabs
 
-    liftUI $ UI.div # sink children (fromMaybe [elseContent2] <$> contents)
+    content <- liftUI $ UI.div # sink children (fromMaybe [elseContent2] <$> contents)
+    return (content, ePhotographers)
 
 
 
@@ -125,7 +211,7 @@ setup win = do
 
 
     elemToken                       <- mkToken
-    elemContent                     <- mkContent
+    (elemContent, ePhotographers)                     <- mkContent
 
 
 
@@ -149,40 +235,28 @@ setup win = do
            ]
 
     onEvent' (filterJust eTabs) $ \e -> do
-            (BToken   bToken  ) <- grab @BToken
-            (PostTabs postTabs) <- grab @PostTabs
-            token               <- currentValue bToken
-            case token of
-                Nothing -> liftIO $ die "Missing token"
-                Just t  -> void $ do
-                    res <- postTabs (Token $ setCookieValue t) e
-                    traceShowM res
+        (BToken   bToken  ) <- grab @BToken
+        (PostTabs postTabs) <- grab @PostTabs
+        (HTabs    hTabs   ) <- grab @HTabs
+        token               <- currentValue bToken
+        case token of
+            Nothing -> liftIO $ die "Missing token"
+            Just t  -> void $ do
+                res <- postTabs (Token $ setCookieValue t) e
+                liftIO $ hTabs (Just e)
+
+    onEvent' (filterJust ePhotographers) $ \e -> do
+        (BToken   bToken  ) <- grab @BToken
+        (PostPhotographers postPhotographers) <- grab @PostPhotographers
+        (HPhotographers    hPhotographers ) <- grab @HPhotographers
+        token               <- currentValue bToken
+        case token of
+            Nothing -> liftIO $ die "Missing token"
+            Just t  -> void $ do
+                res <- postPhotographers (Token $ setCookieValue t) e
+                liftIO $ hPhotographers (Just e)
 
     return ()
-
-onEvent' :: Event a -> (a -> ClientApp void) -> ClientApp (ClientApp ())
-onEvent' e h = do
-    env                 <- ask
-    window <- liftUI $ askWindow
-    let flush = liftUI $ liftJSWindow $ \w -> do
-            mode <- JS.getCallBufferMode w
-            case mode of
-                FlushOften -> JS.flushCallBuffer w
-                _          -> return ()
-    unregister <- liftIO $ register e (void . runUI window . runClientApp env . (>> flush) . h)
-    return (liftIO unregister)
-
-toItem :: Show a => a -> UI Element
-toItem a = UI.string (show a)
-
-items :: Show a => ReadWriteAttr Element [a] ()
-items = mkWriteAttr $ \is x -> void $ do
-    return x # set children [] #+ fmap (\i -> UI.string (show i)) is
-
-items' :: ReadWriteAttr Element [UI Element] ()
-items' = mkWriteAttr $ \is x -> void $ do
-    is' <- sequence is
-    return x # set children is'
 
 
 getTabsClient = do

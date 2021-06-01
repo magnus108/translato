@@ -54,11 +54,13 @@ type PhotographerAPI = ToApi PhotographerSite
 data PhotographerSite route
   = PhotographerSite
       { getPhotographers :: !(route :- GetPhotographers)
+      , postPhotographers :: !(route :- PostPhotographers)
       }
   deriving (Generic)
 
 
 type GetPhotographers = ProtectAPI :> Get '[JSON] Photographers
+type PostPhotographers = ProtectAPI :> ReqBody '[JSON] Photographers :> Post '[JSON] NoContent
 
 
 type TabAPI = ToApi TabSite

@@ -10,6 +10,7 @@ import           Lib.Server.Handler.GetTabs
 import           Lib.Server.Handler.GetDocs
 import           Lib.Server.Handler.PostLogin
 import           Lib.Server.Handler.PostTabs
+import           Lib.Server.Handler.PostPhotographers
 import           Lib.Api
 import           Lib.Api.Types
 import           Lib.Server.Types
@@ -29,8 +30,7 @@ publicServer =
 
 protectedServer :: ProtectedSite AppServer
 protectedServer = ProtectedSite
-    { photographers  = withAuthResultAndPermission Simple
-                                                   serveGetPhotographers
+    { photographers  = genericServerT photographerServer
     , tabSite = genericServerT tabServer
     , getPermissions = withAuthResultAndPermission Simple
                                                    serveGetPermissions
@@ -41,6 +41,14 @@ tabServer = TabSite
     { getTabs  = withAuthResultAndPermission Simple serveGetTabs
     , postTabs = withAuthResultAndPermission Simple servePostTabs
     }
+
+photographerServer :: PhotographerSite AppServer
+photographerServer = PhotographerSite
+    { getPhotographers = withAuthResultAndPermission Simple
+                                                   serveGetPhotographers
+    , postPhotographers = withAuthResultAndPermission Simple servePostPhotographers
+    }
+
 
 
 

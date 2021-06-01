@@ -35,6 +35,7 @@ library
       Lib.Client
       Lib.Client.Error
       Lib.Client.Types
+      Lib.Client.Utils
       Lib.Config
       Lib.Data.Permission
       Lib.Data.Photographer
@@ -47,6 +48,7 @@ library
       Lib.Server.Handler.GetPhotographers
       Lib.Server.Handler.GetTabs
       Lib.Server.Handler.PostLogin
+      Lib.Server.Handler.PostPhotographers
       Lib.Server.Handler.PostTabs
       Lib.Server.Serve
       Lib.Server.Types
@@ -121,7 +123,7 @@ library
     , warp
   mixins:
       base hiding (Prelude)
-    , relude (Relude as Prelude, Relude.Extra)
+    , relude (Relude as Prelude, Relude.Extra, Relude.Unsafe)
   default-language: Haskell2010
 
 executable translato-exe
@@ -197,7 +199,7 @@ executable translato-exe
     , warp
   mixins:
       base hiding (Prelude)
-    , relude (Relude as Prelude, Relude.Extra)
+    , relude (Relude as Prelude, Relude.Extra, Relude.Unsafe)
   default-language: Haskell2010
 
 test-suite translato-test
@@ -274,5 +276,5 @@ test-suite translato-test
     , warp
   mixins:
       base hiding (Prelude)
-    , relude (Relude as Prelude, Relude.Extra)
+    , relude (Relude as Prelude, Relude.Extra, Relude.Unsafe)
   default-language: Haskell2010

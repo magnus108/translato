@@ -45,7 +45,7 @@ dependencies:
 - name: base
   mixin: hiding (Prelude)
 - name: relude
-  mixin: (Relude as Prelude, Relude.Extra)
+  mixin: (Relude as Prelude, Relude.Extra, Relude.Unsafe)
 - name: aeson
 - name: optparse-generic
 - name: generic-lens
