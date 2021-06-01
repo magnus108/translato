@@ -1,3 +1,4 @@
 # translato
-- fix select widget
 - fix hide import
+- fix watchers for dump
+- fix handlers

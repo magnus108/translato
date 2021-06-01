@@ -49,12 +49,14 @@ import           Lib.Api.Types
 import           Lib.Api                 hiding ( GetPhotographers
                                                 , PostTabs
                                                 , GetTabs
+                                                , GetDump
                                                 , PostPhotographers
                                                 )
 import qualified Utils.ListZipper              as ListZipper
 import qualified Control.Lens                  as Lens
 import qualified Lib.Data.Photographer         as Photographer
 import qualified Lib.Data.Tab                  as Tab
+import qualified Lib.Data.Dump                  as Dump
 import           Control.Comonad         hiding ( (<@) )
 import           Lib.Client.Utils
 
@@ -97,19 +99,6 @@ mkToken = do
 
 
 
---------------------------------------------------------------------------------
-data Mode
-    = Closed
-    | Open
-    deriving (Eq, Show)
-
-
-switch :: Mode -> Mode
-switch Open   = Closed
-switch Closed = Open
-
-
-
 mkPhotographersTab
     :: ClientApp (Element, Event (Maybe Photographer.Photographers))
 mkPhotographersTab = mdo
@@ -122,13 +111,55 @@ mkPhotographersTab = mdo
 
     return (item, (fmap Photographer.Photographers <$> eSelection))
 
---------------------------------------------------------------------------------
+
+electronFileHandler :: Handler (Maybe Dump.Dump) -> FilePath  -> IO ()
+electronFileHandler handler folder = when (folder /= "") $ handler (Just (Dump.Dump folder))
+
+mkDumpTab :: ClientApp (Element, Event (Maybe Dump.Dump))
+mkDumpTab = mdo
+    (BDump bDump) <- grab @BDump
+    (eDump, hDump) <- liftIO $ newEvent
+    (eElectronDialog, hElectronDialog) <- liftIO $ newEvent
+
+    let showIt x = UI.string x
+
+    let bErrorDisplay = pure $ UI.string "no text"
+
+    let bDisplay = pure $ \fp -> do
+            display <-
+                UI.button
+                #. "button"
+                #+ [showIt fp, UI.span #. "icon" #+ [UI.mkElement "i" #. "far fa-file"]]
+
+            UI.on UI.click display $ \_ -> do
+                liftIO $ hElectronDialog ()
+
+            return display
+
+    callback <- liftUI $ ffiExport (electronFileHandler hDump)
+    _ <- onEvent' eElectronDialog $ \_ -> do
+        liftUI $ runFunction $ electronDialog ["openDirectory"] callback
+
+    let display bItem = do
+            item <- bItem
+            display <- bDisplay
+            errorDisplay <- bErrorDisplay
+            return $ case item of
+                       Nothing -> [errorDisplay]
+                       Just item ->  [display item]
+
+
+    item <- liftUI $ UI.div # sink items' (display (fmap Dump.unDump <$> bDump))
+
+    return (item, eDump)
+
 
 mkContent :: ClientApp (Element, Event (Maybe Photographer.Photographers))
 mkContent = do
     (BTabs bTabs)                          <- grab @BTabs
 
     (photographersContent, ePhotographers) <- mkPhotographersTab
+    (dumpContent, eDump) <- mkDumpTab
     elseContent                            <- liftUI $ UI.string "fuck2"
     elseContent2                           <- liftUI $ UI.string "fuck2nodATA"
 
@@ -138,6 +169,7 @@ mkContent = do
                         let focus = extract (Tab.unTabs xs)
                         in  case focus of
                                 Tab.PhotographersTab -> [photographersContent]
+                                Tab.DumpTab -> [dumpContent]
                                 _                    -> [elseContent]
                     )
                 <$> bTabs
@@ -158,6 +190,7 @@ setup win = do
     _                               <- loginClient
     _                               <- getPhotographersClient
     _                               <- getTabsClient
+    _                               <- getDumpClient
 
     (elemTabs, eTabs)               <- mkTabs
 
@@ -211,6 +244,17 @@ setup win = do
 
     return ()
 
+getDumpClient = do
+    (GetDump getDump) <- grab @GetDump
+    (BToken  bToken ) <- grab @BToken
+    (HDump   hDump ) <- grab @HDump
+    token             <- currentValue bToken
+    case token of
+        Nothing -> liftIO $ die "Missing token"
+        Just t  -> do
+            res <- getDump (Token $ setCookieValue t)
+            case res of
+                _ -> liftIO $ hDump (Just res)
 
 getTabsClient = do
     (GetTabs getTabs) <- grab @GetTabs

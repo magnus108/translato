@@ -1,4 +1,4 @@
-{ "dumpFile" : ""
+{ "dumpFile" : "config/dump.json"
 , "photographersFile": "config/photographers.json"
 , "tabsFile": "config/tabs.json"
 }

@@ -74,3 +74,8 @@ items' = mkWriteAttr $ \is x -> void $ do
     return x # set children is'
 
 
+electronDialog :: [String] -> JS.JSObject -> JSFunction ()
+electronDialog options callback = ffi
+    "require('electron').remote.dialog.showOpenDialog({properties: %2}).then(result => %1(result.filePaths[0]))"
+    callback
+    options

@@ -11,6 +11,10 @@ import           Lib.Server.Handler.GetDocs
 import           Lib.Server.Handler.PostLogin
 import           Lib.Server.Handler.PostTabs
 import           Lib.Server.Handler.PostPhotographers
+
+import           Lib.Server.Handler.GetDump
+import           Lib.Server.Handler.PostDump
+
 import           Lib.Api
 import           Lib.Api.Types
 import           Lib.Server.Types
@@ -32,6 +36,7 @@ protectedServer :: ProtectedSite AppServer
 protectedServer = ProtectedSite
     { photographers  = genericServerT photographerServer
     , tabSite = genericServerT tabServer
+    , dumpSite = genericServerT dumpServer
     , getPermissions = withAuthResultAndPermission Simple
                                                    serveGetPermissions
     }
@@ -47,6 +52,12 @@ photographerServer = PhotographerSite
     { getPhotographers = withAuthResultAndPermission Simple
                                                    serveGetPhotographers
     , postPhotographers = withAuthResultAndPermission Simple servePostPhotographers
+    }
+
+dumpServer :: DumpSite AppServer
+dumpServer = DumpSite
+    { getDump = withAuthResultAndPermission Simple serveGetDump
+    , postDump = withAuthResultAndPermission Simple servePostDump
     }
 
 

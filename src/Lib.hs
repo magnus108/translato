@@ -36,6 +36,9 @@ mkAppEnv clientPort Config.Config {..} = do
     mTabsFile' <- newMVar tabsFile
     let mTabsFile = App.MTabsFile mTabsFile'
 
+    mDumpFile' <- newMVar dumpFile
+    let mDumpFile = App.MDumpFile mDumpFile'
+
     let serverPort         = 8080
 
     let static             = "static"
@@ -51,6 +54,9 @@ mkServerAppEnv Env {..} = do
 
     let unMTabsFile = App.unMTabsFile mTabsFile
     let mTabsFile   = ServerApp.MTabsFile unMTabsFile
+    
+    let unMDumpFile = App.unMDumpFile mDumpFile
+    let mDumpFile   = ServerApp.MDumpFile unMDumpFile
 
     let cookieSettings = defaultCookieSettings { cookieIsSecure = NotSecure }
     signingKey <- loadSigningKey -- serveSetSigningKeyFile

@@ -14,6 +14,7 @@ import           Control.Exception              ( catch
 import           Servant.Auth.Client
 import           Lib.Data.Photographer          ( Photographers )
 import           Lib.Data.Tab          ( Tabs )
+import           Lib.Data.Dump          ( Dump )
 import           Graphics.UI.Threepenny.Core
 import           Servant                 hiding ( throwError, Handler)
 import qualified Servant.Client                as Servant
@@ -29,7 +30,7 @@ import qualified Control.Monad.Except          as E
 
 import           Lib.Utils
 import           Lib.Api.Types
-import           Lib.Api hiding (PostTabs, postTabs, PostPhotographers, postPhotographers, GetPhotographers, getPhotographers, GetTabs, getTabs)
+import           Lib.Api hiding (PostDump, postDump, getDump, GetDump, PostTabs, postTabs, PostPhotographers, postPhotographers, GetPhotographers, getPhotographers, GetTabs, getTabs)
 
 
 data ClientEnv (m :: Type -> Type) = ClientEnv
@@ -38,6 +39,9 @@ data ClientEnv (m :: Type -> Type) = ClientEnv
 
     , getTabs :: GetTabs
     , postTabs :: PostTabs
+
+    , getDump :: GetDump
+    , postDump :: PostDump
 
     , postPhotographers :: PostPhotographers
 
@@ -49,6 +53,9 @@ data ClientEnv (m :: Type -> Type) = ClientEnv
 
     , bTabs :: BTabs
     , hTabs :: HTabs
+
+    , bDump :: BDump
+    , hDump :: HDump
     }
 
 newtype BToken = BToken { unBToken :: Behavior (Maybe SetCookie) }
@@ -60,10 +67,16 @@ newtype HPhotographers = HPhotographers { unHPhotographers :: Handler (Maybe Pho
 newtype BTabs = BTabs { unBTabs :: Behavior (Maybe Tabs) }
 newtype HTabs = HTabs { unHTabs :: Handler (Maybe Tabs) }
 
+newtype BDump = BDump { unBDump :: Behavior (Maybe Dump) }
+newtype HDump = HDump { unHDump :: Handler (Maybe Dump) }
+
 newtype GetPhotographers = GetPhotographers { unGetPhotographers :: Token -> ClientApp Photographers }
 newtype GetTabs = GetTabs { unGetTabs :: Token -> ClientApp Tabs }
 newtype PostTabs = PostTabs { unPosTabs :: Token -> Tabs -> ClientApp NoContent }
 newtype PostPhotographers = PostPhotographers { unPosPhotographers :: Token -> Photographers -> ClientApp NoContent }
+
+newtype GetDump = GetDump { unGetDump :: Token -> ClientApp Dump }
+newtype PostDump = PostDump { unPosDump :: Token -> Dump -> ClientApp NoContent }
 
 newtype Login = Login { unLogin :: LoginForm -> ClientApp (Headers '[Header "Set-Cookie" Text] NoContent) }
 
@@ -72,6 +85,12 @@ instance Has Login              (ClientEnv m) where
 
 instance Has GetPhotographers              (ClientEnv m) where
     obtain = getPhotographers
+
+instance Has GetDump              (ClientEnv m) where
+    obtain = getDump
+
+instance Has PostDump              (ClientEnv m) where
+    obtain = postDump
 
 instance Has GetTabs              (ClientEnv m) where
     obtain = getTabs
@@ -100,6 +119,12 @@ instance Has BTabs (ClientEnv m) where
 
 instance Has HTabs              (ClientEnv m) where
     obtain = hTabs
+
+instance Has BDump (ClientEnv m) where
+    obtain = bDump
+
+instance Has HDump              (ClientEnv m) where
+    obtain = hDump
 
 type ClientAppEnv = ClientEnv ClientApp
 
@@ -155,7 +180,9 @@ clients cenv = do
                                   (Servant.client siteAPI)
     let public           :<|> protected      = api
     let postLogin        :<|> docs           = public
-    let photographers :<|> tabs :<|> getPermissions = protected
+    let (photographers :<|> tabs) :<|> dump :<|> getPermissions = protected
+
+    let getDump' :<|> postDump' = dump
     let getTabs' :<|> postTabs' = tabs
     let getPhotographers' :<|> postPhotographers' = photographers
 
@@ -164,6 +191,12 @@ clients cenv = do
     let getTabs = GetTabs getTabs'
     let postTabs = PostTabs postTabs'
     let postPhotographers = PostPhotographers postPhotographers'
+
+    let getDump = GetDump getDump'
+    let postDump = PostDump postDump'
+
+    (dumpE, dumpH) <- newEvent
+    bDump <- BDump <$> stepper Nothing dumpE
 
     (tabsE, tabsH) <- newEvent
     bTabs <- BTabs <$> stepper Nothing tabsE
@@ -175,6 +208,7 @@ clients cenv = do
     bPhotographers                   <- BPhotographers <$> stepper Nothing photographersE
 
     let hToken = HToken tokenH
+    let hDump = HDump dumpH
     let hPhotographers = HPhotographers photographersH
     let hTabs = HTabs tabsH
 
