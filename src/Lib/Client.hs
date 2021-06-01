@@ -5,8 +5,9 @@
 
 module Lib.Client where
 
+import qualified Lib.Client.Select             as Select
 import qualified Foreign.JavaScript            as JS
-import qualified Relude.Unsafe as Unsafe
+import qualified Relude.Unsafe                 as Unsafe
 import           Servant.Auth.Client
 import           Control.Conditional            ( (?<>) )
 import qualified Graphics.UI.Threepenny        as UI
@@ -54,7 +55,7 @@ import qualified Utils.ListZipper              as ListZipper
 import qualified Control.Lens                  as Lens
 import qualified Lib.Data.Photographer         as Photographer
 import qualified Lib.Data.Tab                  as Tab
-import           Control.Comonad hiding ((<@))
+import           Control.Comonad         hiding ( (<@) )
 import           Lib.Client.Utils
 
 
@@ -97,7 +98,6 @@ mkToken = do
 
 
 --------------------------------------------------------------------------------
-
 data Mode
     = Closed
     | Open
@@ -105,81 +105,32 @@ data Mode
 
 
 switch :: Mode -> Mode
-switch Open = Closed
+switch Open   = Closed
 switch Closed = Open
 
 
 
-mkPhotographersTab :: ClientApp (Element, Event (Maybe Photographer.Photographers))
+mkPhotographersTab
+    :: ClientApp (Element, Event (Maybe Photographer.Photographers))
 mkPhotographersTab = mdo
-    (BPhotographers bPhotographers)        <- grab @BPhotographers
-
-    (eSelection, hSelection) <- liftIO $ newEvent
-    (ePopup , hPopup      ) <- liftIO $ newEvent
-
-    let eSwitch = switch <$> Unsafe.head <$> unions
-            [ bDropMode <@ eSelection
-            , bDropMode <@ ePopup
-            ]
-
-    bDropMode <- stepper Closed $ eSwitch
-
+    (BPhotographers bPhotographers) <- grab @BPhotographers
     let showPhotographer x = UI.string $ T.unpack $ Photographer.name x
 
-    let bDisplayOpen = pure $ \center photographers -> do
-            display <-
-                UI.button
-                #. (center ?<> "is-info is-seleceted" <> " " <> "button")
-                #+ [showPhotographer (extract photographers)]
+    (item, eSelection) <- liftUI $ Select.mkSelect
+        (fmap Photographer.unPhotographers <$> bPhotographers)
+        showPhotographer
 
-            UI.on UI.click display $ \_ -> do
-                liftIO $ hSelection (Just (Photographer.Photographers photographers))
-
-            return display
-
-
-    let bDisplayClosed = pure $ \photographers -> do
-            display <-
-                UI.button
-                #. "button"
-                #+ [ UI.span #. "icon" #+ [UI.mkElement "i" #. "fas fa-caret-down"]
-                   , showPhotographer (extract photographers)
-                   ]
-
-            UI.on UI.click display $ \_ -> do
-                    liftIO $ hPopup ()
-
-            return display
-
-    let errorDisplay = UI.string "no text"
-
-    let display bPhotographers = do
-            displayOpen <- bDisplayOpen
-            displayClosed <- bDisplayClosed
-            dropMode <- bDropMode
-            photographers <- bPhotographers
-            return $ case photographers of
-                       Nothing -> [errorDisplay]
-                       Just (Photographer.Photographers zipper) -> case dropMode of
-                            Open -> do
-                                [UI.div #. "buttons has-addons" #+ ListZipper.toList (ListZipper.bextend displayOpen zipper)]
-                            Closed -> do
-                                [displayClosed zipper]
-
-
-    item <- liftUI $ UI.div # sink items' (display bPhotographers)
-
-    return (item, eSelection)
+    return (item, (fmap Photographer.Photographers <$> eSelection))
 
 --------------------------------------------------------------------------------
 
 mkContent :: ClientApp (Element, Event (Maybe Photographer.Photographers))
 mkContent = do
-    (BTabs bTabs)        <- grab @BTabs
+    (BTabs bTabs)                          <- grab @BTabs
 
     (photographersContent, ePhotographers) <- mkPhotographersTab
-    elseContent          <- liftUI $ UI.string "fuck2"
-    elseContent2         <- liftUI $ UI.string "fuck2nodATA"
+    elseContent                            <- liftUI $ UI.string "fuck2"
+    elseContent2                           <- liftUI $ UI.string "fuck2nodATA"
 
     let contents =
             fmap
@@ -191,7 +142,9 @@ mkContent = do
                     )
                 <$> bTabs
 
-    content <- liftUI $ UI.div # sink children (fromMaybe [elseContent2] <$> contents)
+    content <- liftUI $ UI.div # sink
+        children
+        (fromMaybe [elseContent2] <$> contents)
     return (content, ePhotographers)
 
 
@@ -211,7 +164,7 @@ setup win = do
 
 
     elemToken                       <- mkToken
-    (elemContent, ePhotographers)                     <- mkContent
+    (elemContent, ePhotographers)   <- mkContent
 
 
 
@@ -246,10 +199,10 @@ setup win = do
                 liftIO $ hTabs (Just e)
 
     onEvent' (filterJust ePhotographers) $ \e -> do
-        (BToken   bToken  ) <- grab @BToken
+        (BToken            bToken           ) <- grab @BToken
         (PostPhotographers postPhotographers) <- grab @PostPhotographers
-        (HPhotographers    hPhotographers ) <- grab @HPhotographers
-        token               <- currentValue bToken
+        (HPhotographers    hPhotographers   ) <- grab @HPhotographers
+        token <- currentValue bToken
         case token of
             Nothing -> liftIO $ die "Missing token"
             Just t  -> void $ do
