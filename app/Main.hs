@@ -4,12 +4,12 @@ import qualified Lib
 
 import           Options.Generic
 
-data Config = Config { port :: Int }
+data Config = Config { port :: Int, root :: FilePath }
     deriving Generic
     deriving anyclass ParseRecord
 
 
 main :: IO ()
 main = do
-    Config (port) <- getRecord "Run"
-    Lib.main port ""
+    Config port root <- getRecord "Run"
+    Lib.main port root

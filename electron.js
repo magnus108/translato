@@ -10,7 +10,7 @@ const timeout = 10000;
 // Relative path to the Threepenny binary.
 const relBin = './.build/translato-exe'
 // Additional arguments to pass to the Threepenny binary.
-const binArgs = [__dirname];
+const binArgs = ["--root", __dirname];
 
 // Assign a random port to run on.
 freeport((err, port) => {
@@ -46,7 +46,7 @@ freeport((err, port) => {
   // browser windows. Some APIs can only be used after this event occurs. We
   // start the child process and wait before loading the web page.
   app.on('ready', () => {
-    child = spawn(path.join(__dirname, relBin), [port].concat(binArgs));
+    child = spawn(path.join(__dirname, relBin), ["--port", port].concat(binArgs));
     child.stdout.setEncoding('utf8');
     child.stderr.setEncoding('utf8');
     child.stdout.on('data', console.log);
