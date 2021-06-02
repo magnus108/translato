@@ -11,6 +11,7 @@ import           Lib.Utils
 data Config = Config
     { dumpFile :: !FilePath
     , dagsdatoFile :: !FilePath
+    , dagsdatoBackupFile :: !FilePath
     , photographersFile :: !FilePath
     , tabsFile :: !FilePath
     }

@@ -54,6 +54,7 @@ import qualified Lib.Data.Photographer         as Photographer
 import qualified Lib.Data.Tab                  as Tab
 import qualified Lib.Data.Dump                 as Dump
 import qualified Lib.Data.Dagsdato             as Dagsdato
+import qualified Lib.Data.DagsdatoBackup       as DagsdatoBackup
 import           Control.Comonad         hiding ( (<@) )
 import           Lib.Client.Utils
 
@@ -126,26 +127,45 @@ mkDagsdatoTab = mdo
 
     return (item, fmap Dagsdato.Dagsdato <$> eSelection)
 
+mkDagsdatoBackupTab
+    :: ClientApp (Element, Event (Maybe DagsdatoBackup.DagsdatoBackup))
+mkDagsdatoBackupTab = mdo
+    (BDagsdatoBackup bDagsdatoBackup) <- grab @BDagsdatoBackup
+    eDialog                           <- grab @EDialog
+    let showIt x = UI.string x
+    (item, eSelection) <- liftUI $ FilePicker.mkFilePicker
+        eDialog
+        (fmap DagsdatoBackup.unDagsdatoBackup <$> bDagsdatoBackup)
+        showIt
+
+    return (item, fmap DagsdatoBackup.DagsdatoBackup <$> eSelection)
+
 
 mkContent :: ClientApp (Element, Event (Maybe Photographer.Photographers))
 mkContent = do
-    (BTabs bTabs)                          <- grab @BTabs
+    (BTabs bTabs)                            <- grab @BTabs
 
-    (photographersContent, ePhotographers) <- mkPhotographersTab
-    (dumpContent         , eDump         ) <- mkDumpTab
-    (dagsdatoContent     , eDagsdato     ) <- mkDumpTab
-    elseContent                            <- liftUI $ UI.string "fuck2"
-    elseContent2                           <- liftUI $ UI.string "fuck2nodATA"
+    (photographersContent , ePhotographers ) <- mkPhotographersTab
+    (dumpContent          , eDump          ) <- mkDumpTab
+    (dagsdatoContent      , eDagsdato      ) <- mkDagsdatoTab
+    (dagsdatoBackupContent, eDagsdatoBackup) <- mkDagsdatoBackupTab
 
-    let contents =
+    elseContent                              <- liftUI $ UI.string "fuck2"
+    elseContent2                             <- liftUI $ UI.string "fuck2nodATA"
+
+    let
+        contents =
             fmap
                     (\xs ->
                         let focus = extract (Tab.unTabs xs)
-                        in  case focus of
+                        in
+                            case focus of
                                 Tab.PhotographersTab -> [photographersContent]
                                 Tab.DumpTab          -> [dumpContent]
                                 Tab.DagsdatoTab      -> [dagsdatoContent]
-                                _                    -> [elseContent]
+                                Tab.DagsdatoBackupTab ->
+                                    [dagsdatoBackupContent]
+                                _ -> [elseContent]
                     )
                 <$> bTabs
 
@@ -160,17 +180,12 @@ mkContent = do
 setup :: Window -> ClientApp ()
 setup win = do
     liftUI $ return win # set title "test"
-    _                               <- initial
+    _                             <- initial
 
-    (elemTabs, eTabs)               <- mkTabs
-    (elemContent, ePhotographers)   <- mkContent
+    (elemTabs   , eTabs         ) <- mkTabs
+    (elemContent, ePhotographers) <- mkContent
 
-    liftUI
-        $  getBody win
-        #+ [ element elemTabs
-           , UI.hr
-           , element elemContent
-           ]
+    liftUI $ getBody win #+ [element elemTabs, UI.hr, element elemContent]
 
     onEvent' (filterJust eTabs) $ \e -> do
         (BToken   bToken  ) <- grab @BToken
@@ -198,9 +213,9 @@ setup win = do
 
 
 withToken :: (Token -> ClientApp a) -> ClientApp a
-withToken func = do 
-    (BToken      bToken     ) <- grab @BToken
-    token                     <- currentValue bToken
+withToken func = do
+    (BToken bToken) <- grab @BToken
+    token           <- currentValue bToken
     case token of
         Nothing -> liftIO $ die "Missing token"
         Just t  -> func (Token $ setCookieValue t)
@@ -213,17 +228,25 @@ initial = do
     _ <- getTabsClient
     _ <- getDumpClient
     _ <- getDagsdatoClient
+    _ <- getDagsdatoBackupClient
     return ()
 
 
 getDagsdatoClient :: ClientApp ()
-getDagsdatoClient = 
-    withToken $ \t -> do
-        (GetDagsdato getDagsdato) <- grab @GetDagsdato
-        (HDagsdato   hDagsdato  ) <- grab @HDagsdato
-        res <- getDagsdato t
-        case res of
-            _ -> liftIO $ hDagsdato (Just res)
+getDagsdatoClient = withToken $ \t -> do
+    (GetDagsdato getDagsdato) <- grab @GetDagsdato
+    (HDagsdato   hDagsdato  ) <- grab @HDagsdato
+    res                       <- getDagsdato t
+    case res of
+        _ -> liftIO $ hDagsdato (Just res)
+
+getDagsdatoBackupClient :: ClientApp ()
+getDagsdatoBackupClient = withToken $ \t -> do
+    (GetDagsdatoBackup getDagsdatoBackup) <- grab @GetDagsdatoBackup
+    (HDagsdatoBackup   hDagsdatoBackup ) <- grab @HDagsdatoBackup
+    res                       <- getDagsdatoBackup t
+    case res of
+        _ -> liftIO $ hDagsdatoBackup (Just res)
 
 
 getDumpClient :: ClientApp ()
@@ -231,7 +254,7 @@ getDumpClient = do
     withToken $ \t -> do
         (GetDump getDump) <- grab @GetDump
         (HDump   hDump  ) <- grab @HDump
-        res <- getDump t
+        res               <- getDump t
         case res of
             _ -> liftIO $ hDump (Just res)
 
@@ -241,9 +264,10 @@ getTabsClient = do
     withToken $ \t -> do
         (GetTabs getTabs) <- grab @GetTabs
         (HTabs   hTabs  ) <- grab @HTabs
-        res <- getTabs t
+        res               <- getTabs t
         case res of
             _ -> liftIO $ hTabs (Just res)
+
 
 getPhotographersClient :: ClientApp ()
 getPhotographersClient = do

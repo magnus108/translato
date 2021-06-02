@@ -7,6 +7,7 @@ import           Servant.HTML.Blaze
 import           Lib.Data.Photographer
 import           Lib.Data.Dump
 import           Lib.Data.Dagsdato
+import           Lib.Data.DagsdatoBackup
 import           Lib.Data.Tab
 
 
@@ -42,7 +43,8 @@ data ProtectedSite route
       , tabSite :: !(route :- "tab" :> TabAPI)
       , dumpSite :: !(route :- "dump" :> DumpAPI)
       , dagsdatoSite :: !(route :- "dagsdato" :> DagsdatoAPI)
-      , getPermissions :: !(route :- GetPermissions)
+      , dagsdatoBackupSite :: !(route :- "dagsdato" :> DagsdatoBackupAPI)
+      --, getPermissions :: !(route :- GetPermissions)
       }
   deriving (Generic)
 
@@ -64,7 +66,8 @@ data PhotographerSite route
 
 
 type GetPhotographers = ProtectAPI :> Get '[JSON] Photographers
-type PostPhotographers = ProtectAPI :> ReqBody '[JSON] Photographers :> Post '[JSON] NoContent
+type PostPhotographers
+    = ProtectAPI :> ReqBody '[JSON] Photographers :> Post '[JSON] NoContent
 
 
 type TabAPI = ToApi TabSite
@@ -110,6 +113,23 @@ data DagsdatoSite route
   deriving (Generic)
 
 
-type PostDagsdato = ProtectAPI :> ReqBody '[JSON] Dagsdato :> Post '[JSON] NoContent
+type PostDagsdato
+    = ProtectAPI :> ReqBody '[JSON] Dagsdato :> Post '[JSON] NoContent
 
 type GetDagsdato = ProtectAPI :> Get '[JSON] Dagsdato
+
+
+type DagsdatoBackupAPI = ToApi DagsdatoBackupSite
+
+data DagsdatoBackupSite route
+  = DagsdatoBackupSite
+      { getDagsdatoBackup :: !(route :- GetDagsdatoBackup)
+      , postDagsdatoBackup :: !(route :- PostDagsdatoBackup)
+      }
+  deriving (Generic)
+
+
+type PostDagsdatoBackup
+    = ProtectAPI :> ReqBody '[JSON] DagsdatoBackup :> Post '[JSON] NoContent
+
+type GetDagsdatoBackup = ProtectAPI :> Get '[JSON] DagsdatoBackup

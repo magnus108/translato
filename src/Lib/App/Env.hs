@@ -17,6 +17,7 @@ data Env (m :: Type -> Type) = Env
     , mDumpFile :: MDumpFile
 
     , mDagsdatoFile :: MDagsdatoFile
+    , mDagsdatoBackupFile :: MDagsdatoBackupFile
     }
 
 
@@ -40,3 +41,8 @@ newtype MDagsdatoFile = MDagsdatoFile { unMDagsdatoFile :: MVar FilePath }
 
 instance Has MDagsdatoFile              (Env m) where
     obtain = mDagsdatoFile
+
+newtype MDagsdatoBackupFile = MDagsdatoBackupFile { unMDagsdatoBackupFile :: MVar FilePath }
+
+instance Has MDagsdatoBackupFile              (Env m) where
+    obtain = mDagsdatoBackupFile
