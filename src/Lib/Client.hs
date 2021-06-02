@@ -6,7 +6,7 @@
 module Lib.Client where
 
 
-import qualified Lib.Client.FilePicker             as FilePicker
+import qualified Lib.Client.FilePicker         as FilePicker
 import qualified Lib.Client.Select             as Select
 import qualified Foreign.JavaScript            as JS
 import qualified Relude.Unsafe                 as Unsafe
@@ -48,19 +48,12 @@ import qualified Control.Monad.Except          as E
 
 import           Lib.Utils
 import           Lib.Api.Types
-import           Lib.Api                 hiding ( GetPhotographers
-                                                , PostTabs
-                                                , GetTabs
-                                                , GetDump
-                                                , GetDagsdato
-                                                , PostPhotographers
-                                                )
 import qualified Utils.ListZipper              as ListZipper
 import qualified Control.Lens                  as Lens
 import qualified Lib.Data.Photographer         as Photographer
 import qualified Lib.Data.Tab                  as Tab
-import qualified Lib.Data.Dump                  as Dump
-import qualified Lib.Data.Dagsdato                  as Dagsdato
+import qualified Lib.Data.Dump                 as Dump
+import qualified Lib.Data.Dagsdato             as Dagsdato
 import           Control.Comonad         hiding ( (<@) )
 import           Lib.Client.Utils
 
@@ -95,12 +88,6 @@ mkTabs = do
 
     return (item, eSelection)
 
-mkToken = do
-    (BToken bToken) <- grab @BToken
-    liftUI $ UI.p # sink
-        text
-        (show <$> (fromMaybe (B.empty)) <$> (fmap setCookieValue) <$> bToken)
-
 
 
 mkPhotographersTab
@@ -120,19 +107,17 @@ mkPhotographersTab = mdo
 mkDumpTab :: ClientApp (Element, Event (Maybe Dump.Dump))
 mkDumpTab = mdo
     (BDump bDump) <- grab @BDump
-    eDialog <- grab @EDialog
+    eDialog       <- grab @EDialog
     let showIt x = UI.string x
-    (item, eSelection) <- liftUI $ FilePicker.mkFilePicker
-        eDialog
-        (fmap Dump.unDump <$> bDump)
-        showIt
+    (item, eSelection) <- liftUI
+        $ FilePicker.mkFilePicker eDialog (fmap Dump.unDump <$> bDump) showIt
 
     return (item, fmap Dump.Dump <$> eSelection)
 
 mkDagsdatoTab :: ClientApp (Element, Event (Maybe Dagsdato.Dagsdato))
 mkDagsdatoTab = mdo
     (BDagsdato bDagsdato) <- grab @BDagsdato
-    eDialog <- grab @EDialog
+    eDialog               <- grab @EDialog
     let showIt x = UI.string x
     (item, eSelection) <- liftUI $ FilePicker.mkFilePicker
         eDialog
@@ -147,8 +132,8 @@ mkContent = do
     (BTabs bTabs)                          <- grab @BTabs
 
     (photographersContent, ePhotographers) <- mkPhotographersTab
-    (dumpContent, eDump) <- mkDumpTab
-    (dagsdatoContent, eDagsdato) <- mkDumpTab
+    (dumpContent         , eDump         ) <- mkDumpTab
+    (dagsdatoContent     , eDagsdato     ) <- mkDumpTab
     elseContent                            <- liftUI $ UI.string "fuck2"
     elseContent2                           <- liftUI $ UI.string "fuck2nodATA"
 
@@ -158,8 +143,8 @@ mkContent = do
                         let focus = extract (Tab.unTabs xs)
                         in  case focus of
                                 Tab.PhotographersTab -> [photographersContent]
-                                Tab.DumpTab -> [dumpContent]
-                                Tab.DagsdatoTab -> [dagsdatoContent]
+                                Tab.DumpTab          -> [dumpContent]
+                                Tab.DagsdatoTab      -> [dagsdatoContent]
                                 _                    -> [elseContent]
                     )
                 <$> bTabs
@@ -167,46 +152,22 @@ mkContent = do
     content <- liftUI $ UI.div # sink
         children
         (fromMaybe [elseContent2] <$> contents)
-    return (content, ePhotographers)
 
+    return (content, ePhotographers)
 
 
 
 setup :: Window -> ClientApp ()
 setup win = do
     liftUI $ return win # set title "test"
-
-
-    _                               <- loginClient
-    _                               <- getPhotographersClient
-    _                               <- getTabsClient
-    _                               <- getDumpClient
-    _                               <- getDagsdatoClient
+    _                               <- initial
 
     (elemTabs, eTabs)               <- mkTabs
-
-
-
-    elemToken                       <- mkToken
     (elemContent, ePhotographers)   <- mkContent
-
-
-
-    (BPhotographers bPhotographers) <- grab @BPhotographers
-    let childs =
-            (   fmap toItem
-            <$> (fromMaybe [])
-            <$> (fmap (ListZipper.toList . Photographer.unPhotographers))
-            <$> bPhotographers
-            )
-    elemPhotographers <- liftUI $ UI.div # sink items' childs
 
     liftUI
         $  getBody win
-        #+ [ element elemToken
-     --      , element elemPhotographers
-           , UI.hr
-           , element elemTabs
+        #+ [ element elemTabs
            , UI.hr
            , element elemContent
            ]
@@ -235,54 +196,66 @@ setup win = do
 
     return ()
 
-getDagsdatoClient = do
-    (GetDagsdato getDagsdato) <- grab @GetDagsdato
-    (BToken  bToken ) <- grab @BToken
-    (HDagsdato hDagsdato ) <- grab @HDagsdato
-    token             <- currentValue bToken
+
+withToken :: (Token -> ClientApp a) -> ClientApp a
+withToken func = do 
+    (BToken      bToken     ) <- grab @BToken
+    token                     <- currentValue bToken
     case token of
         Nothing -> liftIO $ die "Missing token"
-        Just t  -> do
-            res <- getDagsdato (Token $ setCookieValue t)
-            case res of
-                _ -> liftIO $ hDagsdato (Just res)
+        Just t  -> func (Token $ setCookieValue t)
 
+
+initial :: ClientApp ()
+initial = do
+    _ <- loginClient
+    _ <- getPhotographersClient
+    _ <- getTabsClient
+    _ <- getDumpClient
+    _ <- getDagsdatoClient
+    return ()
+
+
+getDagsdatoClient :: ClientApp ()
+getDagsdatoClient = 
+    withToken $ \t -> do
+        (GetDagsdato getDagsdato) <- grab @GetDagsdato
+        (HDagsdato   hDagsdato  ) <- grab @HDagsdato
+        res <- getDagsdato t
+        case res of
+            _ -> liftIO $ hDagsdato (Just res)
+
+
+getDumpClient :: ClientApp ()
 getDumpClient = do
-    (GetDump getDump) <- grab @GetDump
-    (BToken  bToken ) <- grab @BToken
-    (HDump   hDump ) <- grab @HDump
-    token             <- currentValue bToken
-    case token of
-        Nothing -> liftIO $ die "Missing token"
-        Just t  -> do
-            res <- getDump (Token $ setCookieValue t)
-            case res of
-                _ -> liftIO $ hDump (Just res)
+    withToken $ \t -> do
+        (GetDump getDump) <- grab @GetDump
+        (HDump   hDump  ) <- grab @HDump
+        res <- getDump t
+        case res of
+            _ -> liftIO $ hDump (Just res)
 
+
+getTabsClient :: ClientApp ()
 getTabsClient = do
-    (GetTabs getTabs) <- grab @GetTabs
-    (BToken  bToken ) <- grab @BToken
-    (HTabs   hTabs  ) <- grab @HTabs
-    token             <- currentValue bToken
-    case token of
-        Nothing -> liftIO $ die "Missing token"
-        Just t  -> do
-            res <- getTabs (Token $ setCookieValue t)
-            case res of
-                _ -> liftIO $ hTabs (Just res)
+    withToken $ \t -> do
+        (GetTabs getTabs) <- grab @GetTabs
+        (HTabs   hTabs  ) <- grab @HTabs
+        res <- getTabs t
+        case res of
+            _ -> liftIO $ hTabs (Just res)
 
+getPhotographersClient :: ClientApp ()
 getPhotographersClient = do
-    (GetPhotographers getPhotographers) <- grab @GetPhotographers
-    (BToken           bToken          ) <- grab @BToken
-    (HPhotographers   hPhotographers  ) <- grab @HPhotographers
-    token                               <- currentValue bToken
-    case token of
-        Nothing -> liftIO $ die "Missing token"
-        Just t  -> do
-            res <- getPhotographers (Token $ setCookieValue t)
-            case res of
-                _ -> liftIO $ hPhotographers (Just res)
+    withToken $ \t -> do
+        (GetPhotographers getPhotographers) <- grab @GetPhotographers
+        (HPhotographers   hPhotographers  ) <- grab @HPhotographers
+        res <- getPhotographers t
+        case res of
+            _ -> liftIO $ hPhotographers (Just res)
 
+
+loginClient :: ClientApp ()
 loginClient = do
     (Login login                       ) <- grab @Login
     (Headers NoContent (HCons res HNil)) <- login LoginForm
