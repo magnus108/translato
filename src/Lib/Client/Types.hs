@@ -16,6 +16,7 @@ import           Servant.Auth.Client
 import           Lib.Data.Photographer          ( Photographers )
 import           Lib.Data.Tab          ( Tabs )
 import           Lib.Data.Dump          ( Dump )
+import           Lib.Data.Dagsdato          ( Dagsdato )
 import           Graphics.UI.Threepenny.Core
 import           Servant                 hiding ( throwError, Handler)
 import qualified Servant.Client                as Servant
@@ -31,7 +32,7 @@ import qualified Control.Monad.Except          as E
 
 import           Lib.Utils
 import           Lib.Api.Types
-import           Lib.Api hiding (PostDump, postDump, getDump, GetDump, PostTabs, postTabs, PostPhotographers, postPhotographers, GetPhotographers, getPhotographers, GetTabs, getTabs)
+import           Lib.Api hiding (PostDagsdato, postDagsdato, getDagsdato, GetDagsdato, PostDump, postDump, getDump, GetDump, PostTabs, postTabs, PostPhotographers, postPhotographers, GetPhotographers, getPhotographers, GetTabs, getTabs)
 
 
 data ClientEnv (m :: Type -> Type) = ClientEnv
@@ -43,6 +44,9 @@ data ClientEnv (m :: Type -> Type) = ClientEnv
 
     , getDump :: GetDump
     , postDump :: PostDump
+
+    , getDagsdato :: GetDagsdato
+    , postDagsdato :: PostDagsdato
 
     , postPhotographers :: PostPhotographers
 
@@ -57,6 +61,9 @@ data ClientEnv (m :: Type -> Type) = ClientEnv
 
     , bDump :: BDump
     , hDump :: HDump
+    
+    , bDagsdato :: BDagsdato
+    , hDagsdato :: HDagsdato
 
     , eDialog :: EDialog
     }
@@ -75,6 +82,9 @@ newtype HTabs = HTabs { unHTabs :: Handler (Maybe Tabs) }
 newtype BDump = BDump { unBDump :: Behavior (Maybe Dump) }
 newtype HDump = HDump { unHDump :: Handler (Maybe Dump) }
 
+newtype BDagsdato = BDagsdato { unBDagsdato :: Behavior (Maybe Dagsdato) }
+newtype HDagsdato = HDagsdato { unHDagsdato :: Handler (Maybe Dagsdato) }
+
 newtype GetPhotographers = GetPhotographers { unGetPhotographers :: Token -> ClientApp Photographers }
 newtype GetTabs = GetTabs { unGetTabs :: Token -> ClientApp Tabs }
 newtype PostTabs = PostTabs { unPosTabs :: Token -> Tabs -> ClientApp NoContent }
@@ -82,6 +92,9 @@ newtype PostPhotographers = PostPhotographers { unPosPhotographers :: Token -> P
 
 newtype GetDump = GetDump { unGetDump :: Token -> ClientApp Dump }
 newtype PostDump = PostDump { unPosDump :: Token -> Dump -> ClientApp NoContent }
+
+newtype GetDagsdato = GetDagsdato { unGetDagsdato :: Token -> ClientApp Dagsdato }
+newtype PostDagsdato = PostDagsdato { unPosDagsdato :: Token -> Dagsdato -> ClientApp NoContent }
 
 newtype Login = Login { unLogin :: LoginForm -> ClientApp (Headers '[Header "Set-Cookie" Text] NoContent) }
 
@@ -100,6 +113,12 @@ instance Has GetDump              (ClientEnv m) where
 
 instance Has PostDump              (ClientEnv m) where
     obtain = postDump
+
+instance Has GetDagsdato              (ClientEnv m) where
+    obtain = getDagsdato
+
+instance Has PostDagsdato            (ClientEnv m) where
+    obtain = postDagsdato
 
 instance Has GetTabs              (ClientEnv m) where
     obtain = getTabs
@@ -134,6 +153,12 @@ instance Has BDump (ClientEnv m) where
 
 instance Has HDump              (ClientEnv m) where
     obtain = hDump
+
+instance Has BDagsdato (ClientEnv m) where
+    obtain = bDagsdato
+
+instance Has HDagsdato              (ClientEnv m) where
+    obtain = hDagsdato
 
 type ClientAppEnv = ClientEnv ClientApp
 
@@ -196,9 +221,10 @@ clients cenv = do
                                   (Servant.client siteAPI)
     let public           :<|> protected      = api
     let postLogin        :<|> docs           = public
-    let (photographers :<|> tabs) :<|> dump :<|> getPermissions = protected
+    let (photographers :<|> tabs) :<|> dump :<|> dagsdato :<|> getPermissions = protected
 
     let getDump' :<|> postDump' = dump
+    let getDagsdato' :<|> postDagsdato' = dagsdato
     let getTabs' :<|> postTabs' = tabs
     let getPhotographers' :<|> postPhotographers' = photographers
 
@@ -211,8 +237,14 @@ clients cenv = do
     let getDump = GetDump getDump'
     let postDump = PostDump postDump'
 
+    let getDagsdato = GetDagsdato getDagsdato'
+    let postDagsdato = PostDagsdato postDagsdato'
+
     (dumpE, dumpH) <- newEvent
     bDump <- BDump <$> stepper Nothing dumpE
+
+    (dagsdatoE, dagsdatoH) <- newEvent
+    bDagsdato <- BDagsdato <$> stepper Nothing dagsdatoE
 
     (tabsE, tabsH) <- newEvent
     bTabs <- BTabs <$> stepper Nothing tabsE
@@ -225,6 +257,7 @@ clients cenv = do
 
     let hToken = HToken tokenH
     let hDump = HDump dumpH
+    let hDagsdato = HDagsdato dagsdatoH
     let hPhotographers = HPhotographers photographersH
     let hTabs = HTabs tabsH
 

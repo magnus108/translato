@@ -51,6 +51,7 @@ import           Lib.Api                 hiding ( GetPhotographers
                                                 , PostTabs
                                                 , GetTabs
                                                 , GetDump
+                                                , GetDagsdato
                                                 , PostPhotographers
                                                 )
 import qualified Utils.ListZipper              as ListZipper
@@ -58,6 +59,7 @@ import qualified Control.Lens                  as Lens
 import qualified Lib.Data.Photographer         as Photographer
 import qualified Lib.Data.Tab                  as Tab
 import qualified Lib.Data.Dump                  as Dump
+import qualified Lib.Data.Dagsdato                  as Dagsdato
 import           Control.Comonad         hiding ( (<@) )
 import           Lib.Client.Utils
 
@@ -155,6 +157,47 @@ mkDumpTab = mdo
 
     return (item, eDump)
 
+mkDagsdatoTab:: ClientApp (Element, Event (Maybe Dagsdato.Dagsdato))
+mkDagsdatoTab = mdo
+    (BDagsdato bDagsdato) <- grab @BDagsdato
+    (eDagsdato, hDagsdato) <- liftIO $ newEvent
+    (eElectronDialog, hElectronDialog) <- liftIO $ newEvent
+
+    let electronFileHandler handler folder = when (folder /= "") $ handler (Just (Dagsdato.Dagsdato folder))
+    callback <- liftUI $ ffiExport (electronFileHandler hDagsdato)
+
+    let showIt x = UI.string x
+
+    let bErrorDisplay = pure $ UI.string "no text"
+
+    let bDisplay = pure $ \fp -> do
+            display <-
+                UI.button
+                #. "button"
+                #+ [showIt fp, UI.span #. "icon" #+ [UI.mkElement "i" #. "far fa-file"]]
+
+            UI.on UI.click display $ \_ -> do
+                liftIO $ hElectronDialog ()
+
+            return display
+
+    _ <- onEvent' eElectronDialog $ \_ -> do
+        (EDialog eDialog) <- grab @EDialog
+        liftUI $ eDialog ["openDirectory"] callback
+
+    let display bItem = do
+            item <- bItem
+            display <- bDisplay
+            errorDisplay <- bErrorDisplay
+            return $ case item of
+                       Nothing -> [errorDisplay]
+                       Just item ->  [display item]
+
+
+    item <- liftUI $ UI.div # sink items' (display (fmap Dagsdato.unDagsdato <$> bDagsdato))
+
+    return (item, eDagsdato)
+
 
 mkContent :: ClientApp (Element, Event (Maybe Photographer.Photographers))
 mkContent = do
@@ -162,6 +205,7 @@ mkContent = do
 
     (photographersContent, ePhotographers) <- mkPhotographersTab
     (dumpContent, eDump) <- mkDumpTab
+    (dagsdatoContent, eDagsdato) <- mkDumpTab
     elseContent                            <- liftUI $ UI.string "fuck2"
     elseContent2                           <- liftUI $ UI.string "fuck2nodATA"
 
@@ -172,6 +216,7 @@ mkContent = do
                         in  case focus of
                                 Tab.PhotographersTab -> [photographersContent]
                                 Tab.DumpTab -> [dumpContent]
+                                Tab.DagsdatoTab -> [dagsdatoContent]
                                 _                    -> [elseContent]
                     )
                 <$> bTabs
@@ -193,6 +238,7 @@ setup win = do
     _                               <- getPhotographersClient
     _                               <- getTabsClient
     _                               <- getDumpClient
+    _                               <- getDagsdatoClient
 
     (elemTabs, eTabs)               <- mkTabs
 
@@ -245,6 +291,18 @@ setup win = do
                 liftIO $ hPhotographers (Just e)
 
     return ()
+
+getDagsdatoClient = do
+    (GetDagsdato getDagsdato) <- grab @GetDagsdato
+    (BToken  bToken ) <- grab @BToken
+    (HDagsdato hDagsdato ) <- grab @HDagsdato
+    token             <- currentValue bToken
+    case token of
+        Nothing -> liftIO $ die "Missing token"
+        Just t  -> do
+            res <- getDagsdato (Token $ setCookieValue t)
+            case res of
+                _ -> liftIO $ hDagsdato (Just res)
 
 getDumpClient = do
     (GetDump getDump) <- grab @GetDump

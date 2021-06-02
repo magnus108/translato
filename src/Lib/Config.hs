@@ -10,6 +10,7 @@ import           Lib.Utils
 
 data Config = Config
     { dumpFile :: !FilePath
+    , dagsdatoFile :: !FilePath
     , photographersFile :: !FilePath
     , tabsFile :: !FilePath
     }

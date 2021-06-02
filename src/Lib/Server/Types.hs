@@ -21,6 +21,7 @@ data ServerEnv (m :: Type -> Type) = ServerEnv
     { mPhotographersFile :: MPhotographersFile
     , mTabsFile :: MTabsFile
     , mDumpFile :: MDumpFile
+    , mDagsdatoFile :: MDagsdatoFile
     , cookieSettings :: !CookieSettings
     , jwtSettings :: !JWTSettings
     }
@@ -28,12 +29,16 @@ data ServerEnv (m :: Type -> Type) = ServerEnv
 newtype MPhotographersFile = MPhotographersFile { unMPhotographersFile :: MVar FilePath }
 newtype MTabsFile = MTabsFile { unMTabsFile :: MVar FilePath }
 newtype MDumpFile = MDumpFile { unMDumpFile :: MVar FilePath }
+newtype MDagsdatoFile = MDagsdatoFile { unMDagsdatoFile :: MVar FilePath }
 
 instance Has MPhotographersFile              (ServerEnv m) where
     obtain = mPhotographersFile
 
 instance Has MDumpFile              (ServerEnv m) where
     obtain = mDumpFile
+
+instance Has MDagsdatoFile              (ServerEnv m) where
+    obtain = mDagsdatoFile
 
 instance Has MTabsFile              (ServerEnv m) where
     obtain = mTabsFile

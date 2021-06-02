@@ -15,6 +15,9 @@ import           Lib.Server.Handler.PostPhotographers
 import           Lib.Server.Handler.GetDump
 import           Lib.Server.Handler.PostDump
 
+import           Lib.Server.Handler.GetDagsdato
+import           Lib.Server.Handler.PostDagsdato
+
 import           Lib.Api
 import           Lib.Api.Types
 import           Lib.Server.Types
@@ -37,6 +40,7 @@ protectedServer = ProtectedSite
     { photographers  = genericServerT photographerServer
     , tabSite = genericServerT tabServer
     , dumpSite = genericServerT dumpServer
+    , dagsdatoSite = genericServerT dagsdatoServer
     , getPermissions = withAuthResultAndPermission Simple
                                                    serveGetPermissions
     }
@@ -61,6 +65,11 @@ dumpServer = DumpSite
     }
 
 
+dagsdatoServer :: DagsdatoSite AppServer
+dagsdatoServer = DagsdatoSite
+    { getDagsdato = withAuthResultAndPermission Simple serveGetDagsdato
+    , postDagsdato = withAuthResultAndPermission Simple servePostDagsdato
+    }
 
 
 class WithError a where
