@@ -34,6 +34,7 @@ library
       Lib.App.Error
       Lib.Client
       Lib.Client.Error
+      Lib.Client.FilePicker
       Lib.Client.Select
       Lib.Client.Types
       Lib.Client.Utils

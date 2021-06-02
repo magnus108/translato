@@ -6,6 +6,7 @@
 module Lib.Client where
 
 
+import qualified Lib.Client.FilePicker             as FilePicker
 import qualified Lib.Client.Select             as Select
 import qualified Foreign.JavaScript            as JS
 import qualified Relude.Unsafe                 as Unsafe
@@ -119,84 +120,26 @@ mkPhotographersTab = mdo
 mkDumpTab :: ClientApp (Element, Event (Maybe Dump.Dump))
 mkDumpTab = mdo
     (BDump bDump) <- grab @BDump
-    (eDump, hDump) <- liftIO $ newEvent
-    (eElectronDialog, hElectronDialog) <- liftIO $ newEvent
-
-    let electronFileHandler handler folder = when (folder /= "") $ handler (Just (Dump.Dump folder))
-    callback <- liftUI $ ffiExport (electronFileHandler hDump)
-
+    eDialog <- grab @EDialog
     let showIt x = UI.string x
+    (item, eSelection) <- liftUI $ FilePicker.mkFilePicker
+        eDialog
+        (fmap Dump.unDump <$> bDump)
+        showIt
 
-    let bErrorDisplay = pure $ UI.string "no text"
+    return (item, fmap Dump.Dump <$> eSelection)
 
-    let bDisplay = pure $ \fp -> do
-            display <-
-                UI.button
-                #. "button"
-                #+ [showIt fp, UI.span #. "icon" #+ [UI.mkElement "i" #. "far fa-file"]]
-
-            UI.on UI.click display $ \_ -> do
-                liftIO $ hElectronDialog ()
-
-            return display
-
-    _ <- onEvent' eElectronDialog $ \_ -> do
-        (EDialog eDialog) <- grab @EDialog
-        liftUI $ eDialog ["openDirectory"] callback
-
-    let display bItem = do
-            item <- bItem
-            display <- bDisplay
-            errorDisplay <- bErrorDisplay
-            return $ case item of
-                       Nothing -> [errorDisplay]
-                       Just item ->  [display item]
-
-
-    item <- liftUI $ UI.div # sink items' (display (fmap Dump.unDump <$> bDump))
-
-    return (item, eDump)
-
-mkDagsdatoTab:: ClientApp (Element, Event (Maybe Dagsdato.Dagsdato))
+mkDagsdatoTab :: ClientApp (Element, Event (Maybe Dagsdato.Dagsdato))
 mkDagsdatoTab = mdo
     (BDagsdato bDagsdato) <- grab @BDagsdato
-    (eDagsdato, hDagsdato) <- liftIO $ newEvent
-    (eElectronDialog, hElectronDialog) <- liftIO $ newEvent
-
-    let electronFileHandler handler folder = when (folder /= "") $ handler (Just (Dagsdato.Dagsdato folder))
-    callback <- liftUI $ ffiExport (electronFileHandler hDagsdato)
-
+    eDialog <- grab @EDialog
     let showIt x = UI.string x
+    (item, eSelection) <- liftUI $ FilePicker.mkFilePicker
+        eDialog
+        (fmap Dagsdato.unDagsdato <$> bDagsdato)
+        showIt
 
-    let bErrorDisplay = pure $ UI.string "no text"
-
-    let bDisplay = pure $ \fp -> do
-            display <-
-                UI.button
-                #. "button"
-                #+ [showIt fp, UI.span #. "icon" #+ [UI.mkElement "i" #. "far fa-file"]]
-
-            UI.on UI.click display $ \_ -> do
-                liftIO $ hElectronDialog ()
-
-            return display
-
-    _ <- onEvent' eElectronDialog $ \_ -> do
-        (EDialog eDialog) <- grab @EDialog
-        liftUI $ eDialog ["openDirectory"] callback
-
-    let display bItem = do
-            item <- bItem
-            display <- bDisplay
-            errorDisplay <- bErrorDisplay
-            return $ case item of
-                       Nothing -> [errorDisplay]
-                       Just item ->  [display item]
-
-
-    item <- liftUI $ UI.div # sink items' (display (fmap Dagsdato.unDagsdato <$> bDagsdato))
-
-    return (item, eDagsdato)
+    return (item, fmap Dagsdato.Dagsdato <$> eSelection)
 
 
 mkContent :: ClientApp (Element, Event (Maybe Photographer.Photographers))
