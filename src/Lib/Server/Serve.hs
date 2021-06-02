@@ -18,6 +18,9 @@ import           Lib.Server.Handler.PostDump
 import           Lib.Server.Handler.GetDagsdato
 import           Lib.Server.Handler.PostDagsdato
 
+import           Lib.Server.Handler.GetDagsdatoBackup
+import           Lib.Server.Handler.PostDagsdatoBackup
+
 import           Lib.Api
 import           Lib.Api.Types
 import           Lib.Server.Types
@@ -41,8 +44,9 @@ protectedServer = ProtectedSite
     , tabSite = genericServerT tabServer
     , dumpSite = genericServerT dumpServer
     , dagsdatoSite = genericServerT dagsdatoServer
-    , getPermissions = withAuthResultAndPermission Simple
-                                                   serveGetPermissions
+    , dagsdatoBackupSite = genericServerT dagsdatoBackupServer
+    --, getPermissions = withAuthResultAndPermission Simple
+     --                                              serveGetPermissions
     }
 
 tabServer :: TabSite AppServer
@@ -71,6 +75,11 @@ dagsdatoServer = DagsdatoSite
     , postDagsdato = withAuthResultAndPermission Simple servePostDagsdato
     }
 
+dagsdatoBackupServer :: DagsdatoBackupSite AppServer
+dagsdatoBackupServer = DagsdatoBackupSite
+    { getDagsdatoBackup = withAuthResultAndPermission Simple serveGetDagsdatoBackup
+    , postDagsdatoBackup = withAuthResultAndPermission Simple servePostDagsdatoBackup
+    }
 
 class WithError a where
     throwError :: Err.ServerAppErrorType -> a

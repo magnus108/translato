@@ -40,6 +40,7 @@ library
       Lib.Client.Utils
       Lib.Config
       Lib.Data.Dagsdato
+      Lib.Data.DagsdatoBackup
       Lib.Data.Dump
       Lib.Data.Permission
       Lib.Data.Photographer
@@ -48,12 +49,14 @@ library
       Lib.Server
       Lib.Server.Error
       Lib.Server.Handler.GetDagsdato
+      Lib.Server.Handler.GetDagsdatoBackup
       Lib.Server.Handler.GetDocs
       Lib.Server.Handler.GetDump
       Lib.Server.Handler.GetPermissions
       Lib.Server.Handler.GetPhotographers
       Lib.Server.Handler.GetTabs
       Lib.Server.Handler.PostDagsdato
+      Lib.Server.Handler.PostDagsdatoBackup
       Lib.Server.Handler.PostDump
       Lib.Server.Handler.PostLogin
       Lib.Server.Handler.PostPhotographers
