@@ -6,6 +6,7 @@ import           Servant.API.Generic
 import           Servant.HTML.Blaze
 import           Lib.Data.Photographer
 import           Lib.Data.Dump
+import           Lib.Data.Camera
 import           Lib.Data.Dagsdato
 import           Lib.Data.Doneshooting
 import           Lib.Data.DagsdatoBackup
@@ -46,6 +47,7 @@ data ProtectedSite route
       , dagsdatoSite :: !(route :- "dagsdato" :> DagsdatoAPI)
       , dagsdatoBackupSite :: !(route :- "dagsdatoBackup" :> DagsdatoBackupAPI)
       , doneshootingSite :: !(route :- "doneshooting" :> DoneshootingAPI)
+      , cameraSite :: !(route :- "camera" :> CameraAPI)
       --, getPermissions :: !(route :- GetPermissions)
       }
   deriving (Generic)
@@ -152,3 +154,18 @@ type PostDoneshooting
 
 type GetDoneshooting = ProtectAPI :> Get '[JSON] Doneshooting
 
+
+type CameraAPI = ToApi CameraSite
+
+data CameraSite route
+  = CameraSite
+      { getCameras :: !(route :- GetCameras )
+      , postCameras :: !(route :- PostCameras )
+      }
+  deriving (Generic)
+
+
+type PostCameras
+    = ProtectAPI :> ReqBody '[JSON] Cameras :> Post '[JSON] NoContent
+
+type GetCameras = ProtectAPI :> Get '[JSON] Cameras
