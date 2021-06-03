@@ -39,6 +39,7 @@ library
       Lib.Client.Types
       Lib.Client.Utils
       Lib.Config
+      Lib.Data.Camera
       Lib.Data.Dagsdato
       Lib.Data.DagsdatoBackup
       Lib.Data.Doneshooting
@@ -49,6 +50,7 @@ library
       Lib.Message
       Lib.Server
       Lib.Server.Error
+      Lib.Server.Handler.GetCameras
       Lib.Server.Handler.GetDagsdato
       Lib.Server.Handler.GetDagsdatoBackup
       Lib.Server.Handler.GetDocs
@@ -57,6 +59,7 @@ library
       Lib.Server.Handler.GetPermissions
       Lib.Server.Handler.GetPhotographers
       Lib.Server.Handler.GetTabs
+      Lib.Server.Handler.PostCameras
       Lib.Server.Handler.PostDagsdato
       Lib.Server.Handler.PostDagsdatoBackup
       Lib.Server.Handler.PostDoneshooting
