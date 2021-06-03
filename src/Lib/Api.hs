@@ -43,7 +43,7 @@ data ProtectedSite route
       , tabSite :: !(route :- "tab" :> TabAPI)
       , dumpSite :: !(route :- "dump" :> DumpAPI)
       , dagsdatoSite :: !(route :- "dagsdato" :> DagsdatoAPI)
-      , dagsdatoBackupSite :: !(route :- "dagsdato" :> DagsdatoBackupAPI)
+      , dagsdatoBackupSite :: !(route :- "dagsdatoBackup" :> DagsdatoBackupAPI)
       --, getPermissions :: !(route :- GetPermissions)
       }
   deriving (Generic)
