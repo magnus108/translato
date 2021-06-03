@@ -18,6 +18,10 @@ import           Lib.Server.Handler.PostDump
 import           Lib.Server.Handler.GetDagsdato
 import           Lib.Server.Handler.PostDagsdato
 
+
+import           Lib.Server.Handler.GetCameras
+import           Lib.Server.Handler.PostCameras
+
 import           Lib.Server.Handler.GetDagsdatoBackup
 import           Lib.Server.Handler.PostDagsdatoBackup
 
@@ -49,8 +53,15 @@ protectedServer = ProtectedSite
     , dagsdatoSite = genericServerT dagsdatoServer
     , dagsdatoBackupSite = genericServerT dagsdatoBackupServer
     , doneshootingSite = genericServerT doneshootingServer
+    , cameraSite = genericServerT cameraServer
     --, getPermissions = withAuthResultAndPermission Simple
      --                                              serveGetPermissions
+    }
+
+cameraServer :: CameraSite AppServer
+cameraServer = CameraSite
+    { getCameras = withAuthResultAndPermission Simple serveGetCameras
+    , postCameras = withAuthResultAndPermission Simple servePostCameras
     }
 
 tabServer :: TabSite AppServer
