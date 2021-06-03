@@ -1,7 +1,7 @@
 module Lib.Client.Types where
 
 import qualified Foreign.JavaScript            as JS
-import           Web.Cookie                     ( SetCookie(..))
+import           Web.Cookie                     ( SetCookie(..) )
 import           Network.HTTP.Client            ( newManager
                                                 , defaultManagerSettings
                                                 )
@@ -14,12 +14,15 @@ import           Control.Exception              ( catch
 
 import           Servant.Auth.Client
 import           Lib.Data.Photographer          ( Photographers )
-import           Lib.Data.Tab          ( Tabs )
-import           Lib.Data.Dump          ( Dump )
-import           Lib.Data.Dagsdato          ( Dagsdato )
-import           Lib.Data.DagsdatoBackup          ( DagsdatoBackup )
+import           Lib.Data.Tab                   ( Tabs )
+import           Lib.Data.Dump                  ( Dump )
+import           Lib.Data.Doneshooting          ( Doneshooting )
+import           Lib.Data.Dagsdato              ( Dagsdato )
+import           Lib.Data.DagsdatoBackup        ( DagsdatoBackup )
 import           Graphics.UI.Threepenny.Core
-import           Servant                 hiding ( throwError, Handler)
+import           Servant                 hiding ( throwError
+                                                , Handler
+                                                )
 import qualified Servant.Client                as Servant
 
 import           Lib.Client.Error               ( ClientAppError
@@ -33,7 +36,31 @@ import qualified Control.Monad.Except          as E
 
 import           Lib.Utils
 import           Lib.Api.Types
-import           Lib.Api hiding (PostDagsdatoBackup, GetDagsdatoBackup, postDagsdatoBackup, getDagsdatoBackup, PostDagsdato, postDagsdato, getDagsdato, GetDagsdato, PostDump, postDump, getDump, GetDump, PostTabs, postTabs, PostPhotographers, postPhotographers, GetPhotographers, getPhotographers, GetTabs, getTabs)
+import           Lib.Api                 hiding ( PostDoneshooting
+                                                , GetDoneshooting
+                                                , postDoneshooting
+                                                , getDoneshooting
+                                                , PostDagsdatoBackup
+                                                , GetDagsdatoBackup
+                                                , postDagsdatoBackup
+                                                , getDagsdatoBackup
+                                                , PostDagsdato
+                                                , postDagsdato
+                                                , getDagsdato
+                                                , GetDagsdato
+                                                , PostDump
+                                                , postDump
+                                                , getDump
+                                                , GetDump
+                                                , PostTabs
+                                                , postTabs
+                                                , PostPhotographers
+                                                , postPhotographers
+                                                , GetPhotographers
+                                                , getPhotographers
+                                                , GetTabs
+                                                , getTabs
+                                                )
 
 
 data ClientEnv (m :: Type -> Type) = ClientEnv
@@ -48,6 +75,10 @@ data ClientEnv (m :: Type -> Type) = ClientEnv
 
     , getDagsdato :: GetDagsdato
     , postDagsdato :: PostDagsdato
+
+    , getDoneshooting :: GetDoneshooting
+    , postDoneshooting :: PostDoneshooting
+
 
     , getDagsdatoBackup :: GetDagsdatoBackup
     , postDagsdatoBackup :: PostDagsdatoBackup
@@ -66,9 +97,12 @@ data ClientEnv (m :: Type -> Type) = ClientEnv
 
     , bDump :: BDump
     , hDump :: HDump
-    
+
     , bDagsdato :: BDagsdato
     , hDagsdato :: HDagsdato
+
+    , bDoneshooting :: BDoneshooting
+    , hDoneshooting :: HDoneshooting
 
     , bDagsdatoBackup :: BDagsdatoBackup
     , hDagsdatoBackup :: HDagsdatoBackup
@@ -93,6 +127,10 @@ newtype HDump = HDump { unHDump :: Handler (Maybe Dump) }
 newtype BDagsdato = BDagsdato { unBDagsdato :: Behavior (Maybe Dagsdato) }
 newtype HDagsdato = HDagsdato { unHDagsdato :: Handler (Maybe Dagsdato) }
 
+
+newtype BDoneshooting = BDoneshooting { unBDoneshooting :: Behavior (Maybe Doneshooting) }
+newtype HDoneshooting = HDoneshooting { unHDoneshooting :: Handler (Maybe Doneshooting) }
+
 newtype BDagsdatoBackup = BDagsdatoBackup { unBDagsdatoBackup :: Behavior (Maybe DagsdatoBackup) }
 newtype HDagsdatoBackup = HDagsdatoBackup { unHDagsdatoBackup :: Handler (Maybe DagsdatoBackup) }
 
@@ -106,6 +144,9 @@ newtype PostDump = PostDump { unPosDump :: Token -> Dump -> ClientApp NoContent 
 
 newtype GetDagsdato = GetDagsdato { unGetDagsdato :: Token -> ClientApp Dagsdato }
 newtype PostDagsdato = PostDagsdato { unPosDagsdato :: Token -> Dagsdato -> ClientApp NoContent }
+
+newtype GetDoneshooting = GetDoneshooting { unGetDoneshooting :: Token -> ClientApp Doneshooting }
+newtype PostDoneshooting = PostDoneshooting { unPostDoneshooting :: Token -> Doneshooting -> ClientApp NoContent }
 
 newtype GetDagsdatoBackup = GetDagsdatoBackup { unGetDagsdatoBackup :: Token -> ClientApp DagsdatoBackup }
 newtype PostDagsdatoBackup = PostDagsdatoBackup { unPosDagsdatoBackup :: Token -> DagsdatoBackup -> ClientApp NoContent }
@@ -133,6 +174,12 @@ instance Has GetDagsdato              (ClientEnv m) where
 
 instance Has PostDagsdato            (ClientEnv m) where
     obtain = postDagsdato
+
+instance Has GetDoneshooting              (ClientEnv m) where
+    obtain = getDoneshooting
+
+instance Has PostDoneshooting            (ClientEnv m) where
+    obtain = postDoneshooting
 
 instance Has GetDagsdatoBackup              (ClientEnv m) where
     obtain = getDagsdatoBackup
@@ -179,6 +226,12 @@ instance Has BDagsdato (ClientEnv m) where
 
 instance Has HDagsdato              (ClientEnv m) where
     obtain = hDagsdato
+
+instance Has BDoneshooting (ClientEnv m) where
+    obtain = bDoneshooting
+
+instance Has HDoneshooting              (ClientEnv m) where
+    obtain = hDoneshooting
 
 instance Has BDagsdatoBackup (ClientEnv m) where
     obtain = bDagsdatoBackup
@@ -227,10 +280,10 @@ runClientM :: Servant.ClientEnv -> Servant.ClientM a -> ClientApp a
 runClientM cenv client = do
     e <- liftIO $ Servant.runClientM client cenv
     case e of
-        Left  servantErr -> do
+        Left servantErr -> do
             traceShowM servantErr
             throwError $ ClientError "servantErr"
-        Right a          -> pure a
+        Right a -> pure a
 
 
 electronDialog :: [String] -> JS.JSObject -> JSFunction ()
@@ -242,58 +295,69 @@ electronDialog options callback = ffi
 
 clients :: Servant.ClientEnv -> IO ClientAppEnv
 clients cenv = do
-    let api = Servant.hoistClient siteAPI
+    let
+        api = Servant.hoistClient siteAPI
                                   (runClientM cenv)
                                   (Servant.client siteAPI)
-    let public           :<|> protected      = api
-    let postLogin        :<|> docs           = public
-    let (photographers :<|> tabs) :<|> dump :<|> dagsdato :<|> dagsdatoBackup = protected
+    let public :<|> protected = api
+    let postLogin :<|> docs   = public
+    let
+        (photographers :<|> tabs :<|> dump) :<|> dagsdato :<|> dagsdatoBackup :<|> doneshooting
+            = protected
 
-    let getDump' :<|> postDump' = dump
+    let getDump' :<|> postDump'         = dump
     let getDagsdato' :<|> postDagsdato' = dagsdato
     let getDagsdatoBackup' :<|> postDagsdatoBackup' = dagsdatoBackup
-    let getTabs' :<|> postTabs' = tabs
+    let getDoneshooting' :<|> postDoneshooting' = doneshooting
+    let getTabs' :<|> postTabs'         = tabs
     let getPhotographers' :<|> postPhotographers' = photographers
 
-    let login = Login $ postLogin
-    let getPhotographers = GetPhotographers getPhotographers'
-    let getTabs = GetTabs getTabs'
-    let postTabs = PostTabs postTabs'
+    let login                           = Login $ postLogin
+    let getPhotographers                = GetPhotographers getPhotographers'
+    let getTabs                         = GetTabs getTabs'
+    let postTabs                        = PostTabs postTabs'
     let postPhotographers = PostPhotographers postPhotographers'
 
-    let getDump = GetDump getDump'
-    let postDump = PostDump postDump'
+    let getDump                         = GetDump getDump'
+    let postDump                        = PostDump postDump'
 
-    let getDagsdato = GetDagsdato getDagsdato'
-    let postDagsdato = PostDagsdato postDagsdato'
+    let getDagsdato                     = GetDagsdato getDagsdato'
+    let postDagsdato                    = PostDagsdato postDagsdato'
+
+    let getDoneshooting                 = GetDoneshooting getDoneshooting'
+    let postDoneshooting                = PostDoneshooting postDoneshooting'
 
     let getDagsdatoBackup = GetDagsdatoBackup getDagsdatoBackup'
-    let postDagsdatoBackup=  PostDagsdatoBackup postDagsdatoBackup'
+    let postDagsdatoBackup = PostDagsdatoBackup postDagsdatoBackup'
 
-    (dumpE, dumpH) <- newEvent
-    bDump <- BDump <$> stepper Nothing dumpE
+    (dumpE, dumpH)                     <- newEvent
+    bDump                              <- BDump <$> stepper Nothing dumpE
 
-    (dagsdatoE, dagsdatoH) <- newEvent
+    (dagsdatoE, dagsdatoH)             <- newEvent
     bDagsdato <- BDagsdato <$> stepper Nothing dagsdatoE
+
+    (doneshootingE, doneshootingH)     <- newEvent
+    bDoneshooting <- BDoneshooting <$> stepper Nothing doneshootingE
 
     (dagsdatoBackupE, dagsdatoBackupH) <- newEvent
     bDagsdatoBackup <- BDagsdatoBackup <$> stepper Nothing dagsdatoBackupE
 
-    (tabsE, tabsH) <- newEvent
-    bTabs <- BTabs <$> stepper Nothing tabsE
+    (tabsE, tabsH)                     <- newEvent
+    bTabs                              <- BTabs <$> stepper Nothing tabsE
 
-    (tokenE, tokenH) <- newEvent
-    bToken <- BToken <$> stepper Nothing tokenE
+    (tokenE, tokenH)                   <- newEvent
+    bToken                             <- BToken <$> stepper Nothing tokenE
 
-    (photographersE, photographersH) <- newEvent
-    bPhotographers                   <- BPhotographers <$> stepper Nothing photographersE
+    (photographersE, photographersH)   <- newEvent
+    bPhotographers <- BPhotographers <$> stepper Nothing photographersE
 
-    let hToken = HToken tokenH
-    let hDump = HDump dumpH
-    let hDagsdato = HDagsdato dagsdatoH
+    let hToken          = HToken tokenH
+    let hDump           = HDump dumpH
+    let hDagsdato       = HDagsdato dagsdatoH
     let hDagsdatoBackup = HDagsdatoBackup dagsdatoBackupH
-    let hPhotographers = HPhotographers photographersH
-    let hTabs = HTabs tabsH
+    let hDoneshooting   = HDoneshooting doneshootingH
+    let hPhotographers  = HPhotographers photographersH
+    let hTabs           = HTabs tabsH
 
     let eDialog = EDialog $ \xs cb -> runFunction $ electronDialog xs cb
 

@@ -7,6 +7,7 @@ import           Servant.HTML.Blaze
 import           Lib.Data.Photographer
 import           Lib.Data.Dump
 import           Lib.Data.Dagsdato
+import           Lib.Data.Doneshooting
 import           Lib.Data.DagsdatoBackup
 import           Lib.Data.Tab
 
@@ -44,6 +45,7 @@ data ProtectedSite route
       , dumpSite :: !(route :- "dump" :> DumpAPI)
       , dagsdatoSite :: !(route :- "dagsdato" :> DagsdatoAPI)
       , dagsdatoBackupSite :: !(route :- "dagsdatoBackup" :> DagsdatoBackupAPI)
+      , doneshootingSite :: !(route :- "doneshooting" :> DoneshootingAPI)
       --, getPermissions :: !(route :- GetPermissions)
       }
   deriving (Generic)
@@ -133,3 +135,20 @@ type PostDagsdatoBackup
     = ProtectAPI :> ReqBody '[JSON] DagsdatoBackup :> Post '[JSON] NoContent
 
 type GetDagsdatoBackup = ProtectAPI :> Get '[JSON] DagsdatoBackup
+
+
+type DoneshootingAPI = ToApi DoneshootingSite
+
+data DoneshootingSite route
+  = DoneshootingSite
+      { getDoneshooting :: !(route :- GetDoneshooting)
+      , postDoneshooting :: !(route :- PostDoneshooting)
+      }
+  deriving (Generic)
+
+
+type PostDoneshooting
+    = ProtectAPI :> ReqBody '[JSON] Doneshooting :> Post '[JSON] NoContent
+
+type GetDoneshooting = ProtectAPI :> Get '[JSON] Doneshooting
+

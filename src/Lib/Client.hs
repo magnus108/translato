@@ -53,6 +53,7 @@ import qualified Control.Lens                  as Lens
 import qualified Lib.Data.Photographer         as Photographer
 import qualified Lib.Data.Tab                  as Tab
 import qualified Lib.Data.Dump                 as Dump
+import qualified Lib.Data.Doneshooting                 as Doneshooting
 import qualified Lib.Data.Dagsdato             as Dagsdato
 import qualified Lib.Data.DagsdatoBackup       as DagsdatoBackup
 import           Control.Comonad         hiding ( (<@) )
@@ -141,6 +142,18 @@ mkDagsdatoBackupTab = mdo
     return (item, fmap DagsdatoBackup.DagsdatoBackup <$> eSelection)
 
 
+mkDoneshootingTab :: ClientApp (Element, Event (Maybe Doneshooting.Doneshooting))
+mkDoneshootingTab = mdo
+    (BDoneshooting bDoneshooting) <- grab @BDoneshooting
+    eDialog               <- grab @EDialog
+    let showIt x = UI.string x
+    (item, eSelection) <- liftUI $ FilePicker.mkFilePicker
+        eDialog
+        (fmap Doneshooting.unDoneshooting <$> bDoneshooting)
+        showIt
+
+    return (item, fmap Doneshooting.Doneshooting <$> eSelection)
+
 mkContent :: ClientApp (Element, Event (Maybe Photographer.Photographers))
 mkContent = do
     (BTabs bTabs)                            <- grab @BTabs
@@ -149,6 +162,7 @@ mkContent = do
     (dumpContent          , eDump          ) <- mkDumpTab
     (dagsdatoContent      , eDagsdato      ) <- mkDagsdatoTab
     (dagsdatoBackupContent, eDagsdatoBackup) <- mkDagsdatoBackupTab
+    (doneshootingContent, eDoneshooting) <- mkDoneshootingTab
 
     elseContent                              <- liftUI $ UI.string "fuck2"
     elseContent2                             <- liftUI $ UI.string "fuck2nodATA"
@@ -165,6 +179,8 @@ mkContent = do
                                 Tab.DagsdatoTab      -> [dagsdatoContent]
                                 Tab.DagsdatoBackupTab ->
                                     [dagsdatoBackupContent]
+                                Tab.DoneshootingTab ->
+                                    [doneshootingContent]
                                 _ -> [elseContent]
                     )
                 <$> bTabs
@@ -229,7 +245,17 @@ initial = do
     _ <- getDumpClient
     _ <- getDagsdatoClient
     _ <- getDagsdatoBackupClient
+    _ <- getDoneshootingClient
     return ()
+
+
+getDoneshootingClient :: ClientApp ()
+getDoneshootingClient = withToken $ \t -> do
+    (GetDoneshooting getDoneshooting) <- grab @GetDoneshooting
+    (HDoneshooting   hDoneshooting) <- grab @HDoneshooting
+    res                       <- getDoneshooting t
+    case res of
+        _ -> liftIO $ hDoneshooting (Just res)
 
 
 getDagsdatoClient :: ClientApp ()

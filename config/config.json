@@ -1,6 +1,7 @@
 { "dumpFile" : "config/dump.json"
 , "dagsdatoFile" : "config/dagsdato.json"
 , "dagsdatoBackupFile" : "config/dagsdatoBackup.json"
+, "doneshootingFile" : "config/doneshooting.json"
 , "photographersFile": "config/photographers.json"
 , "tabsFile": "config/tabs.json"
 }

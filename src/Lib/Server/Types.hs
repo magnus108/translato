@@ -22,6 +22,7 @@ data ServerEnv (m :: Type -> Type) = ServerEnv
     , mTabsFile :: MTabsFile
     , mDumpFile :: MDumpFile
     , mDagsdatoFile :: MDagsdatoFile
+    , mDoneshootingFile :: MDoneshootingFile
     , mDagsdatoBackupFile :: MDagsdatoBackupFile
     , cookieSettings :: !CookieSettings
     , jwtSettings :: !JWTSettings
@@ -31,6 +32,7 @@ newtype MPhotographersFile = MPhotographersFile { unMPhotographersFile :: MVar F
 newtype MTabsFile = MTabsFile { unMTabsFile :: MVar FilePath }
 newtype MDumpFile = MDumpFile { unMDumpFile :: MVar FilePath }
 newtype MDagsdatoFile = MDagsdatoFile { unMDagsdatoFile :: MVar FilePath }
+newtype MDoneshootingFile = MDoneshootingFile { unMDoneshootingFile :: MVar FilePath }
 newtype MDagsdatoBackupFile = MDagsdatoBackupFile { unMDagsdatoBackupFile :: MVar FilePath }
 
 instance Has MPhotographersFile              (ServerEnv m) where
@@ -41,6 +43,9 @@ instance Has MDumpFile              (ServerEnv m) where
 
 instance Has MDagsdatoFile              (ServerEnv m) where
     obtain = mDagsdatoFile
+    
+instance Has MDoneshootingFile              (ServerEnv m) where
+    obtain = mDoneshootingFile
 
 instance Has MDagsdatoBackupFile              (ServerEnv m) where
     obtain = mDagsdatoBackupFile

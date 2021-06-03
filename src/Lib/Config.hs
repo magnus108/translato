@@ -12,6 +12,7 @@ data Config = Config
     { dumpFile :: !FilePath
     , dagsdatoFile :: !FilePath
     , dagsdatoBackupFile :: !FilePath
+    , doneshootingFile :: !FilePath
     , photographersFile :: !FilePath
     , tabsFile :: !FilePath
     }

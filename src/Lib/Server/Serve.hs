@@ -21,6 +21,9 @@ import           Lib.Server.Handler.PostDagsdato
 import           Lib.Server.Handler.GetDagsdatoBackup
 import           Lib.Server.Handler.PostDagsdatoBackup
 
+import           Lib.Server.Handler.GetDoneshooting
+import           Lib.Server.Handler.PostDoneshooting
+
 import           Lib.Api
 import           Lib.Api.Types
 import           Lib.Server.Types
@@ -45,6 +48,7 @@ protectedServer = ProtectedSite
     , dumpSite = genericServerT dumpServer
     , dagsdatoSite = genericServerT dagsdatoServer
     , dagsdatoBackupSite = genericServerT dagsdatoBackupServer
+    , doneshootingSite = genericServerT doneshootingServer
     --, getPermissions = withAuthResultAndPermission Simple
      --                                              serveGetPermissions
     }
@@ -79,6 +83,12 @@ dagsdatoBackupServer :: DagsdatoBackupSite AppServer
 dagsdatoBackupServer = DagsdatoBackupSite
     { getDagsdatoBackup = withAuthResultAndPermission Simple serveGetDagsdatoBackup
     , postDagsdatoBackup = withAuthResultAndPermission Simple servePostDagsdatoBackup
+    }
+
+doneshootingServer :: DoneshootingSite AppServer
+doneshootingServer = DoneshootingSite
+    { getDoneshooting = withAuthResultAndPermission Simple serveGetDoneshooting
+    , postDoneshooting = withAuthResultAndPermission Simple servePostDoneshooting
     }
 
 class WithError a where
