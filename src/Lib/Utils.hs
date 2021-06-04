@@ -36,3 +36,13 @@ writeThing a s = do
     let mFile = toFilePath s
     file  <- liftIO $ takeMVar mFile
     liftIO $ writeJSONFile file a `finally` (putMVar mFile file)
+
+readThing :: (FromJSON a, FilePathable s, MonadIO m) => s -> m a
+readThing s = do
+    let mFile = toFilePath s
+    file <- liftIO $ takeMVar mFile
+    content           <-
+        liftIO
+        $         (readJSONFileStrict file)
+        `finally` (putMVar mFile file)
+    return content
