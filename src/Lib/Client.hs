@@ -52,6 +52,7 @@ import qualified Utils.ListZipper              as ListZipper
 import qualified Control.Lens                  as Lens
 import qualified Lib.Data.Photographer         as Photographer
 import qualified Lib.Data.Tab                  as Tab
+import qualified Lib.Data.Shooting                  as Shooting
 import qualified Lib.Data.Dump                 as Dump
 import qualified Lib.Data.Camera                 as Camera
 import qualified Lib.Data.Doneshooting                 as Doneshooting
@@ -118,6 +119,19 @@ mkCamerasTab = mdo
     return (item, (fmap Camera.Cameras <$> eSelection))
 
 
+mkShootingsTab
+    :: ClientApp (Element, Event (Maybe Shooting.Shootings))
+mkShootingsTab = mdo
+    (BShootings bShootings) <- grab @BShootings
+    let showShooting x = UI.string $ show x
+
+    (item, eSelection) <- liftUI $ Select.mkSelect
+        (fmap Shooting.unShootings <$> bShootings)
+        showShooting
+
+    return (item, (fmap Shooting.Shootings <$> eSelection))
+
+
 mkDumpTab :: ClientApp (Element, Event (Maybe Dump.Dump))
 mkDumpTab = mdo
     (BDump bDump) <- grab @BDump
@@ -176,6 +190,7 @@ mkContent = do
     (dagsdatoBackupContent, eDagsdatoBackup) <- mkDagsdatoBackupTab
     (doneshootingContent, eDoneshooting) <- mkDoneshootingTab
     (camerasContent, eCameras) <- mkCamerasTab
+    (shootingsContent, eShootings) <- mkShootingsTab
 
     elseContent                              <- liftUI $ UI.string "fuck2"
     elseContent2                             <- liftUI $ UI.string "fuck2nodATA"
@@ -196,6 +211,8 @@ mkContent = do
                                     [doneshootingContent]
                                 Tab.CamerasTab ->
                                     [camerasContent]
+                                Tab.ShootingsTab ->
+                                    [shootingsContent]
                                 _ -> [elseContent]
                     )
                 <$> bTabs
@@ -262,7 +279,16 @@ initial = do
     _ <- getDagsdatoBackupClient
     _ <- getDoneshootingClient
     _ <- getCamerasClient
+    _ <- getShootingsClient
     return ()
+
+getShootingsClient :: ClientApp ()
+getShootingsClient = withToken $ \t -> do
+    (GetShootings getShootings) <- grab @GetShootings
+    (HShootings   hShootings) <- grab @HShootings
+    res                       <- getShootings t
+    case res of
+        _ -> liftIO $ hShootings (Just res)
 
 getCamerasClient :: ClientApp ()
 getCamerasClient = withToken $ \t -> do

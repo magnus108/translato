@@ -15,6 +15,7 @@ import           Control.Exception              ( catch
 import           Servant.Auth.Client
 import           Lib.Data.Photographer          ( Photographers )
 import           Lib.Data.Tab                   ( Tabs )
+import           Lib.Data.Shooting                   ( Shootings )
 import           Lib.Data.Camera                   ( Cameras )
 import           Lib.Data.Dump                  ( Dump )
 import           Lib.Data.Doneshooting          ( Doneshooting )
@@ -47,6 +48,9 @@ data ClientEnv (m :: Type -> Type) = ClientEnv
     , getTabs :: GetTabs
     , postTabs :: PostTabs
 
+    , getShootings :: GetShootings
+    , postShootings :: PostShootings
+
     , getCameras :: GetCameras
     , postCameras :: PostCameras
 
@@ -64,6 +68,9 @@ data ClientEnv (m :: Type -> Type) = ClientEnv
     , postDagsdatoBackup :: PostDagsdatoBackup
 
     , postPhotographers :: PostPhotographers
+
+    , bShootings :: BShootings
+    , hShootings :: HShootings
 
     , bToken :: BToken
     , hToken :: HToken
@@ -97,6 +104,9 @@ newtype EDialog = EDialog { unEDialog :: [String] -> JS.JSObject -> UI () }
 newtype BToken = BToken { unBToken :: Behavior (Maybe SetCookie) }
 newtype HToken = HToken { unHToken :: Handler (Maybe SetCookie) }
 
+newtype BShootings = BShootings { unBShootings :: Behavior (Maybe Shootings) }
+newtype HShootings = HShootings { unHShootings :: Handler (Maybe Shootings) }
+
 newtype BPhotographers = BPhotographers { unBPhotographers :: Behavior (Maybe Photographers) }
 newtype HPhotographers = HPhotographers { unHPhotographers :: Handler (Maybe Photographers) }
 
@@ -124,6 +134,10 @@ newtype GetTabs = GetTabs { unGetTabs :: Token -> ClientApp Tabs }
 newtype PostTabs = PostTabs { unPosTabs :: Token -> Tabs -> ClientApp NoContent }
 newtype PostPhotographers = PostPhotographers { unPosPhotographers :: Token -> Photographers -> ClientApp NoContent }
 
+
+newtype GetShootings = GetShootings { unGetShootings :: Token -> ClientApp Shootings }
+newtype PostShootings = PostShootings { unPosShootings :: Token -> Shootings -> ClientApp NoContent }
+
 newtype GetDump = GetDump { unGetDump :: Token -> ClientApp Dump }
 newtype PostDump = PostDump { unPosDump :: Token -> Dump -> ClientApp NoContent }
 
@@ -139,6 +153,7 @@ newtype PostDoneshooting = PostDoneshooting { unPostDoneshooting :: Token -> Don
 newtype GetDagsdatoBackup = GetDagsdatoBackup { unGetDagsdatoBackup :: Token -> ClientApp DagsdatoBackup }
 newtype PostDagsdatoBackup = PostDagsdatoBackup { unPosDagsdatoBackup :: Token -> DagsdatoBackup -> ClientApp NoContent }
 
+
 newtype Login = Login { unLogin :: LoginForm -> ClientApp (Headers '[Header "Set-Cookie" Text] NoContent) }
 
 instance Has EDialog              (ClientEnv m) where
@@ -150,6 +165,12 @@ instance Has Login              (ClientEnv m) where
 
 instance Has GetPhotographers              (ClientEnv m) where
     obtain = getPhotographers
+
+instance Has GetShootings              (ClientEnv m) where
+    obtain = getShootings
+
+instance Has PostShootings              (ClientEnv m) where
+    obtain = postShootings
 
 instance Has GetDump              (ClientEnv m) where
     obtain = getDump
@@ -201,6 +222,12 @@ instance Has BPhotographers              (ClientEnv m) where
 
 instance Has HPhotographers              (ClientEnv m) where
     obtain = hPhotographers
+
+instance Has BShootings (ClientEnv m) where
+    obtain = bShootings
+
+instance Has HShootings              (ClientEnv m) where
+    obtain = hShootings
 
 
 instance Has BTabs (ClientEnv m) where
@@ -312,6 +339,7 @@ clients cenv = do
     let getDoneshooting' :<|> postDoneshooting' = doneshooting
     let getTabs' :<|> postTabs'         = tabs
     let getPhotographers' :<|> postPhotographers' = photographers
+    let getShootings' :<|> postShootings' = shootings
 
     let login                           = Login $ postLogin
     let getPhotographers                = GetPhotographers getPhotographers'
@@ -333,6 +361,9 @@ clients cenv = do
 
     let getDagsdatoBackup = GetDagsdatoBackup getDagsdatoBackup'
     let postDagsdatoBackup = PostDagsdatoBackup postDagsdatoBackup'
+
+    let getShootings = GetShootings getShootings'
+    let postShootings = PostShootings postShootings'
 
     (dumpE, dumpH)                     <- newEvent
     bDump                              <- BDump <$> stepper Nothing dumpE
@@ -358,6 +389,9 @@ clients cenv = do
     (camerasE, camerasH)   <- newEvent
     bCameras <- BCameras <$> stepper Nothing camerasE
 
+    (shootingsE, shootingsH)   <- newEvent
+    bShootings <- BShootings <$> stepper Nothing shootingsE
+
     let hToken          = HToken tokenH
     let hDump           = HDump dumpH
     let hDagsdato       = HDagsdato dagsdatoH
@@ -366,6 +400,7 @@ clients cenv = do
     let hPhotographers  = HPhotographers photographersH
     let hTabs           = HTabs tabsH
     let hCameras           = HCameras camerasH
+    let hShootings           = HShootings shootingsH
 
     let eDialog = EDialog $ \xs cb -> runFunction $ electronDialog xs cb
 
