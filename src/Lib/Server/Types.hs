@@ -20,6 +20,7 @@ type ServerAppEnv = ServerEnv ServerApp
 data ServerEnv (m :: Type -> Type) = ServerEnv
     { mPhotographersFile :: MPhotographersFile
     , mTabsFile :: MTabsFile
+    , mCamerasFile :: MCamerasFile
     , mDumpFile :: MDumpFile
     , mDagsdatoFile :: MDagsdatoFile
     , mDoneshootingFile :: MDoneshootingFile
@@ -28,15 +29,24 @@ data ServerEnv (m :: Type -> Type) = ServerEnv
     , jwtSettings :: !JWTSettings
     }
 
+
+instance FilePathable MCamerasFile where
+    toFilePath (MCamerasFile mFile) = mFile
+
 newtype MPhotographersFile = MPhotographersFile { unMPhotographersFile :: MVar FilePath }
 newtype MTabsFile = MTabsFile { unMTabsFile :: MVar FilePath }
 newtype MDumpFile = MDumpFile { unMDumpFile :: MVar FilePath }
+newtype MCamerasFile = MCamerasFile { unMCamerasFile :: MVar FilePath }
 newtype MDagsdatoFile = MDagsdatoFile { unMDagsdatoFile :: MVar FilePath }
 newtype MDoneshootingFile = MDoneshootingFile { unMDoneshootingFile :: MVar FilePath }
 newtype MDagsdatoBackupFile = MDagsdatoBackupFile { unMDagsdatoBackupFile :: MVar FilePath }
 
 instance Has MPhotographersFile              (ServerEnv m) where
     obtain = mPhotographersFile
+
+instance Has MCamerasFile              (ServerEnv m) where
+    obtain = mCamerasFile
+
 
 instance Has MDumpFile              (ServerEnv m) where
     obtain = mDumpFile

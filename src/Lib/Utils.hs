@@ -27,16 +27,12 @@ writeJSONFile :: (MonadIO m, ToJSON a) => FilePath -> a -> m ()
 writeJSONFile fp item = liftIO $ BS.writeFile fp (encode item)
 
 
-type WithIt r m s = (MonadReader r m, MonadIO m, Has s r)
-
 class FilePathable a where
     toFilePath :: a -> MVar FilePath
 
-writeThing :: forall  r m s a . (ToJSON a, WithIt r m s, FilePathable s) => s -> a -> m ()
-writeThing s a = do
-    mFile <- toFilePath <$> grab @s
+
+writeThing :: (ToJSON a, FilePathable s, MonadIO m) => a -> s -> m ()
+writeThing a s = do
+    let mFile = toFilePath s
     file  <- liftIO $ takeMVar mFile
     liftIO $ writeJSONFile file a `finally` (putMVar mFile file)
-
-
-

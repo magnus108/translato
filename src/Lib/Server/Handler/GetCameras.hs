@@ -4,7 +4,7 @@ import Lib.Api.Types
 import Lib.Server.Types
 import Lib.Utils
 import           Control.Exception (finally)
-import           Lib.Data.Cameras          ( Cameras )
+import           Lib.Data.Camera          ( Cameras )
 
 import qualified Lib.Server.Types                       as ServerApp
 
