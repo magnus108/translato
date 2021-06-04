@@ -16,6 +16,7 @@ data Config = Config
     , photographersFile :: !FilePath
     , tabsFile :: !FilePath
     , camerasFile :: !FilePath
+    , shootingsFile :: !FilePath
     }
     deriving (Show, Eq)
     deriving Generic

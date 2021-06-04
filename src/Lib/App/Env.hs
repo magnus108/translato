@@ -21,8 +21,9 @@ data Env (m :: Type -> Type) = Env
 
     , mDagsdatoFile :: MDagsdatoFile
     , mDagsdatoBackupFile :: MDagsdatoBackupFile
-    
-    , mDoneshootingFile :: MDoneshootingFile 
+
+    , mDoneshootingFile :: MDoneshootingFile
+    , mShootingsFile :: MShootingsFile
     }
 
 
@@ -40,6 +41,12 @@ newtype MCamerasFile = MCamerasFile { unMCamerasFile :: MVar FilePath }
 
 instance Has MCamerasFile              (Env m) where
     obtain = mCamerasFile
+
+
+newtype MShootingsFile = MShootingsFile { unMShootingsFile :: MVar FilePath }
+
+instance Has MShootingsFile              (Env m) where
+    obtain = mShootingsFile
 
 
 newtype MDumpFile = MDumpFile { unMDumpFile :: MVar FilePath }

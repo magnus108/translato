@@ -302,7 +302,7 @@ clients cenv = do
     let public :<|> protected = api
     let postLogin :<|> docs   = public
     let
-        (photographers :<|> tabs :<|> dump) :<|> (dagsdato :<|> dagsdatoBackup) :<|> doneshooting :<|> cameras
+        ((photographers :<|> tabs) :<|> (dump :<|> dagsdato)) :<|> (dagsdatoBackup :<|> doneshooting) :<|> cameras :<|> shootings
             = protected
 
     let getDump' :<|> postDump'         = dump

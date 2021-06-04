@@ -25,14 +25,18 @@ data ServerEnv (m :: Type -> Type) = ServerEnv
     , mDagsdatoFile :: MDagsdatoFile
     , mDoneshootingFile :: MDoneshootingFile
     , mDagsdatoBackupFile :: MDagsdatoBackupFile
+    , mShootingsFile :: MShootingsFile
     , cookieSettings :: !CookieSettings
     , jwtSettings :: !JWTSettings
     }
 
+instance FilePathable MShootingsFile where
+    toFilePath (MShootingsFile mFile) = mFile
 
 instance FilePathable MCamerasFile where
     toFilePath (MCamerasFile mFile) = mFile
 
+newtype MShootingsFile = MShootingsFile { unMShootingsFile :: MVar FilePath }
 newtype MPhotographersFile = MPhotographersFile { unMPhotographersFile :: MVar FilePath }
 newtype MTabsFile = MTabsFile { unMTabsFile :: MVar FilePath }
 newtype MDumpFile = MDumpFile { unMDumpFile :: MVar FilePath }
@@ -40,6 +44,11 @@ newtype MCamerasFile = MCamerasFile { unMCamerasFile :: MVar FilePath }
 newtype MDagsdatoFile = MDagsdatoFile { unMDagsdatoFile :: MVar FilePath }
 newtype MDoneshootingFile = MDoneshootingFile { unMDoneshootingFile :: MVar FilePath }
 newtype MDagsdatoBackupFile = MDagsdatoBackupFile { unMDagsdatoBackupFile :: MVar FilePath }
+
+
+instance Has MShootingsFile              (ServerEnv m) where
+    obtain = mShootingsFile
+
 
 instance Has MPhotographersFile              (ServerEnv m) where
     obtain = mPhotographersFile
@@ -53,7 +62,7 @@ instance Has MDumpFile              (ServerEnv m) where
 
 instance Has MDagsdatoFile              (ServerEnv m) where
     obtain = mDagsdatoFile
-    
+
 instance Has MDoneshootingFile              (ServerEnv m) where
     obtain = mDoneshootingFile
 

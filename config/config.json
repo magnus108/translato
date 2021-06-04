@@ -5,4 +5,5 @@
 , "photographersFile": "config/photographers.json"
 , "tabsFile": "config/tabs.json"
 , "camerasFile": "config/cameras.json"
+, "shootingsFile": "config/shootings.json"
 }
