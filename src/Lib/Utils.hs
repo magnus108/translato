@@ -7,6 +7,8 @@ import qualified Data.ByteString               as B
 import           Control.Monad.Catch            ( throwM
                                                 )
 
+import           Control.Exception              ( finally )
+
 class Has field env where
     obtain :: env -> field
 
@@ -23,3 +25,18 @@ readJSONFileStrict fp = liftIO $ do
 
 writeJSONFile :: (MonadIO m, ToJSON a) => FilePath -> a -> m ()
 writeJSONFile fp item = liftIO $ BS.writeFile fp (encode item)
+
+
+type WithIt r m s = (MonadReader r m, MonadIO m, Has s r)
+
+class FilePathable a where
+    toFilePath :: a -> MVar FilePath
+
+writeThing :: forall  r m s a . (ToJSON a, WithIt r m s, FilePathable s) => s -> a -> m ()
+writeThing s a = do
+    mFile <- toFilePath <$> grab @s
+    file  <- liftIO $ takeMVar mFile
+    liftIO $ writeJSONFile file a `finally` (putMVar mFile file)
+
+
+
