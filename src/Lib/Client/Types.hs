@@ -15,6 +15,7 @@ import           Control.Exception              ( catch
 import           Servant.Auth.Client
 import           Lib.Data.Photographer          ( Photographers )
 import           Lib.Data.Tab                   ( Tabs )
+import           Lib.Data.Camera                   ( Cameras )
 import           Lib.Data.Dump                  ( Dump )
 import           Lib.Data.Doneshooting          ( Doneshooting )
 import           Lib.Data.Dagsdato              ( Dagsdato )
@@ -36,31 +37,7 @@ import qualified Control.Monad.Except          as E
 
 import           Lib.Utils
 import           Lib.Api.Types
-import           Lib.Api                 hiding ( PostDoneshooting
-                                                , GetDoneshooting
-                                                , postDoneshooting
-                                                , getDoneshooting
-                                                , PostDagsdatoBackup
-                                                , GetDagsdatoBackup
-                                                , postDagsdatoBackup
-                                                , getDagsdatoBackup
-                                                , PostDagsdato
-                                                , postDagsdato
-                                                , getDagsdato
-                                                , GetDagsdato
-                                                , PostDump
-                                                , postDump
-                                                , getDump
-                                                , GetDump
-                                                , PostTabs
-                                                , postTabs
-                                                , PostPhotographers
-                                                , postPhotographers
-                                                , GetPhotographers
-                                                , getPhotographers
-                                                , GetTabs
-                                                , getTabs
-                                                )
+import           Lib.Api                 (siteAPI)
 
 
 data ClientEnv (m :: Type -> Type) = ClientEnv
@@ -69,6 +46,9 @@ data ClientEnv (m :: Type -> Type) = ClientEnv
 
     , getTabs :: GetTabs
     , postTabs :: PostTabs
+
+    , getCameras :: GetCameras
+    , postCameras :: PostCameras
 
     , getDump :: GetDump
     , postDump :: PostDump
@@ -83,7 +63,6 @@ data ClientEnv (m :: Type -> Type) = ClientEnv
     , getDagsdatoBackup :: GetDagsdatoBackup
     , postDagsdatoBackup :: PostDagsdatoBackup
 
-
     , postPhotographers :: PostPhotographers
 
     , bToken :: BToken
@@ -94,6 +73,9 @@ data ClientEnv (m :: Type -> Type) = ClientEnv
 
     , bTabs :: BTabs
     , hTabs :: HTabs
+
+    , bCameras :: BCameras
+    , hCameras :: HCameras
 
     , bDump :: BDump
     , hDump :: HDump
@@ -121,6 +103,9 @@ newtype HPhotographers = HPhotographers { unHPhotographers :: Handler (Maybe Pho
 newtype BTabs = BTabs { unBTabs :: Behavior (Maybe Tabs) }
 newtype HTabs = HTabs { unHTabs :: Handler (Maybe Tabs) }
 
+newtype BCameras = BCameras { unBCameras :: Behavior (Maybe Cameras) }
+newtype HCameras = HCameras { unHCameras :: Handler (Maybe Cameras) }
+
 newtype BDump = BDump { unBDump :: Behavior (Maybe Dump) }
 newtype HDump = HDump { unHDump :: Handler (Maybe Dump) }
 
@@ -141,6 +126,9 @@ newtype PostPhotographers = PostPhotographers { unPosPhotographers :: Token -> P
 
 newtype GetDump = GetDump { unGetDump :: Token -> ClientApp Dump }
 newtype PostDump = PostDump { unPosDump :: Token -> Dump -> ClientApp NoContent }
+
+newtype GetCameras = GetCameras { unGetCameras :: Token -> ClientApp Cameras }
+newtype PostCameras = PostCameras { unPosCameras :: Token -> Cameras -> ClientApp NoContent }
 
 newtype GetDagsdato = GetDagsdato { unGetDagsdato :: Token -> ClientApp Dagsdato }
 newtype PostDagsdato = PostDagsdato { unPosDagsdato :: Token -> Dagsdato -> ClientApp NoContent }
@@ -168,6 +156,12 @@ instance Has GetDump              (ClientEnv m) where
 
 instance Has PostDump              (ClientEnv m) where
     obtain = postDump
+
+instance Has GetCameras              (ClientEnv m) where
+    obtain = getCameras
+
+instance Has PostCameras             (ClientEnv m) where
+    obtain = postCameras
 
 instance Has GetDagsdato              (ClientEnv m) where
     obtain = getDagsdato
@@ -214,6 +208,12 @@ instance Has BTabs (ClientEnv m) where
 
 instance Has HTabs              (ClientEnv m) where
     obtain = hTabs
+
+instance Has HCameras              (ClientEnv m) where
+    obtain = hCameras
+
+instance Has BCameras              (ClientEnv m) where
+    obtain = bCameras
 
 instance Has BDump (ClientEnv m) where
     obtain = bDump
@@ -302,10 +302,11 @@ clients cenv = do
     let public :<|> protected = api
     let postLogin :<|> docs   = public
     let
-        (photographers :<|> tabs :<|> dump) :<|> (dagsdato :<|> dagsdatoBackup) :<|> doneshooting :<|> camera
+        (photographers :<|> tabs :<|> dump) :<|> (dagsdato :<|> dagsdatoBackup) :<|> doneshooting :<|> cameras
             = protected
 
     let getDump' :<|> postDump'         = dump
+    let getCameras' :<|> postCameras'         = cameras
     let getDagsdato' :<|> postDagsdato' = dagsdato
     let getDagsdatoBackup' :<|> postDagsdatoBackup' = dagsdatoBackup
     let getDoneshooting' :<|> postDoneshooting' = doneshooting
@@ -317,6 +318,9 @@ clients cenv = do
     let getTabs                         = GetTabs getTabs'
     let postTabs                        = PostTabs postTabs'
     let postPhotographers = PostPhotographers postPhotographers'
+
+    let getCameras                         = GetCameras getCameras'
+    let postCameras = PostCameras postCameras'
 
     let getDump                         = GetDump getDump'
     let postDump                        = PostDump postDump'
@@ -351,6 +355,9 @@ clients cenv = do
     (photographersE, photographersH)   <- newEvent
     bPhotographers <- BPhotographers <$> stepper Nothing photographersE
 
+    (camerasE, camerasH)   <- newEvent
+    bCameras <- BCameras <$> stepper Nothing camerasE
+
     let hToken          = HToken tokenH
     let hDump           = HDump dumpH
     let hDagsdato       = HDagsdato dagsdatoH
@@ -358,6 +365,7 @@ clients cenv = do
     let hDoneshooting   = HDoneshooting doneshootingH
     let hPhotographers  = HPhotographers photographersH
     let hTabs           = HTabs tabsH
+    let hCameras           = HCameras camerasH
 
     let eDialog = EDialog $ \xs cb -> runFunction $ electronDialog xs cb
 
