@@ -46,6 +46,7 @@ library
       Lib.Data.Dump
       Lib.Data.Permission
       Lib.Data.Photographer
+      Lib.Data.Shooting
       Lib.Data.Tab
       Lib.Message
       Lib.Server
