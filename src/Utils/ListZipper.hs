@@ -2,9 +2,11 @@ module Utils.ListZipper
     ( ListZipper(..)
     , fromList
     , bextend
+    , remove
     , setter
     , toList
     , zipperL
+    , add
     )
 where
 
@@ -29,6 +31,16 @@ data ListZipper a = ListZipper [a] a [a]
 
 setter :: (ListZipper a) -> a -> (ListZipper a)
 setter (ListZipper ls _ rs) new = ListZipper ls new rs
+
+
+add :: a -> (ListZipper a) -> (ListZipper a)
+add new (ListZipper ls x rs) = ListZipper ls new (x:rs)
+
+remove :: ListZipper a -> ListZipper a
+remove (ListZipper [] x []) = ListZipper [] x []
+remove (ListZipper [] x (r:rs)) = ListZipper [] r rs
+remove (ListZipper (l:ls) x rs) = ListZipper ls l rs
+
 
 toList :: ListZipper a -> [a]
 toList (ListZipper ls x rs) = (reverse ls) ++ (x : rs)

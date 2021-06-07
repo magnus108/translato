@@ -14,4 +14,4 @@ import           Lib.Data.Shooting as X
 import           Lib.Data.Session as X
 import           Lib.Data.Location as X
 import           Lib.Data.Grade as X
-import           Lib.Data.Photographee as X
+import           Lib.Data.Photographee as X hiding (sempty, semptys)

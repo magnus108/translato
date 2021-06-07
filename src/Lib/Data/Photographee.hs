@@ -1,6 +1,8 @@
 module Lib.Data.Photographee
     ( Photographee(..)
     , Photographees(..)
+    , sempty
+    , semptys
     )
 where
 
@@ -26,3 +28,10 @@ newtype Photographees = Photographees { unPhotographees :: ListZipper Photograph
     deriving (Eq, Ord, Show)
     deriving (Generic)
     deriving anyclass (FromJSON, ToJSON)
+
+
+sempty :: Photographee
+sempty = Photographee "" "" ""
+
+semptys :: Photographees
+semptys = Photographees $ ListZipper [] sempty []
