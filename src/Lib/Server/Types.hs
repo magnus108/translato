@@ -28,9 +28,14 @@ data ServerEnv (m :: Type -> Type) = ServerEnv
     , mShootingsFile :: MShootingsFile
     , mSessionsFile :: MSessionsFile
     , mLocationFile :: MLocationFile
+    , mGradesFile :: MGradesFile
     , cookieSettings :: !CookieSettings
     , jwtSettings :: !JWTSettings
     }
+
+instance FilePathable MGradesFile where
+    toFilePath (MGradesFile mFile) = mFile
+
 
 instance FilePathable MLocationFile where
     toFilePath (MLocationFile mFile) = mFile
@@ -54,6 +59,7 @@ newtype MCamerasFile = MCamerasFile { unMCamerasFile :: MVar FilePath }
 newtype MDagsdatoFile = MDagsdatoFile { unMDagsdatoFile :: MVar FilePath }
 newtype MDoneshootingFile = MDoneshootingFile { unMDoneshootingFile :: MVar FilePath }
 newtype MDagsdatoBackupFile = MDagsdatoBackupFile { unMDagsdatoBackupFile :: MVar FilePath }
+newtype MGradesFile = MGradesFile { unMGradesFile :: MVar FilePath }
 
 instance Has MLocationFile              (ServerEnv m) where
     obtain = mLocationFile
@@ -82,6 +88,10 @@ instance Has MDoneshootingFile              (ServerEnv m) where
 
 instance Has MDagsdatoBackupFile              (ServerEnv m) where
     obtain = mDagsdatoBackupFile
+
+instance Has MGradesFile              (ServerEnv m) where
+    obtain = mGradesFile
+
 
 
 instance Has MTabsFile              (ServerEnv m) where

@@ -30,6 +30,7 @@ default-extensions:
 - InstanceSigs
 - FlexibleContexts
 - OverloadedLabels
+- DuplicateRecordFields
 - LambdaCase
 - RecordWildCards
 - TypeApplications

@@ -60,6 +60,9 @@ mkAppEnv clientPort Config.Config {..} = do
     mDagsdatoBackupFile' <- newMVar dagsdatoBackupFile
     let mDagsdatoBackupFile = App.MDagsdatoBackupFile mDagsdatoBackupFile'
 
+    mGradesFile' <- newMVar gradesFile
+    let mGradesFile = App.MGradesFile mGradesFile'
+
     let serverPort         = 8080
 
     let static             = "static"
@@ -90,6 +93,9 @@ mkServerAppEnv Env {..} = do
 
     let unMLocationFile = App.unMLocationFile mLocationFile
     let mLocationFile   = ServerApp.MLocationFile unMLocationFile
+
+    let unMGradesFile = App.unMGradesFile mGradesFile
+    let mGradesFile   = ServerApp.MGradesFile unMGradesFile
 
     let unMDagsdatoFile = App.unMDagsdatoFile mDagsdatoFile
     let mDagsdatoFile   = ServerApp.MDagsdatoFile unMDagsdatoFile

@@ -44,9 +44,11 @@ library
       Lib.Data.DagsdatoBackup
       Lib.Data.Doneshooting
       Lib.Data.Dump
+      Lib.Data.Grade
       Lib.Data.Import
       Lib.Data.Location
       Lib.Data.Permission
+      Lib.Data.Photographee
       Lib.Data.Photographer
       Lib.Data.Session
       Lib.Data.Shooting
@@ -60,6 +62,7 @@ library
       Lib.Server.Handler.GetDocs
       Lib.Server.Handler.GetDoneshooting
       Lib.Server.Handler.GetDump
+      Lib.Server.Handler.GetGrades
       Lib.Server.Handler.GetLocation
       Lib.Server.Handler.GetPermissions
       Lib.Server.Handler.GetPhotographers
@@ -96,6 +99,7 @@ library
       InstanceSigs
       FlexibleContexts
       OverloadedLabels
+      DuplicateRecordFields
       LambdaCase
       RecordWildCards
       TypeApplications
@@ -170,6 +174,7 @@ executable translato-exe
       InstanceSigs
       FlexibleContexts
       OverloadedLabels
+      DuplicateRecordFields
       LambdaCase
       RecordWildCards
       TypeApplications
@@ -247,6 +252,7 @@ test-suite translato-test
       InstanceSigs
       FlexibleContexts
       OverloadedLabels
+      DuplicateRecordFields
       LambdaCase
       RecordWildCards
       TypeApplications

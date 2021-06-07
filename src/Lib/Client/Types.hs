@@ -23,6 +23,7 @@ import           Lib.Data.Dump                  ( Dump )
 import           Lib.Data.Doneshooting          ( Doneshooting )
 import           Lib.Data.Dagsdato              ( Dagsdato )
 import           Lib.Data.DagsdatoBackup        ( DagsdatoBackup )
+import           Lib.Data.Grade        ( Grades )
 import           Graphics.UI.Threepenny.Core
 import           Servant                 hiding ( throwError
                                                 , Handler
@@ -71,6 +72,7 @@ data ClientEnv (m :: Type -> Type) = ClientEnv
     , getDoneshooting :: GetDoneshooting
     , postDoneshooting :: PostDoneshooting
 
+    , getGrades :: GetGrades
 
     , getDagsdatoBackup :: GetDagsdatoBackup
     , postDagsdatoBackup :: PostDagsdatoBackup
@@ -110,6 +112,9 @@ data ClientEnv (m :: Type -> Type) = ClientEnv
     , bDagsdatoBackup :: BDagsdatoBackup
     , hDagsdatoBackup :: HDagsdatoBackup
 
+    , bGrades :: BGrades
+    , hGrades :: HGrades
+
     , eDialog :: EDialog
     }
 
@@ -129,6 +134,9 @@ newtype HPhotographers = HPhotographers { unHPhotographers :: Handler (Maybe Pho
 
 newtype BTabs = BTabs { unBTabs :: Behavior (Maybe Tabs) }
 newtype HTabs = HTabs { unHTabs :: Handler (Maybe Tabs) }
+
+newtype BGrades = BGrades { unBGrades :: Behavior (Maybe Grades) }
+newtype HGrades = HGrades { unHGrades :: Handler (Maybe Grades) }
 
 newtype BLocation = BLocation { unBLocation :: Behavior (Maybe Location) }
 newtype HLocation = HLocation { unHLocation :: Handler (Maybe Location) }
@@ -177,6 +185,7 @@ newtype PostDagsdatoBackup = PostDagsdatoBackup { unPosDagsdatoBackup :: Token -
 newtype GetLocation = GetLocation { unGetLocation :: Token -> ClientApp Location }
 newtype PostLocation = PostLocation { unPostLocation :: Token -> Location -> ClientApp NoContent }
 
+newtype GetGrades = GetGrades { unGetGrades :: Token -> ClientApp Grades }
 
 newtype Login = Login { unLogin :: LoginForm -> ClientApp (Headers '[Header "Set-Cookie" Text] NoContent) }
 
@@ -186,6 +195,9 @@ instance Has EDialog              (ClientEnv m) where
 
 instance Has Login              (ClientEnv m) where
     obtain = login
+
+instance Has GetGrades              (ClientEnv m) where
+    obtain = getGrades
 
 instance Has GetPhotographers              (ClientEnv m) where
     obtain = getPhotographers
@@ -314,6 +326,12 @@ instance Has BDagsdatoBackup (ClientEnv m) where
 instance Has HDagsdatoBackup              (ClientEnv m) where
     obtain = hDagsdatoBackup
 
+instance Has BGrades (ClientEnv m) where
+    obtain = bGrades
+
+instance Has HGrades              (ClientEnv m) where
+    obtain = hGrades
+
 type ClientAppEnv = ClientEnv ClientApp
 
 
@@ -379,7 +397,9 @@ clients cenv = do
     let
         ((photographers :<|> tabs) :<|> dump :<|> dagsdato :<|> dagsdatoBackup) :<|> fixthis
             = protected
-    let ((doneshooting :<|> cameras) :<|> shootings :<|> sessions :<|> location) = fixthis
+    let ((doneshooting :<|> (cameras :<|> shootings)) :<|> sessions :<|> location :<|> grades) = fixthis
+
+    let getGrades' = grades
 
     let getSessions' :<|> postSessions'         = sessions
     let getDump' :<|> postDump'         = dump
@@ -392,6 +412,7 @@ clients cenv = do
     let getShootings' :<|> postShootings' = shootings
     let getLocation' :<|> postLocation' = location
 
+    let getGrades                            = GetGrades $ getGrades'
     let login                           = Login $ postLogin
     let getPhotographers                = GetPhotographers getPhotographers'
     let getTabs                         = GetTabs getTabs'
@@ -421,6 +442,9 @@ clients cenv = do
 
     let getLocation = GetLocation getLocation'
     let postLocation = PostLocation postLocation'
+
+    (gradesE, gradesH)                     <- newEvent
+    bGrades                              <- BGrades <$> stepper Nothing gradesE
 
     (dumpE, dumpH)                     <- newEvent
     bDump                              <- BDump <$> stepper Nothing dumpE
@@ -455,6 +479,7 @@ clients cenv = do
     (locationE, locationH)   <- newEvent
     bLocation <- BLocation <$> stepper Nothing locationE
 
+    let hGrades          = HGrades gradesH
     let hToken          = HToken tokenH
     let hSessions          = HSessions sessionsH
     let hDump           = HDump dumpH

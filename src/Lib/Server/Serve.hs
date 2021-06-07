@@ -4,6 +4,8 @@ import           Servant.Auth.Server
 import           Servant.Server.Generic
 
 import           Control.Monad.Except           ( MonadError )
+import           Lib.Server.Handler.GetGrades
+
 import           Lib.Server.Handler.GetPermissions
 import           Lib.Server.Handler.GetPhotographers
 import           Lib.Server.Handler.GetTabs
@@ -66,8 +68,14 @@ protectedServer = ProtectedSite
     , shootingSite = genericServerT shootingServer
     , sessionSite = genericServerT sessionServer
     , locationSite = genericServerT locationServer
+    , gradeSite = genericServerT gradeServer
     --, getPermissions = withAuthResultAndPermission Simple
      --                                              serveGetPermissions
+    }
+
+gradeServer :: GradeSite AppServer
+gradeServer = GradeSite
+    { getGrades = withAuthResultAndPermission Simple serveGetGrades
     }
 
 locationServer :: LocationSite AppServer

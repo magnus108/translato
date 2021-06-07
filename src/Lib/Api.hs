@@ -46,6 +46,7 @@ data ProtectedSite route
       , shootingSite :: !(route :- "shooting" :> ShootingAPI)
       , sessionSite :: !(route :- "session" :> SessionAPI)
       , locationSite :: !(route :- "location" :> LocationAPI)
+      , gradeSite :: !(route :- "grade" :> GradeAPI)
       --, getPermissions :: !(route :- GetPermissions)
       }
   deriving (Generic)
@@ -215,3 +216,16 @@ type PostLocation
     = ProtectAPI :> ReqBody '[JSON] Location :> Post '[JSON] NoContent
 
 type GetLocation = ProtectAPI :> Get '[JSON] Location
+
+
+
+type GradeAPI = ToApi GradeSite
+
+data GradeSite route
+  = GradeSite
+      { getGrades :: !(route :- GetGrades )
+      }
+  deriving (Generic)
+
+
+type GetGrades = ProtectAPI :> Get '[JSON] Grades

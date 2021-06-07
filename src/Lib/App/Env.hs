@@ -28,6 +28,8 @@ data Env (m :: Type -> Type) = Env
     , mSessionsFile :: MSessionsFile
 
     , mLocationFile :: MLocationFile
+
+    , mGradesFile :: MGradesFile
     }
 
 newtype MLocationFile = MLocationFile { unMLocationFile :: MVar FilePath }
@@ -81,3 +83,8 @@ newtype MDagsdatoBackupFile = MDagsdatoBackupFile { unMDagsdatoBackupFile :: MVa
 
 instance Has MDagsdatoBackupFile              (Env m) where
     obtain = mDagsdatoBackupFile
+
+newtype MGradesFile = MGradesFile { unMGradesFile :: MVar FilePath }
+
+instance Has MGradesFile              (Env m) where
+    obtain = mGradesFile

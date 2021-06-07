@@ -19,6 +19,7 @@ data Config = Config
     , shootingsFile :: !FilePath
     , sessionsFile :: !FilePath
     , locationFile :: !FilePath
+    , gradesFile :: !FilePath
     }
     deriving (Show, Eq)
     deriving Generic

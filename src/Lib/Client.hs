@@ -52,12 +52,12 @@ import qualified Utils.ListZipper              as ListZipper
 import qualified Control.Lens                  as Lens
 import qualified Lib.Data.Photographer         as Photographer
 import qualified Lib.Data.Tab                  as Tab
-import qualified Lib.Data.Session                  as Session
-import qualified Lib.Data.Location                  as Location
-import qualified Lib.Data.Shooting                  as Shooting
+import qualified Lib.Data.Session              as Session
+import qualified Lib.Data.Location             as Location
+import qualified Lib.Data.Shooting             as Shooting
 import qualified Lib.Data.Dump                 as Dump
-import qualified Lib.Data.Camera                 as Camera
-import qualified Lib.Data.Doneshooting                 as Doneshooting
+import qualified Lib.Data.Camera               as Camera
+import qualified Lib.Data.Doneshooting         as Doneshooting
 import qualified Lib.Data.Dagsdato             as Dagsdato
 import qualified Lib.Data.DagsdatoBackup       as DagsdatoBackup
 import           Control.Comonad         hiding ( (<@) )
@@ -108,21 +108,18 @@ mkPhotographersTab = mdo
 
     return (item, (fmap Photographer.Photographers <$> eSelection))
 
-mkCamerasTab
-    :: ClientApp (Element, Event (Maybe Camera.Cameras))
+mkCamerasTab :: ClientApp (Element, Event (Maybe Camera.Cameras))
 mkCamerasTab = mdo
     (BCameras bCameras) <- grab @BCameras
     let showCamera x = UI.string $ show x
 
-    (item, eSelection) <- liftUI $ Select.mkSelect
-        (fmap Camera.unCameras <$> bCameras)
-        showCamera
+    (item, eSelection) <- liftUI
+        $ Select.mkSelect (fmap Camera.unCameras <$> bCameras) showCamera
 
     return (item, (fmap Camera.Cameras <$> eSelection))
 
 
-mkShootingsTab
-    :: ClientApp (Element, Event (Maybe Shooting.Shootings))
+mkShootingsTab :: ClientApp (Element, Event (Maybe Shooting.Shootings))
 mkShootingsTab = mdo
     (BShootings bShootings) <- grab @BShootings
     let showShooting x = UI.string $ show x
@@ -133,15 +130,13 @@ mkShootingsTab = mdo
 
     return (item, (fmap Shooting.Shootings <$> eSelection))
 
-mkSessionsTab
-    :: ClientApp (Element, Event (Maybe Session.Sessions))
+mkSessionsTab :: ClientApp (Element, Event (Maybe Session.Sessions))
 mkSessionsTab = mdo
     (BSessions bSessions) <- grab @BSessions
     let showSession x = UI.string $ show x
 
-    (item, eSelection) <- liftUI $ Select.mkSelect
-        (fmap Session.unSessions <$> bSessions)
-        showSession
+    (item, eSelection) <- liftUI
+        $ Select.mkSelect (fmap Session.unSessions <$> bSessions) showSession
 
     return (item, (fmap Session.Sessions <$> eSelection))
 
@@ -182,10 +177,11 @@ mkDagsdatoBackupTab = mdo
     return (item, fmap DagsdatoBackup.DagsdatoBackup <$> eSelection)
 
 
-mkDoneshootingTab :: ClientApp (Element, Event (Maybe Doneshooting.Doneshooting))
+mkDoneshootingTab
+    :: ClientApp (Element, Event (Maybe Doneshooting.Doneshooting))
 mkDoneshootingTab = mdo
     (BDoneshooting bDoneshooting) <- grab @BDoneshooting
-    eDialog               <- grab @EDialog
+    eDialog                       <- grab @EDialog
     let showIt x = UI.string x
     (item, eSelection) <- liftUI $ FilePicker.mkDirPicker
         eDialog
@@ -206,7 +202,7 @@ mkLocationTab = mdo
 
     return (item, fmap Location.Location <$> eSelection)
 
-mkContent :: ClientApp (Element, Event (Maybe Photographer.Photographers))
+mkContent :: ClientApp (Element, Event (Maybe Photographer.Photographers), Event (Maybe Location.Location))
 mkContent = do
     (BTabs bTabs)                            <- grab @BTabs
 
@@ -214,11 +210,11 @@ mkContent = do
     (dumpContent          , eDump          ) <- mkDumpTab
     (dagsdatoContent      , eDagsdato      ) <- mkDagsdatoTab
     (dagsdatoBackupContent, eDagsdatoBackup) <- mkDagsdatoBackupTab
-    (doneshootingContent, eDoneshooting) <- mkDoneshootingTab
-    (camerasContent, eCameras) <- mkCamerasTab
-    (shootingsContent, eShootings) <- mkShootingsTab
-    (sessionsContent, eSessions) <- mkSessionsTab
-    (locationContent, eLocation) <- mkLocationTab
+    (doneshootingContent  , eDoneshooting  ) <- mkDoneshootingTab
+    (camerasContent       , eCameras       ) <- mkCamerasTab
+    (shootingsContent     , eShootings     ) <- mkShootingsTab
+    (sessionsContent      , eSessions      ) <- mkSessionsTab
+    (locationContent      , eLocation      ) <- mkLocationTab
 
     elseContent                              <- liftUI $ UI.string "fuck2"
     elseContent2                             <- liftUI $ UI.string "fuck2nodATA"
@@ -235,17 +231,12 @@ mkContent = do
                                 Tab.DagsdatoTab      -> [dagsdatoContent]
                                 Tab.DagsdatoBackupTab ->
                                     [dagsdatoBackupContent]
-                                Tab.DoneshootingTab ->
-                                    [doneshootingContent]
-                                Tab.CamerasTab ->
-                                    [camerasContent]
-                                Tab.ShootingsTab ->
-                                    [shootingsContent]
-                                Tab.SessionsTab ->
-                                    [sessionsContent]
-                                Tab.LocationTab ->
-                                    [locationContent]
-                                _ -> [elseContent]
+                                Tab.DoneshootingTab -> [doneshootingContent]
+                                Tab.CamerasTab      -> [camerasContent]
+                                Tab.ShootingsTab    -> [shootingsContent]
+                                Tab.SessionsTab     -> [sessionsContent]
+                                Tab.LocationTab     -> [locationContent]
+                                _                   -> [elseContent]
                     )
                 <$> bTabs
 
@@ -253,17 +244,17 @@ mkContent = do
         children
         (fromMaybe [elseContent2] <$> contents)
 
-    return (content, ePhotographers)
+    return (content, ePhotographers, eLocation)
 
 
 
 setup :: Window -> ClientApp ()
 setup win = do
     liftUI $ return win # set title "test"
-    _                             <- initial
+    _                 <- initial
 
-    (elemTabs   , eTabs         ) <- mkTabs
-    (elemContent, ePhotographers) <- mkContent
+    (elemTabs, eTabs) <- mkTabs
+    (elemContent, ePhotographers, eLocation) <- mkContent
 
     liftUI $ getBody win #+ [element elemTabs, UI.hr, element elemContent]
 
@@ -277,6 +268,17 @@ setup win = do
             Just t  -> void $ do
                 res <- postTabs (Token $ setCookieValue t) e
                 liftIO $ hTabs (Just e)
+
+    onEvent' (filterJust eLocation) $ \e -> do
+        (BToken       bToken      ) <- grab @BToken
+        (PostLocation postLocation) <- grab @PostLocation
+        (HLocation    hLocation   ) <- grab @HLocation
+        token                       <- currentValue bToken
+        case token of
+            Nothing -> liftIO $ die "Missing token"
+            Just t  -> void $ do
+                res <- postLocation (Token $ setCookieValue t) e
+                liftIO $ hLocation (Just e)
 
     onEvent' (filterJust ePhotographers) $ \e -> do
         (BToken            bToken           ) <- grab @BToken
@@ -314,12 +316,21 @@ initial = do
     _ <- getShootingsClient
     _ <- getSessionsClient
     _ <- getLocationClient
+    _ <- getGradesClient
     return ()
+
+getGradesClient :: ClientApp ()
+getGradesClient = withToken $ \t -> do
+    (GetGrades getGrades) <- grab @GetGrades
+    (HGrades   hGrades  ) <- grab @HGrades
+    res                       <- getGrades t
+    case res of
+        _ -> liftIO $ hGrades (Just res)
 
 getLocationClient :: ClientApp ()
 getLocationClient = withToken $ \t -> do
     (GetLocation getLocation) <- grab @GetLocation
-    (HLocation hLocation) <- grab @HLocation
+    (HLocation   hLocation  ) <- grab @HLocation
     res                       <- getLocation t
     case res of
         _ -> liftIO $ hLocation (Just res)
@@ -328,7 +339,7 @@ getLocationClient = withToken $ \t -> do
 getSessionsClient :: ClientApp ()
 getSessionsClient = withToken $ \t -> do
     (GetSessions getSessions) <- grab @GetSessions
-    (HSessions   hSessions) <- grab @HSessions
+    (HSessions   hSessions  ) <- grab @HSessions
     res                       <- getSessions t
     case res of
         _ -> liftIO $ hSessions (Just res)
@@ -337,24 +348,24 @@ getSessionsClient = withToken $ \t -> do
 getShootingsClient :: ClientApp ()
 getShootingsClient = withToken $ \t -> do
     (GetShootings getShootings) <- grab @GetShootings
-    (HShootings   hShootings) <- grab @HShootings
-    res                       <- getShootings t
+    (HShootings   hShootings  ) <- grab @HShootings
+    res                         <- getShootings t
     case res of
         _ -> liftIO $ hShootings (Just res)
 
 getCamerasClient :: ClientApp ()
 getCamerasClient = withToken $ \t -> do
     (GetCameras getCameras) <- grab @GetCameras
-    (HCameras   hCameras) <- grab @HCameras
-    res                       <- getCameras t
+    (HCameras   hCameras  ) <- grab @HCameras
+    res                     <- getCameras t
     case res of
         _ -> liftIO $ hCameras (Just res)
 
 getDoneshootingClient :: ClientApp ()
 getDoneshootingClient = withToken $ \t -> do
     (GetDoneshooting getDoneshooting) <- grab @GetDoneshooting
-    (HDoneshooting   hDoneshooting) <- grab @HDoneshooting
-    res                       <- getDoneshooting t
+    (HDoneshooting   hDoneshooting  ) <- grab @HDoneshooting
+    res                               <- getDoneshooting t
     case res of
         _ -> liftIO $ hDoneshooting (Just res)
 
@@ -370,8 +381,8 @@ getDagsdatoClient = withToken $ \t -> do
 getDagsdatoBackupClient :: ClientApp ()
 getDagsdatoBackupClient = withToken $ \t -> do
     (GetDagsdatoBackup getDagsdatoBackup) <- grab @GetDagsdatoBackup
-    (HDagsdatoBackup   hDagsdatoBackup ) <- grab @HDagsdatoBackup
-    res                       <- getDagsdatoBackup t
+    (HDagsdatoBackup   hDagsdatoBackup  ) <- grab @HDagsdatoBackup
+    res <- getDagsdatoBackup t
     case res of
         _ -> liftIO $ hDagsdatoBackup (Just res)
 

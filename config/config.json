@@ -8,4 +8,5 @@
 , "shootingsFile": "config/shootings.json"
 , "sessionsFile": "config/sessions.json"
 , "locationFile": "config/location.json"
+, "gradesFile": "config/grades.json"
 }
