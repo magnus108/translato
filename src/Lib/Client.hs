@@ -205,7 +205,7 @@ mkDoneshootingTab = mdo
 
     return (item, fmap Doneshooting.Doneshooting <$> eSelection)
 
-mkLocationTab :: ClientApp (Element, Event (Maybe Location.Location), Event (Maybe Grade.Grades))
+mkLocationTab :: ClientApp (Element, Event (Maybe Location.Location), Event (Maybe Grade.Grades), Event (Maybe Grade.Grades))
 mkLocationTab = mdo
     (BLocation bLocation) <- grab @BLocation
     eDialog               <- grab @EDialog
@@ -218,7 +218,7 @@ mkLocationTab = mdo
     (BGrades bGrades) <- grab @BGrades
     let showGradeIdentifier x = UI.string $ T.unpack $ Grade.identifier x
 
-    (grades, eGrade) <- liftUI
+    (grades, eGradeSwitch) <- liftUI
         $ Select.mkSelect (fmap Grade.unGrades <$> bGrades) showGradeIdentifier
 
 
@@ -239,7 +239,7 @@ mkLocationTab = mdo
                                   [location, grades, Text.elementTE modify]
 
 
-    return (item, fmap Location.Location <$> eLocation, eGradeIdentifier)
+    return (item, fmap Location.Location <$> eLocation, fmap Grade.Grades <$> eGradeSwitch, eGradeIdentifier)
 
 
 mkContent
@@ -247,6 +247,7 @@ mkContent
            ( Element
            , Event (Maybe Photographer.Photographers)
            , Event (Maybe Location.Location)
+           , Event (Maybe Grade.Grades)
            , Event (Maybe Grade.Grades)
            )
 mkContent = do
@@ -260,7 +261,7 @@ mkContent = do
     (camerasContent       , eCameras       ) <- mkCamerasTab
     (shootingsContent     , eShootings     ) <- mkShootingsTab
     (sessionsContent      , eSessions      ) <- mkSessionsTab
-    (locationContent      , eLocation, eGrades) <- mkLocationTab
+    (locationContent      , eLocation, eGradesSwitch, eGradesIdentifier) <- mkLocationTab
 
     elseContent                              <- liftUI $ UI.string "fuck2"
     elseContent2                             <- liftUI $ UI.string "fuck2nodATA"
@@ -290,7 +291,7 @@ mkContent = do
         children
         (fromMaybe [elseContent2] <$> contents)
 
-    return (content, ePhotographers, eLocation, eGrades)
+    return (content, ePhotographers, eLocation, eGradesSwitch, eGradesIdentifier)
 
 
 
@@ -300,12 +301,24 @@ setup win = do
     _                 <- initial
 
     (elemTabs, eTabs) <- mkTabs
-    (elemContent, ePhotographers, eLocation, eGrades) <- mkContent
+    (elemContent, ePhotographers, eLocation, eGradesSwitch, eGradesIdentifier) <- mkContent
 
     liftUI $ getBody win #+ [element elemTabs, UI.hr, element elemContent]
 
 
-    onEvent' (filterJust eGrades) $ \e -> do
+
+    onEvent' (filterJust eGradesIdentifier) $ \e -> do
+        (BToken   bToken  ) <- grab @BToken
+        (PostGrades postGrades) <- grab @PostGrades
+        (HGrades    hGrades ) <- grab @HGrades
+        token               <- currentValue bToken
+        case token of
+            Nothing -> liftIO $ die "Missing token"
+            Just t  -> void $ do
+                res <- postGrades (Token $ setCookieValue t) e
+                liftIO $ hGrades (Just e)
+
+    onEvent' (filterJust eGradesSwitch) $ \e -> do
         (BToken   bToken  ) <- grab @BToken
         (PostGrades postGrades) <- grab @PostGrades
         (HGrades    hGrades ) <- grab @HGrades
