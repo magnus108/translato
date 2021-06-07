@@ -5,6 +5,7 @@ import           Servant.Server.Generic
 
 import           Control.Monad.Except           ( MonadError )
 import           Lib.Server.Handler.GetGrades
+import           Lib.Server.Handler.PostGrades
 
 import           Lib.Server.Handler.GetPermissions
 import           Lib.Server.Handler.GetPhotographers
@@ -76,6 +77,7 @@ protectedServer = ProtectedSite
 gradeServer :: GradeSite AppServer
 gradeServer = GradeSite
     { getGrades = withAuthResultAndPermission Simple serveGetGrades
+    , postGrades = withAuthResultAndPermission Simple servePostGrades
     }
 
 locationServer :: LocationSite AppServer

@@ -224,8 +224,12 @@ type GradeAPI = ToApi GradeSite
 data GradeSite route
   = GradeSite
       { getGrades :: !(route :- GetGrades )
+      , postGrades :: !(route :- PostGrades )
       }
   deriving (Generic)
 
 
 type GetGrades = ProtectAPI :> Get '[JSON] Grades
+
+type PostGrades
+    = ProtectAPI :> ReqBody '[JSON] Grades :> Post '[JSON] NoContent

@@ -73,6 +73,7 @@ data ClientEnv (m :: Type -> Type) = ClientEnv
     , postDoneshooting :: PostDoneshooting
 
     , getGrades :: GetGrades
+    , postGrades :: PostGrades
 
     , getDagsdatoBackup :: GetDagsdatoBackup
     , postDagsdatoBackup :: PostDagsdatoBackup
@@ -186,6 +187,7 @@ newtype GetLocation = GetLocation { unGetLocation :: Token -> ClientApp Location
 newtype PostLocation = PostLocation { unPostLocation :: Token -> Location -> ClientApp NoContent }
 
 newtype GetGrades = GetGrades { unGetGrades :: Token -> ClientApp Grades }
+newtype PostGrades = PostGrades { unPostGrades :: Token -> Grades -> ClientApp NoContent }
 
 newtype Login = Login { unLogin :: LoginForm -> ClientApp (Headers '[Header "Set-Cookie" Text] NoContent) }
 
@@ -198,6 +200,9 @@ instance Has Login              (ClientEnv m) where
 
 instance Has GetGrades              (ClientEnv m) where
     obtain = getGrades
+
+instance Has PostGrades              (ClientEnv m) where
+    obtain = postGrades
 
 instance Has GetPhotographers              (ClientEnv m) where
     obtain = getPhotographers
@@ -399,7 +404,7 @@ clients cenv = do
             = protected
     let ((doneshooting :<|> (cameras :<|> shootings)) :<|> sessions :<|> location :<|> grades) = fixthis
 
-    let getGrades' = grades
+    let getGrades' :<|> postGrades' = grades
 
     let getSessions' :<|> postSessions'         = sessions
     let getDump' :<|> postDump'         = dump
@@ -413,6 +418,8 @@ clients cenv = do
     let getLocation' :<|> postLocation' = location
 
     let getGrades                            = GetGrades $ getGrades'
+    let postGrades                            = PostGrades $ postGrades'
+
     let login                           = Login $ postLogin
     let getPhotographers                = GetPhotographers getPhotographers'
     let getTabs                         = GetTabs getTabs'

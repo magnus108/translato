@@ -72,3 +72,6 @@ items' :: ReadWriteAttr Element [UI Element] ()
 items' = mkWriteAttr $ \is x -> void $ do
     is' <- sequence is
     return x # set children is'
+
+liftOp :: Monad m => (a -> b -> c) -> m a -> b -> m c
+liftOp f a b = a >>= \a' -> return (f a' b)

@@ -6,6 +6,14 @@
 module Lib.Client where
 
 
+import           Data.Generics.Labels
+import           Data.Generics.Product.Fields
+import           GHC.Generics
+import           GHC.OverloadedLabels         (IsLabel (..))
+import           Options.Generic 
+import           Data.Generics.Labels
+
+
 import qualified Lib.Client.FilePicker         as FilePicker
 import qualified Lib.Client.Select             as Select
 import qualified Foreign.JavaScript            as JS
@@ -53,6 +61,8 @@ import qualified Control.Lens                  as Lens
 import qualified Lib.Data.Photographer         as Photographer
 import qualified Lib.Data.Tab                  as Tab
 import qualified Lib.Data.Session              as Session
+import qualified Lib.Data.Grade                as Grade
+import Lib.Data.Grade                
 import qualified Lib.Data.Location             as Location
 import qualified Lib.Data.Shooting             as Shooting
 import qualified Lib.Data.Dump                 as Dump
@@ -60,8 +70,13 @@ import qualified Lib.Data.Camera               as Camera
 import qualified Lib.Data.Doneshooting         as Doneshooting
 import qualified Lib.Data.Dagsdato             as Dagsdato
 import qualified Lib.Data.DagsdatoBackup       as DagsdatoBackup
-import           Control.Comonad         hiding ( (<@) )
+import           Control.Comonad         hiding ( (<@)
+                                                , (<@>)
+                                                )
 import           Lib.Client.Utils
+import qualified Lib.Client.Text               as Text
+import Control.Lens ((.~))
+
 
 
 mkTabs :: ClientApp (Element, Event (Maybe Tab.Tabs))
@@ -190,19 +205,50 @@ mkDoneshootingTab = mdo
 
     return (item, fmap Doneshooting.Doneshooting <$> eSelection)
 
-mkLocationTab :: ClientApp (Element, Event (Maybe Location.Location))
+mkLocationTab :: ClientApp (Element, Event (Maybe Location.Location), Event (Maybe Grade.Grades))
 mkLocationTab = mdo
     (BLocation bLocation) <- grab @BLocation
     eDialog               <- grab @EDialog
     let showIt x = UI.string x
-    (item, eSelection) <- liftUI $ FilePicker.mkFilePicker
+    (location, eLocation) <- liftUI $ FilePicker.mkFilePicker
         eDialog
         (fmap Location.unLocation <$> bLocation)
         showIt
 
-    return (item, fmap Location.Location <$> eSelection)
+    (BGrades bGrades) <- grab @BGrades
+    let showGradeIdentifier x = UI.string $ T.unpack $ Grade.identifier x
 
-mkContent :: ClientApp (Element, Event (Maybe Photographer.Photographers), Event (Maybe Location.Location))
+    (grades, eGrade) <- liftUI
+        $ Select.mkSelect (fmap Grade.unGrades <$> bGrades) showGradeIdentifier
+
+
+    modify <- liftUI $ Text.entry $ do
+        grades <- bGrades
+        return $ maybe
+            ""
+            (T.unpack . Grade.identifier . extract . Grade.unGrades)
+            grades
+
+    let eGradeIdentifier =
+            liftOp
+                    (\grades identifier -> Lens.set (#unGrades . ListZipper.zipperL . #identifier) (T.pack identifier) grades )
+                <$> bGrades
+                <@> (rumors (Text.userTE modify))
+
+    item <- liftUI $ UI.div # set children
+                                  [location, grades, Text.elementTE modify]
+
+
+    return (item, fmap Location.Location <$> eLocation, eGradeIdentifier)
+
+
+mkContent
+    :: ClientApp
+           ( Element
+           , Event (Maybe Photographer.Photographers)
+           , Event (Maybe Location.Location)
+           , Event (Maybe Grade.Grades)
+           )
 mkContent = do
     (BTabs bTabs)                            <- grab @BTabs
 
@@ -214,7 +260,7 @@ mkContent = do
     (camerasContent       , eCameras       ) <- mkCamerasTab
     (shootingsContent     , eShootings     ) <- mkShootingsTab
     (sessionsContent      , eSessions      ) <- mkSessionsTab
-    (locationContent      , eLocation      ) <- mkLocationTab
+    (locationContent      , eLocation, eGrades) <- mkLocationTab
 
     elseContent                              <- liftUI $ UI.string "fuck2"
     elseContent2                             <- liftUI $ UI.string "fuck2nodATA"
@@ -244,7 +290,7 @@ mkContent = do
         children
         (fromMaybe [elseContent2] <$> contents)
 
-    return (content, ePhotographers, eLocation)
+    return (content, ePhotographers, eLocation, eGrades)
 
 
 
@@ -254,9 +300,22 @@ setup win = do
     _                 <- initial
 
     (elemTabs, eTabs) <- mkTabs
-    (elemContent, ePhotographers, eLocation) <- mkContent
+    (elemContent, ePhotographers, eLocation, eGrades) <- mkContent
 
     liftUI $ getBody win #+ [element elemTabs, UI.hr, element elemContent]
+
+
+    onEvent' (filterJust eGrades) $ \e -> do
+        (BToken   bToken  ) <- grab @BToken
+        (PostGrades postGrades) <- grab @PostGrades
+        (HGrades    hGrades ) <- grab @HGrades
+        token               <- currentValue bToken
+        case token of
+            Nothing -> liftIO $ die "Missing token"
+            Just t  -> void $ do
+                res <- postGrades (Token $ setCookieValue t) e
+                liftIO $ hGrades (Just e)
+
 
     onEvent' (filterJust eTabs) $ \e -> do
         (BToken   bToken  ) <- grab @BToken
@@ -323,7 +382,7 @@ getGradesClient :: ClientApp ()
 getGradesClient = withToken $ \t -> do
     (GetGrades getGrades) <- grab @GetGrades
     (HGrades   hGrades  ) <- grab @HGrades
-    res                       <- getGrades t
+    res                   <- getGrades t
     case res of
         _ -> liftIO $ hGrades (Just res)
 

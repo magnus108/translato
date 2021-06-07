@@ -36,6 +36,7 @@ library
       Lib.Client.Error
       Lib.Client.FilePicker
       Lib.Client.Select
+      Lib.Client.Text
       Lib.Client.Types
       Lib.Client.Utils
       Lib.Config
@@ -74,6 +75,7 @@ library
       Lib.Server.Handler.PostDagsdatoBackup
       Lib.Server.Handler.PostDoneshooting
       Lib.Server.Handler.PostDump
+      Lib.Server.Handler.PostGrades
       Lib.Server.Handler.PostLocation
       Lib.Server.Handler.PostLogin
       Lib.Server.Handler.PostPhotographers

@@ -4,8 +4,13 @@ module Utils.ListZipper
     , bextend
     , setter
     , toList
+    , zipperL
     )
 where
+
+import           Control.Lens                   ( Lens'
+                                                , lens
+                                                )
 
 import           Prelude                 hiding ( fromList
                                                 , toList
@@ -67,3 +72,13 @@ instance Foldable ListZipper where
 instance Traversable ListZipper where
     traverse f (ListZipper l x r) =
         ListZipper <$> traverse f l <*> f x <*> traverse f r
+
+
+zipperL :: Lens' (ListZipper a) a
+zipperL = lens getter setter
+  where
+    getter :: ListZipper a -> a
+    getter = extract
+
+    setter :: (ListZipper a) -> a -> (ListZipper a)
+    setter (ListZipper ls _ rs) new = ListZipper ls new rs
