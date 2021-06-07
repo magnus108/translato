@@ -24,6 +24,8 @@ data Env (m :: Type -> Type) = Env
 
     , mDoneshootingFile :: MDoneshootingFile
     , mShootingsFile :: MShootingsFile
+
+    , mSessionsFile :: MSessionsFile
     }
 
 
@@ -31,6 +33,11 @@ newtype MPhotographersFile = MPhotographersFile { unMPhotographersFile :: MVar F
 
 instance Has MPhotographersFile              (Env m) where
     obtain = mPhotographersFile
+
+newtype MSessionsFile = MSessionsFile { unMSessionsFile :: MVar FilePath }
+
+instance Has MSessionsFile              (Env m) where
+    obtain = mSessionsFile
 
 newtype MTabsFile = MTabsFile { unMTabsFile :: MVar FilePath }
 

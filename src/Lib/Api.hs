@@ -12,6 +12,7 @@ import           Lib.Data.Doneshooting
 import           Lib.Data.DagsdatoBackup
 import           Lib.Data.Tab
 import           Lib.Data.Shooting
+import           Lib.Data.Session
 
 
 type SiteApi = ToApi Site
@@ -50,6 +51,7 @@ data ProtectedSite route
       , doneshootingSite :: !(route :- "doneshooting" :> DoneshootingAPI)
       , cameraSite :: !(route :- "camera" :> CameraAPI)
       , shootingSite :: !(route :- "shooting" :> ShootingAPI)
+      , sessionSite :: !(route :- "session" :> SessionAPI)
       --, getPermissions :: !(route :- GetPermissions)
       }
   deriving (Generic)
@@ -187,3 +189,18 @@ type PostShootings
     = ProtectAPI :> ReqBody '[JSON] Shootings :> Post '[JSON] NoContent
 
 type GetShootings = ProtectAPI :> Get '[JSON] Shootings
+
+type SessionAPI = ToApi SessionSite
+
+data SessionSite route
+  = SessionSite
+      { getSessions :: !(route :- GetSessions )
+      , postSessions :: !(route :- PostSessions )
+      }
+  deriving (Generic)
+
+
+type PostSessions
+    = ProtectAPI :> ReqBody '[JSON] Sessions :> Post '[JSON] NoContent
+
+type GetSessions = ProtectAPI :> Get '[JSON] Sessions

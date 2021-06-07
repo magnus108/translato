@@ -42,6 +42,9 @@ mkAppEnv clientPort Config.Config {..} = do
     mShootingsFile' <- newMVar shootingsFile
     let mShootingsFile = App.MShootingsFile mShootingsFile'
 
+    mSessionsFile' <- newMVar sessionsFile
+    let mSessionsFile = App.MSessionsFile mSessionsFile'
+
     mDumpFile' <- newMVar dumpFile
     let mDumpFile = App.MDumpFile mDumpFile'
 
@@ -69,6 +72,9 @@ mkServerAppEnv Env {..} = do
 
     let unMTabsFile = App.unMTabsFile mTabsFile
     let mTabsFile   = ServerApp.MTabsFile unMTabsFile
+
+    let unMSessionsFile = App.unMSessionsFile mSessionsFile
+    let mSessionsFile   = ServerApp.MSessionsFile unMSessionsFile
 
     let unMCamerasFile = App.unMCamerasFile mCamerasFile
     let mCamerasFile   = ServerApp.MCamerasFile unMCamerasFile

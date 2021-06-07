@@ -16,6 +16,7 @@ import           Servant.Auth.Client
 import           Lib.Data.Photographer          ( Photographers )
 import           Lib.Data.Tab                   ( Tabs )
 import           Lib.Data.Shooting                   ( Shootings )
+import           Lib.Data.Session                   ( Sessions )
 import           Lib.Data.Camera                   ( Cameras )
 import           Lib.Data.Dump                  ( Dump )
 import           Lib.Data.Doneshooting          ( Doneshooting )
@@ -51,6 +52,9 @@ data ClientEnv (m :: Type -> Type) = ClientEnv
     , getShootings :: GetShootings
     , postShootings :: PostShootings
 
+    , getSessions :: GetSessions
+    , postSessions :: PostSessions
+
     , getCameras :: GetCameras
     , postCameras :: PostCameras
 
@@ -81,6 +85,9 @@ data ClientEnv (m :: Type -> Type) = ClientEnv
     , bTabs :: BTabs
     , hTabs :: HTabs
 
+    , bSessions :: BSessions
+    , hSessions :: HSessions
+
     , bCameras :: BCameras
     , hCameras :: HCameras
 
@@ -103,6 +110,9 @@ newtype EDialog = EDialog { unEDialog :: [String] -> JS.JSObject -> UI () }
 
 newtype BToken = BToken { unBToken :: Behavior (Maybe SetCookie) }
 newtype HToken = HToken { unHToken :: Handler (Maybe SetCookie) }
+
+newtype BSessions = BSessions { unBSessions :: Behavior (Maybe Sessions) }
+newtype HSessions = HSessions { unHSessions :: Handler (Maybe Sessions) }
 
 newtype BShootings = BShootings { unBShootings :: Behavior (Maybe Shootings) }
 newtype HShootings = HShootings { unHShootings :: Handler (Maybe Shootings) }
@@ -134,6 +144,8 @@ newtype GetTabs = GetTabs { unGetTabs :: Token -> ClientApp Tabs }
 newtype PostTabs = PostTabs { unPosTabs :: Token -> Tabs -> ClientApp NoContent }
 newtype PostPhotographers = PostPhotographers { unPosPhotographers :: Token -> Photographers -> ClientApp NoContent }
 
+newtype GetSessions = GetSessions { unGetSessions :: Token -> ClientApp Sessions }
+newtype PostSessions = PostSessions { unPosSessions :: Token -> Sessions -> ClientApp NoContent }
 
 newtype GetShootings = GetShootings { unGetShootings :: Token -> ClientApp Shootings }
 newtype PostShootings = PostShootings { unPosShootings :: Token -> Shootings -> ClientApp NoContent }
@@ -177,6 +189,12 @@ instance Has GetDump              (ClientEnv m) where
 
 instance Has PostDump              (ClientEnv m) where
     obtain = postDump
+
+instance Has GetSessions              (ClientEnv m) where
+    obtain = getSessions
+
+instance Has PostSessions              (ClientEnv m) where
+    obtain = postSessions
 
 instance Has GetCameras              (ClientEnv m) where
     obtain = getCameras
@@ -241,6 +259,12 @@ instance Has HCameras              (ClientEnv m) where
 
 instance Has BCameras              (ClientEnv m) where
     obtain = bCameras
+
+instance Has HSessions              (ClientEnv m) where
+    obtain = hSessions
+
+instance Has BSessions              (ClientEnv m) where
+    obtain = bSessions
 
 instance Has BDump (ClientEnv m) where
     obtain = bDump
@@ -329,9 +353,10 @@ clients cenv = do
     let public :<|> protected = api
     let postLogin :<|> docs   = public
     let
-        ((photographers :<|> tabs) :<|> (dump :<|> dagsdato)) :<|> (dagsdatoBackup :<|> doneshooting) :<|> cameras :<|> shootings
+        ((photographers :<|> tabs) :<|> (dump :<|> dagsdato)) :<|> (dagsdatoBackup :<|> doneshooting) :<|> cameras :<|> shootings :<|> sessions
             = protected
 
+    let getSessions' :<|> postSessions'         = sessions
     let getDump' :<|> postDump'         = dump
     let getCameras' :<|> postCameras'         = cameras
     let getDagsdato' :<|> postDagsdato' = dagsdato
@@ -365,8 +390,14 @@ clients cenv = do
     let getShootings = GetShootings getShootings'
     let postShootings = PostShootings postShootings'
 
+    let getSessions = GetSessions getSessions'
+    let postSessions = PostSessions postSessions'
+
     (dumpE, dumpH)                     <- newEvent
     bDump                              <- BDump <$> stepper Nothing dumpE
+
+    (sessionsE, sessionsH)                     <- newEvent
+    bSessions                              <- BSessions <$> stepper Nothing sessionsE
 
     (dagsdatoE, dagsdatoH)             <- newEvent
     bDagsdato <- BDagsdato <$> stepper Nothing dagsdatoE
@@ -393,6 +424,7 @@ clients cenv = do
     bShootings <- BShootings <$> stepper Nothing shootingsE
 
     let hToken          = HToken tokenH
+    let hSessions          = HSessions sessionsH
     let hDump           = HDump dumpH
     let hDagsdato       = HDagsdato dagsdatoH
     let hDagsdatoBackup = HDagsdatoBackup dagsdatoBackupH

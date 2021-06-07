@@ -52,6 +52,7 @@ import qualified Utils.ListZipper              as ListZipper
 import qualified Control.Lens                  as Lens
 import qualified Lib.Data.Photographer         as Photographer
 import qualified Lib.Data.Tab                  as Tab
+import qualified Lib.Data.Session                  as Session
 import qualified Lib.Data.Shooting                  as Shooting
 import qualified Lib.Data.Dump                 as Dump
 import qualified Lib.Data.Camera                 as Camera
@@ -131,6 +132,18 @@ mkShootingsTab = mdo
 
     return (item, (fmap Shooting.Shootings <$> eSelection))
 
+mkSessionsTab
+    :: ClientApp (Element, Event (Maybe Session.Sessions))
+mkSessionsTab = mdo
+    (BSessions bSessions) <- grab @BSessions
+    let showSession x = UI.string $ show x
+
+    (item, eSelection) <- liftUI $ Select.mkSelect
+        (fmap Session.unSessions <$> bSessions)
+        showSession
+
+    return (item, (fmap Session.Sessions <$> eSelection))
+
 
 mkDumpTab :: ClientApp (Element, Event (Maybe Dump.Dump))
 mkDumpTab = mdo
@@ -191,6 +204,7 @@ mkContent = do
     (doneshootingContent, eDoneshooting) <- mkDoneshootingTab
     (camerasContent, eCameras) <- mkCamerasTab
     (shootingsContent, eShootings) <- mkShootingsTab
+    (sessionsContent, eSessions) <- mkSessionsTab
 
     elseContent                              <- liftUI $ UI.string "fuck2"
     elseContent2                             <- liftUI $ UI.string "fuck2nodATA"
@@ -213,6 +227,8 @@ mkContent = do
                                     [camerasContent]
                                 Tab.ShootingsTab ->
                                     [shootingsContent]
+                                Tab.SessionsTab ->
+                                    [sessionsContent]
                                 _ -> [elseContent]
                     )
                 <$> bTabs
@@ -280,7 +296,17 @@ initial = do
     _ <- getDoneshootingClient
     _ <- getCamerasClient
     _ <- getShootingsClient
+    _ <- getSessionsClient
     return ()
+
+getSessionsClient :: ClientApp ()
+getSessionsClient = withToken $ \t -> do
+    (GetSessions getSessions) <- grab @GetSessions
+    (HSessions   hSessions) <- grab @HSessions
+    res                       <- getSessions t
+    case res of
+        _ -> liftIO $ hSessions (Just res)
+
 
 getShootingsClient :: ClientApp ()
 getShootingsClient = withToken $ \t -> do
