@@ -16,6 +16,7 @@ import           Servant.Auth.Client
 import           Lib.Data.Photographer          ( Photographers )
 import           Lib.Data.Tab                   ( Tabs )
 import           Lib.Data.Shooting                   ( Shootings )
+import           Lib.Data.Location                   ( Location )
 import           Lib.Data.Session                   ( Sessions )
 import           Lib.Data.Camera                   ( Cameras )
 import           Lib.Data.Dump                  ( Dump )
@@ -45,6 +46,9 @@ import           Lib.Api                 (siteAPI)
 data ClientEnv (m :: Type -> Type) = ClientEnv
     { login :: Login
     , getPhotographers :: GetPhotographers
+
+    , getLocation :: GetLocation
+    , postLocation :: PostLocation
 
     , getTabs :: GetTabs
     , postTabs :: PostTabs
@@ -78,6 +82,9 @@ data ClientEnv (m :: Type -> Type) = ClientEnv
 
     , bToken :: BToken
     , hToken :: HToken
+
+    , bLocation :: BLocation
+    , hLocation :: HLocation
 
     , bPhotographers :: BPhotographers
     , hPhotographers :: HPhotographers
@@ -123,6 +130,9 @@ newtype HPhotographers = HPhotographers { unHPhotographers :: Handler (Maybe Pho
 newtype BTabs = BTabs { unBTabs :: Behavior (Maybe Tabs) }
 newtype HTabs = HTabs { unHTabs :: Handler (Maybe Tabs) }
 
+newtype BLocation = BLocation { unBLocation :: Behavior (Maybe Location) }
+newtype HLocation = HLocation { unHLocation :: Handler (Maybe Location) }
+
 newtype BCameras = BCameras { unBCameras :: Behavior (Maybe Cameras) }
 newtype HCameras = HCameras { unHCameras :: Handler (Maybe Cameras) }
 
@@ -131,7 +141,6 @@ newtype HDump = HDump { unHDump :: Handler (Maybe Dump) }
 
 newtype BDagsdato = BDagsdato { unBDagsdato :: Behavior (Maybe Dagsdato) }
 newtype HDagsdato = HDagsdato { unHDagsdato :: Handler (Maybe Dagsdato) }
-
 
 newtype BDoneshooting = BDoneshooting { unBDoneshooting :: Behavior (Maybe Doneshooting) }
 newtype HDoneshooting = HDoneshooting { unHDoneshooting :: Handler (Maybe Doneshooting) }
@@ -165,6 +174,9 @@ newtype PostDoneshooting = PostDoneshooting { unPostDoneshooting :: Token -> Don
 newtype GetDagsdatoBackup = GetDagsdatoBackup { unGetDagsdatoBackup :: Token -> ClientApp DagsdatoBackup }
 newtype PostDagsdatoBackup = PostDagsdatoBackup { unPosDagsdatoBackup :: Token -> DagsdatoBackup -> ClientApp NoContent }
 
+newtype GetLocation = GetLocation { unGetLocation :: Token -> ClientApp Location }
+newtype PostLocation = PostLocation { unPostLocation :: Token -> Location -> ClientApp NoContent }
+
 
 newtype Login = Login { unLogin :: LoginForm -> ClientApp (Headers '[Header "Set-Cookie" Text] NoContent) }
 
@@ -189,6 +201,12 @@ instance Has GetDump              (ClientEnv m) where
 
 instance Has PostDump              (ClientEnv m) where
     obtain = postDump
+
+instance Has GetLocation              (ClientEnv m) where
+    obtain = getLocation
+
+instance Has PostLocation              (ClientEnv m) where
+    obtain = postLocation
 
 instance Has GetSessions              (ClientEnv m) where
     obtain = getSessions
@@ -259,6 +277,12 @@ instance Has HCameras              (ClientEnv m) where
 
 instance Has BCameras              (ClientEnv m) where
     obtain = bCameras
+
+instance Has HLocation              (ClientEnv m) where
+    obtain = hLocation
+
+instance Has BLocation              (ClientEnv m) where
+    obtain = bLocation
 
 instance Has HSessions              (ClientEnv m) where
     obtain = hSessions
@@ -353,8 +377,9 @@ clients cenv = do
     let public :<|> protected = api
     let postLogin :<|> docs   = public
     let
-        ((photographers :<|> tabs) :<|> (dump :<|> dagsdato)) :<|> (dagsdatoBackup :<|> doneshooting) :<|> cameras :<|> shootings :<|> sessions
+        ((photographers :<|> tabs) :<|> dump :<|> dagsdato :<|> dagsdatoBackup) :<|> fixthis
             = protected
+    let ((doneshooting :<|> cameras) :<|> shootings :<|> sessions :<|> location) = fixthis
 
     let getSessions' :<|> postSessions'         = sessions
     let getDump' :<|> postDump'         = dump
@@ -365,6 +390,7 @@ clients cenv = do
     let getTabs' :<|> postTabs'         = tabs
     let getPhotographers' :<|> postPhotographers' = photographers
     let getShootings' :<|> postShootings' = shootings
+    let getLocation' :<|> postLocation' = location
 
     let login                           = Login $ postLogin
     let getPhotographers                = GetPhotographers getPhotographers'
@@ -392,6 +418,9 @@ clients cenv = do
 
     let getSessions = GetSessions getSessions'
     let postSessions = PostSessions postSessions'
+
+    let getLocation = GetLocation getLocation'
+    let postLocation = PostLocation postLocation'
 
     (dumpE, dumpH)                     <- newEvent
     bDump                              <- BDump <$> stepper Nothing dumpE
@@ -423,6 +452,9 @@ clients cenv = do
     (shootingsE, shootingsH)   <- newEvent
     bShootings <- BShootings <$> stepper Nothing shootingsE
 
+    (locationE, locationH)   <- newEvent
+    bLocation <- BLocation <$> stepper Nothing locationE
+
     let hToken          = HToken tokenH
     let hSessions          = HSessions sessionsH
     let hDump           = HDump dumpH
@@ -433,6 +465,7 @@ clients cenv = do
     let hTabs           = HTabs tabsH
     let hCameras           = HCameras camerasH
     let hShootings           = HShootings shootingsH
+    let hLocation           = HLocation locationH
 
     let eDialog = EDialog $ \xs cb -> runFunction $ electronDialog xs cb
 

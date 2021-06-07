@@ -7,4 +7,5 @@
 , "camerasFile": "config/cameras.json"
 , "shootingsFile": "config/shootings.json"
 , "sessionsFile": "config/sessions.json"
+, "locationFile": "config/location.json"
 }

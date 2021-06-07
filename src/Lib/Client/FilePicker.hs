@@ -56,8 +56,8 @@ import           Control.Comonad hiding ((<@))
 import           Lib.Client.Utils
 
 
-mkFilePicker :: EDialog -> Behavior (Maybe FilePath) -> (FilePath -> UI Element) -> UI (Element, Event (Maybe FilePath))
-mkFilePicker (EDialog eDialog) bItems showItem = mdo
+mkDialog :: [String] -> EDialog -> Behavior (Maybe FilePath) -> (FilePath -> UI Element) -> UI (Element, Event (Maybe FilePath))
+mkDialog options (EDialog eDialog) bItems showItem = mdo
     (eChange, hChange) <- liftIO $ newEvent
     (eElectronDialog, hElectronDialog) <- liftIO $ newEvent
 
@@ -79,7 +79,7 @@ mkFilePicker (EDialog eDialog) bItems showItem = mdo
             return display
 
     _ <- onEvent eElectronDialog $ \_ -> do
-        eDialog ["openDirectory"] callback
+        eDialog options callback
 
     let display bItem = do
             item <- bItem
@@ -96,3 +96,8 @@ mkFilePicker (EDialog eDialog) bItems showItem = mdo
 
 
 
+mkDirPicker :: EDialog -> Behavior (Maybe FilePath) -> (FilePath -> UI Element) -> UI (Element, Event (Maybe FilePath))
+mkDirPicker = mkDialog ["openDirectory"]
+
+mkFilePicker :: EDialog -> Behavior (Maybe FilePath) -> (FilePath -> UI Element) -> UI (Element, Event (Maybe FilePath))
+mkFilePicker = mkDialog ["openFile"]

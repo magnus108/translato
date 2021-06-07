@@ -51,6 +51,9 @@ mkAppEnv clientPort Config.Config {..} = do
     mDagsdatoFile' <- newMVar dagsdatoFile
     let mDagsdatoFile = App.MDagsdatoFile mDagsdatoFile'
 
+    mLocationFile' <- newMVar locationFile
+    let mLocationFile = App.MLocationFile mLocationFile'
+
     mDoneshootingFile' <- newMVar doneshootingFile
     let mDoneshootingFile = App.MDoneshootingFile mDoneshootingFile'
 
@@ -84,6 +87,9 @@ mkServerAppEnv Env {..} = do
 
     let unMDumpFile = App.unMDumpFile mDumpFile
     let mDumpFile   = ServerApp.MDumpFile unMDumpFile
+
+    let unMLocationFile = App.unMLocationFile mLocationFile
+    let mLocationFile   = ServerApp.MLocationFile unMLocationFile
 
     let unMDagsdatoFile = App.unMDagsdatoFile mDagsdatoFile
     let mDagsdatoFile   = ServerApp.MDagsdatoFile unMDagsdatoFile

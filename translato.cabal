@@ -44,6 +44,8 @@ library
       Lib.Data.DagsdatoBackup
       Lib.Data.Doneshooting
       Lib.Data.Dump
+      Lib.Data.Import
+      Lib.Data.Location
       Lib.Data.Permission
       Lib.Data.Photographer
       Lib.Data.Session
@@ -58,6 +60,7 @@ library
       Lib.Server.Handler.GetDocs
       Lib.Server.Handler.GetDoneshooting
       Lib.Server.Handler.GetDump
+      Lib.Server.Handler.GetLocation
       Lib.Server.Handler.GetPermissions
       Lib.Server.Handler.GetPhotographers
       Lib.Server.Handler.GetSessions
@@ -68,6 +71,7 @@ library
       Lib.Server.Handler.PostDagsdatoBackup
       Lib.Server.Handler.PostDoneshooting
       Lib.Server.Handler.PostDump
+      Lib.Server.Handler.PostLocation
       Lib.Server.Handler.PostLogin
       Lib.Server.Handler.PostPhotographers
       Lib.Server.Handler.PostSessions

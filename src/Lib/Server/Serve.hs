@@ -15,6 +15,9 @@ import           Lib.Server.Handler.PostPhotographers
 import           Lib.Server.Handler.GetDump
 import           Lib.Server.Handler.PostDump
 
+import           Lib.Server.Handler.GetLocation
+import           Lib.Server.Handler.PostLocation
+
 import           Lib.Server.Handler.GetSessions
 import           Lib.Server.Handler.PostSessions
 
@@ -62,8 +65,15 @@ protectedServer = ProtectedSite
     , cameraSite = genericServerT cameraServer
     , shootingSite = genericServerT shootingServer
     , sessionSite = genericServerT sessionServer
+    , locationSite = genericServerT locationServer
     --, getPermissions = withAuthResultAndPermission Simple
      --                                              serveGetPermissions
+    }
+
+locationServer :: LocationSite AppServer
+locationServer = LocationSite
+    { getLocation = withAuthResultAndPermission Simple serveGetLocation
+    , postLocation = withAuthResultAndPermission Simple servePostLocation
     }
 
 sessionServer :: SessionSite AppServer

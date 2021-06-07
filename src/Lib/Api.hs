@@ -4,15 +4,8 @@ import           Lib.Api.Types
 import           Servant.API
 import           Servant.API.Generic
 import           Servant.HTML.Blaze
-import           Lib.Data.Photographer
-import           Lib.Data.Dump
-import           Lib.Data.Camera
-import           Lib.Data.Dagsdato
-import           Lib.Data.Doneshooting
-import           Lib.Data.DagsdatoBackup
-import           Lib.Data.Tab
-import           Lib.Data.Shooting
-import           Lib.Data.Session
+
+import           Lib.Data.Import
 
 
 type SiteApi = ToApi Site
@@ -52,6 +45,7 @@ data ProtectedSite route
       , cameraSite :: !(route :- "camera" :> CameraAPI)
       , shootingSite :: !(route :- "shooting" :> ShootingAPI)
       , sessionSite :: !(route :- "session" :> SessionAPI)
+      , locationSite :: !(route :- "location" :> LocationAPI)
       --, getPermissions :: !(route :- GetPermissions)
       }
   deriving (Generic)
@@ -204,3 +198,20 @@ type PostSessions
     = ProtectAPI :> ReqBody '[JSON] Sessions :> Post '[JSON] NoContent
 
 type GetSessions = ProtectAPI :> Get '[JSON] Sessions
+
+
+
+type LocationAPI = ToApi LocationSite
+
+data LocationSite route
+  = LocationSite
+      { getLocation :: !(route :- GetLocation )
+      , postLocation :: !(route :- PostLocation )
+      }
+  deriving (Generic)
+
+
+type PostLocation
+    = ProtectAPI :> ReqBody '[JSON] Location :> Post '[JSON] NoContent
+
+type GetLocation = ProtectAPI :> Get '[JSON] Location

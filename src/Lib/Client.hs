@@ -53,6 +53,7 @@ import qualified Control.Lens                  as Lens
 import qualified Lib.Data.Photographer         as Photographer
 import qualified Lib.Data.Tab                  as Tab
 import qualified Lib.Data.Session                  as Session
+import qualified Lib.Data.Location                  as Location
 import qualified Lib.Data.Shooting                  as Shooting
 import qualified Lib.Data.Dump                 as Dump
 import qualified Lib.Data.Camera                 as Camera
@@ -151,7 +152,7 @@ mkDumpTab = mdo
     eDialog       <- grab @EDialog
     let showIt x = UI.string x
     (item, eSelection) <- liftUI
-        $ FilePicker.mkFilePicker eDialog (fmap Dump.unDump <$> bDump) showIt
+        $ FilePicker.mkDirPicker eDialog (fmap Dump.unDump <$> bDump) showIt
 
     return (item, fmap Dump.Dump <$> eSelection)
 
@@ -160,7 +161,7 @@ mkDagsdatoTab = mdo
     (BDagsdato bDagsdato) <- grab @BDagsdato
     eDialog               <- grab @EDialog
     let showIt x = UI.string x
-    (item, eSelection) <- liftUI $ FilePicker.mkFilePicker
+    (item, eSelection) <- liftUI $ FilePicker.mkDirPicker
         eDialog
         (fmap Dagsdato.unDagsdato <$> bDagsdato)
         showIt
@@ -173,7 +174,7 @@ mkDagsdatoBackupTab = mdo
     (BDagsdatoBackup bDagsdatoBackup) <- grab @BDagsdatoBackup
     eDialog                           <- grab @EDialog
     let showIt x = UI.string x
-    (item, eSelection) <- liftUI $ FilePicker.mkFilePicker
+    (item, eSelection) <- liftUI $ FilePicker.mkDirPicker
         eDialog
         (fmap DagsdatoBackup.unDagsdatoBackup <$> bDagsdatoBackup)
         showIt
@@ -186,12 +187,24 @@ mkDoneshootingTab = mdo
     (BDoneshooting bDoneshooting) <- grab @BDoneshooting
     eDialog               <- grab @EDialog
     let showIt x = UI.string x
-    (item, eSelection) <- liftUI $ FilePicker.mkFilePicker
+    (item, eSelection) <- liftUI $ FilePicker.mkDirPicker
         eDialog
         (fmap Doneshooting.unDoneshooting <$> bDoneshooting)
         showIt
 
     return (item, fmap Doneshooting.Doneshooting <$> eSelection)
+
+mkLocationTab :: ClientApp (Element, Event (Maybe Location.Location))
+mkLocationTab = mdo
+    (BLocation bLocation) <- grab @BLocation
+    eDialog               <- grab @EDialog
+    let showIt x = UI.string x
+    (item, eSelection) <- liftUI $ FilePicker.mkFilePicker
+        eDialog
+        (fmap Location.unLocation <$> bLocation)
+        showIt
+
+    return (item, fmap Location.Location <$> eSelection)
 
 mkContent :: ClientApp (Element, Event (Maybe Photographer.Photographers))
 mkContent = do
@@ -205,6 +218,7 @@ mkContent = do
     (camerasContent, eCameras) <- mkCamerasTab
     (shootingsContent, eShootings) <- mkShootingsTab
     (sessionsContent, eSessions) <- mkSessionsTab
+    (locationContent, eLocation) <- mkLocationTab
 
     elseContent                              <- liftUI $ UI.string "fuck2"
     elseContent2                             <- liftUI $ UI.string "fuck2nodATA"
@@ -229,6 +243,8 @@ mkContent = do
                                     [shootingsContent]
                                 Tab.SessionsTab ->
                                     [sessionsContent]
+                                Tab.LocationTab ->
+                                    [locationContent]
                                 _ -> [elseContent]
                     )
                 <$> bTabs
@@ -297,7 +313,17 @@ initial = do
     _ <- getCamerasClient
     _ <- getShootingsClient
     _ <- getSessionsClient
+    _ <- getLocationClient
     return ()
+
+getLocationClient :: ClientApp ()
+getLocationClient = withToken $ \t -> do
+    (GetLocation getLocation) <- grab @GetLocation
+    (HLocation hLocation) <- grab @HLocation
+    res                       <- getLocation t
+    case res of
+        _ -> liftIO $ hLocation (Just res)
+
 
 getSessionsClient :: ClientApp ()
 getSessionsClient = withToken $ \t -> do
