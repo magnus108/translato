@@ -33,6 +33,7 @@ library
       Lib.App.Env
       Lib.App.Error
       Lib.Client
+      Lib.Client.Control
       Lib.Client.Error
       Lib.Client.FilePicker
       Lib.Client.Select

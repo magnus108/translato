@@ -16,6 +16,7 @@ import           Data.Generics.Labels
 
 import qualified Lib.Client.FilePicker         as FilePicker
 import qualified Lib.Client.Select             as Select
+import qualified Lib.Client.Control             as Control
 import qualified Foreign.JavaScript            as JS
 import qualified Relude.Unsafe                 as Unsafe
 import           Servant.Auth.Client
@@ -205,6 +206,7 @@ mkDoneshootingTab = mdo
 
     return (item, fmap Doneshooting.Doneshooting <$> eSelection)
 
+
 mkLocationTab :: ClientApp (Element, Event (Maybe Location.Location), Event (Maybe Grade.Grades), Event (Maybe Grade.Grades), Event (Maybe Grade.Grades), Event (Maybe Grade.Grades))
 mkLocationTab = mdo
     (BLocation bLocation) <- grab @BLocation
@@ -235,16 +237,14 @@ mkLocationTab = mdo
                 <$> bGrades
                 <@> (rumors (Text.userTE modify))
 
-    insert <- liftUI $ UI.button #. "button" # set text "add"
-    delete <- liftUI $ UI.button #. "button" # set text "delete"
-    control <- liftUI $ UI.div #. "buttons has-addons" # set children [insert, delete]
 
-    let eGradeInsert = fmap (\grades -> Lens.over #unGrades (\xs -> ListZipper.add Grade.sempty xs) grades) <$> bGrades <@  UI.click insert
-    let eGradeDelete = fmap (\grades -> Lens.over #unGrades (\xs -> ListZipper.remove xs) grades) <$> bGrades <@  UI.click delete
+    (elemControl, eInsert, eDelete) <- Control.mkControls Grade.sempty (fmap Grade.unGrades <$> bGrades)
+
+    let eGradeInsert = liftOp (\grades content -> Lens.set #unGrades content grades) <$> bGrades <@> filterJust eInsert
+    let eGradeDelete = liftOp (\grades content -> Lens.set #unGrades content grades) <$> bGrades <@> filterJust eDelete
 
     item <- liftUI $ UI.div # set children
-                                  [location, grades, Text.elementTE modify, control]
-
+                                  [location, grades, Text.elementTE modify, elemControl]
 
     return (item, fmap Location.Location <$> eLocation, fmap Grade.Grades <$> eGradeSwitch, eGradeIdentifier, eGradeInsert, eGradeDelete)
 
