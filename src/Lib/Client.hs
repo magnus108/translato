@@ -207,7 +207,7 @@ mkDoneshootingTab = mdo
     return (item, fmap Doneshooting.Doneshooting <$> eSelection)
 
 
-mkLocationTab :: ClientApp (Element, Event (Maybe Location.Location), Event (Maybe Grade.Grades), Event (Maybe Grade.Grades), Event (Maybe Grade.Grades), Event (Maybe Grade.Grades))
+mkLocationTab :: ClientApp (Element, Event (Maybe Location.Location), Event (Maybe Grade.Grades),Event (Maybe Grade.Grades),Event (Maybe Grade.Grades), Event (Maybe Grade.Grades), Event (Maybe Grade.Grades), Event (Maybe Grade.Grades))
 mkLocationTab = mdo
     (BLocation bLocation) <- grab @BLocation
     eDialog               <- grab @EDialog
@@ -238,15 +238,17 @@ mkLocationTab = mdo
                 <@> (rumors (Text.userTE modify))
 
 
-    (elemControl, eInsert, eDelete) <- Control.mkControls Grade.sempty (fmap Grade.unGrades <$> bGrades)
+    (elemControl, elemControlMove, eInsert, eDelete, ePrev, eNext) <- Control.mkControls Grade.sempty (fmap Grade.unGrades <$> bGrades)
 
     let eGradeInsert = liftOp (\grades content -> Lens.set #unGrades content grades) <$> bGrades <@> filterJust eInsert
     let eGradeDelete = liftOp (\grades content -> Lens.set #unGrades content grades) <$> bGrades <@> filterJust eDelete
+    let eGradePrev = liftOp (\grades content -> Lens.set #unGrades content grades) <$> bGrades <@> filterJust ePrev
+    let eGradeNext  = liftOp (\grades content -> Lens.set #unGrades content grades) <$> bGrades <@> filterJust eNext
 
     item <- liftUI $ UI.div # set children
-                                  [location, grades, Text.elementTE modify, elemControl]
+                                  [location, grades, Text.elementTE modify, elemControl, elemControlMove]
 
-    return (item, fmap Location.Location <$> eLocation, fmap Grade.Grades <$> eGradeSwitch, eGradeIdentifier, eGradeInsert, eGradeDelete)
+    return (item, fmap Location.Location <$> eLocation, fmap Grade.Grades <$> eGradeSwitch, eGradeIdentifier, eGradeInsert, eGradeDelete, eGradePrev, eGradeNext)
 
 
 mkContent
@@ -254,6 +256,8 @@ mkContent
            ( Element
            , Event (Maybe Photographer.Photographers)
            , Event (Maybe Location.Location)
+           , Event (Maybe Grade.Grades)
+           , Event (Maybe Grade.Grades)
            , Event (Maybe Grade.Grades)
            , Event (Maybe Grade.Grades)
            , Event (Maybe Grade.Grades)
@@ -270,7 +274,7 @@ mkContent = do
     (camerasContent       , eCameras       ) <- mkCamerasTab
     (shootingsContent     , eShootings     ) <- mkShootingsTab
     (sessionsContent      , eSessions      ) <- mkSessionsTab
-    (locationContent      , eLocation, eGradesSwitch, eGradesIdentifier, eGradeInsert, eGradeDelete) <- mkLocationTab
+    (locationContent      , eLocation, eGradesSwitch, eGradesIdentifier, eGradeInsert, eGradeDelete, eGradePrev, eGradeNext) <- mkLocationTab
 
     elseContent                              <- liftUI $ UI.string "fuck2"
     elseContent2                             <- liftUI $ UI.string "fuck2nodATA"
@@ -300,7 +304,7 @@ mkContent = do
         children
         (fromMaybe [elseContent2] <$> contents)
 
-    return (content, ePhotographers, eLocation, eGradesSwitch, eGradesIdentifier, eGradeInsert, eGradeDelete)
+    return (content, ePhotographers, eLocation, eGradesSwitch, eGradesIdentifier, eGradeInsert, eGradeDelete, eGradePrev, eGradeNext)
 
 
 
@@ -310,9 +314,31 @@ setup win = do
     _                 <- initial
 
     (elemTabs, eTabs) <- mkTabs
-    (elemContent, ePhotographers, eLocation, eGradesSwitch, eGradesIdentifier, eGradeInsert, eGradeDelete) <- mkContent
+    (elemContent, ePhotographers, eLocation, eGradesSwitch, eGradesIdentifier, eGradeInsert, eGradeDelete, eGradePrev, eGradeNext) <- mkContent
 
     liftUI $ getBody win #+ [element elemTabs, UI.hr, element elemContent]
+
+    onEvent' (filterJust eGradePrev) $ \e -> do
+        (BToken   bToken  ) <- grab @BToken
+        (PostGrades postGrades) <- grab @PostGrades
+        (HGrades    hGrades ) <- grab @HGrades
+        token               <- currentValue bToken
+        case token of
+            Nothing -> liftIO $ die "Missing token"
+            Just t  -> void $ do
+                res <- postGrades (Token $ setCookieValue t) e
+                liftIO $ hGrades (Just e)
+
+    onEvent' (filterJust eGradeNext) $ \e -> do
+        (BToken   bToken  ) <- grab @BToken
+        (PostGrades postGrades) <- grab @PostGrades
+        (HGrades    hGrades ) <- grab @HGrades
+        token               <- currentValue bToken
+        case token of
+            Nothing -> liftIO $ die "Missing token"
+            Just t  -> void $ do
+                res <- postGrades (Token $ setCookieValue t) e
+                liftIO $ hGrades (Just e)
 
     onEvent' (filterJust eGradeDelete) $ \e -> do
         (BToken   bToken  ) <- grab @BToken

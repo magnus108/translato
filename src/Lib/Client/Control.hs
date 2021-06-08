@@ -77,14 +77,23 @@ import           Lib.Client.Utils
 import qualified Lib.Client.Text               as Text
 import Control.Lens ((<>~), (.~))
 
-mkControls :: a -> Behavior (Maybe (ListZipper.ListZipper a)) -> ClientApp (Element, Event (Maybe (ListZipper.ListZipper a)), Event (Maybe (ListZipper.ListZipper a)))
+mkControls :: a -> Behavior (Maybe (ListZipper.ListZipper a)) -> ClientApp (Element, Element, Event (Maybe (ListZipper.ListZipper a)), Event (Maybe (ListZipper.ListZipper a)),Event (Maybe (ListZipper.ListZipper a)),Event (Maybe (ListZipper.ListZipper a)))
 mkControls sempty bXs = do
     insert <- liftUI $ UI.button #. "button" # set text "add"
     delete <- liftUI $ UI.button #. "button" # set text "delete"
-    control <- liftUI $ UI.div #. "buttons has-addons" # set children [insert, delete]
+
+    next <- liftUI $ UI.button #. "button" # set text "next"
+    prev <- liftUI $ UI.button #. "button" # set text "prev"
+
+    controlInsert <- liftUI $ UI.div #. "buttons has-addons" # set children [insert, delete]
+
+    controlMove <- liftUI $ UI.div #. "buttons has-addons" # set children [prev, next]
 
     let eInsert = fmap (\xs -> ListZipper.add sempty xs) <$> bXs <@  UI.click insert
     let eDelete = fmap (\xs -> ListZipper.remove xs) <$> bXs <@  UI.click delete
 
-    return (control, eInsert, eDelete)
+    let eNext = fmap (\xs -> ListZipper.forward xs) <$> bXs <@  UI.click next
+    let ePrev = fmap (\xs -> ListZipper.backward xs) <$> bXs <@  UI.click prev
+
+    return (controlInsert, controlMove, eInsert, eDelete, ePrev, eNext)
 

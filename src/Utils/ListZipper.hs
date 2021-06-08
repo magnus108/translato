@@ -6,6 +6,8 @@ module Utils.ListZipper
     , setter
     , toList
     , zipperL
+    , forward
+    , backward
     , add
     )
 where
@@ -53,6 +55,13 @@ iterate' f x = case f x of
 forward' :: ListZipper a -> Maybe (ListZipper a)
 forward' (ListZipper ls a (r : rs)) = Just (ListZipper (a : ls) r rs)
 forward' (ListZipper _  _ []      ) = Nothing
+
+forward :: ListZipper a -> ListZipper a
+forward a = fromMaybe a (forward' a)
+
+backward :: ListZipper a -> ListZipper a
+backward a = fromMaybe a (backward' a)
+
 
 backward' :: ListZipper a -> Maybe (ListZipper a)
 backward' (ListZipper (l : ls) a rs) = Just (ListZipper ls l (a : rs))
