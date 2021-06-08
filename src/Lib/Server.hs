@@ -42,7 +42,9 @@ runServerAppAsHandler env app = do
     -- not save
     res <- liftIO $ runServerAppAsIO env app
     case res of
-      Left x -> error "fic"
+      Left x -> do
+            traceShowM x
+            error "fic"
       Right y -> return y
 
 

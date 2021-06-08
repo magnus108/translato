@@ -83,6 +83,7 @@ library
       Lib.Server.Handler.PostSessions
       Lib.Server.Handler.PostShootings
       Lib.Server.Handler.PostTabs
+      Lib.Server.Handler.StreamDump
       Lib.Server.Serve
       Lib.Server.Types
       Lib.Utils
@@ -123,11 +124,14 @@ library
     , bytestring
     , comonad
     , cond
+    , conduit
     , containers
     , cookie
     , data-fix
     , exceptions
     , filepath
+    , fsnotify
+    , fsnotify-conduit
     , generic-lens
     , http-client
     , jose
@@ -137,6 +141,7 @@ library
     , optparse-generic
     , random
     , relude
+    , resourcet
     , safe
     , servant
     , servant-auth
@@ -145,6 +150,7 @@ library
     , servant-auth-server
     , servant-blaze
     , servant-client
+    , servant-conduit
     , servant-docs
     , servant-server
     , text
@@ -199,11 +205,14 @@ executable translato-exe
     , bytestring
     , comonad
     , cond
+    , conduit
     , containers
     , cookie
     , data-fix
     , exceptions
     , filepath
+    , fsnotify
+    , fsnotify-conduit
     , generic-lens
     , http-client
     , jose
@@ -213,6 +222,7 @@ executable translato-exe
     , optparse-generic
     , random
     , relude
+    , resourcet
     , safe
     , servant
     , servant-auth
@@ -221,6 +231,7 @@ executable translato-exe
     , servant-auth-server
     , servant-blaze
     , servant-client
+    , servant-conduit
     , servant-docs
     , servant-server
     , text
@@ -277,11 +288,14 @@ test-suite translato-test
     , bytestring
     , comonad
     , cond
+    , conduit
     , containers
     , cookie
     , data-fix
     , exceptions
     , filepath
+    , fsnotify
+    , fsnotify-conduit
     , generic-lens
     , http-client
     , jose
@@ -291,6 +305,7 @@ test-suite translato-test
     , optparse-generic
     , random
     , relude
+    , resourcet
     , safe
     , servant
     , servant-auth
@@ -299,6 +314,7 @@ test-suite translato-test
     , servant-auth-server
     , servant-blaze
     , servant-client
+    , servant-conduit
     , servant-docs
     , servant-server
     , text

@@ -29,6 +29,7 @@ import           Servant                 hiding ( throwError
                                                 , Handler
                                                 )
 import qualified Servant.Client                as Servant
+import qualified Servant.Client.Streaming      as S
 
 import           Lib.Client.Error               ( ClientAppError
                                                 , throwError
@@ -65,6 +66,7 @@ data ClientEnv (m :: Type -> Type) = ClientEnv
 
     , getDump :: GetDump
     , postDump :: PostDump
+    , streamDump :: StreamDump
 
     , getDagsdato :: GetDagsdato
     , postDagsdato :: PostDagsdato
@@ -169,6 +171,7 @@ newtype GetShootings = GetShootings { unGetShootings :: Token -> ClientApp Shoot
 newtype PostShootings = PostShootings { unPosShootings :: Token -> Shootings -> ClientApp NoContent }
 
 newtype GetDump = GetDump { unGetDump :: Token -> ClientApp Dump }
+newtype StreamDump = StreamDump { unStreamDump :: ClientApp (SourceIO String)}
 newtype PostDump = PostDump { unPosDump :: Token -> Dump -> ClientApp NoContent }
 
 newtype GetCameras = GetCameras { unGetCameras :: Token -> ClientApp Cameras }
@@ -215,6 +218,9 @@ instance Has PostShootings              (ClientEnv m) where
 
 instance Has GetDump              (ClientEnv m) where
     obtain = getDump
+
+instance Has StreamDump              (ClientEnv m) where
+    obtain = streamDump
 
 instance Has PostDump              (ClientEnv m) where
     obtain = postDump
@@ -374,14 +380,16 @@ runClientApp :: ClientAppEnv -> ClientApp a -> UI a
 runClientApp env = usingReaderT env . unClientApp
 
 
-runClientM :: Servant.ClientEnv -> Servant.ClientM a -> ClientApp a
+runClientM :: S.ClientEnv -> S.ClientM a -> ClientApp a
 runClientM cenv client = do
-    e <- liftIO $ Servant.runClientM client cenv
-    case e of
-        Left servantErr -> do
-            traceShowM servantErr
-            throwError $ ClientError "servantErr"
-        Right a -> pure a
+    liftIO $ S.withClientM client cenv $ \e ->
+                    case e of
+                        Left servantErr -> do
+                            traceShowM "FUCKKER"
+                            traceShowM servantErr
+                            ---- NOT SAFE
+                            throwIO servantErr
+                        Right a -> pure a
 
 
 electronDialog :: [String] -> JS.JSObject -> JSFunction ()
@@ -394,10 +402,10 @@ electronDialog options callback = ffi
 clients :: Servant.ClientEnv -> IO ClientAppEnv
 clients cenv = do
     let
-        api = Servant.hoistClient siteAPI
+        api = S.hoistClient siteAPI
                                   (runClientM cenv)
-                                  (Servant.client siteAPI)
-    let public :<|> protected = api
+                                  (S.client siteAPI)
+    let public :<|> protected :<|> bu = api
     let postLogin :<|> docs   = public
     let
         ((photographers :<|> tabs) :<|> dump :<|> dagsdato :<|> dagsdatoBackup) :<|> fixthis
@@ -407,7 +415,7 @@ clients cenv = do
     let getGrades' :<|> postGrades' = grades
 
     let getSessions' :<|> postSessions'         = sessions
-    let getDump' :<|> postDump'         = dump
+    let getDump' :<|> postDump' :<|> streamDump'         = dump
     let getCameras' :<|> postCameras'         = cameras
     let getDagsdato' :<|> postDagsdato' = dagsdato
     let getDagsdatoBackup' :<|> postDagsdatoBackup' = dagsdatoBackup
@@ -431,6 +439,7 @@ clients cenv = do
 
     let getDump                         = GetDump getDump'
     let postDump                        = PostDump postDump'
+    let streamDump                        = StreamDump streamDump'
 
     let getDagsdato                     = GetDagsdato getDagsdato'
     let postDagsdato                    = PostDagsdato postDagsdato'

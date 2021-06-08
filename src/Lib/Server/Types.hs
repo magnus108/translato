@@ -12,6 +12,7 @@ import           Control.Exception              ( catch
                                                 )
 
 import           Lib.Utils
+import Control.Monad.Trans.Resource
 
 type AppServer = AsServerT ServerApp
 
@@ -110,6 +111,7 @@ newtype ServerApp a = ServerApp
                , Applicative
                , Monad
                , MonadIO
+               , MonadUnliftIO
                , MonadReader ServerAppEnv
                )
 

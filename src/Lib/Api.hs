@@ -7,12 +7,15 @@ import           Servant.HTML.Blaze
 
 import           Lib.Data.Import
 
+import Servant.API.Stream
+
 
 type SiteApi = ToApi Site
 
 data Site route = Site
       { publicSite :: !(route :- PublicAPI)
       , protectedSite :: !(route :- ProtectedAPI)
+      , streamDump :: !(route :- StreamDump)
       }
   deriving (Generic)
 
@@ -94,9 +97,11 @@ data DumpSite route
   = DumpSite
       { getDump :: !(route :- GetDump)
       , postDump :: !(route :- PostDump)
+      , streamDump :: !(route :- StreamDump)
       }
   deriving (Generic)
 
+type StreamDump = "dumpStream" :>  StreamGet NewlineFraming JSON (SourceIO String)
 
 type PostDump = ProtectAPI :> ReqBody '[JSON] Dump :> Post '[JSON] NoContent
 

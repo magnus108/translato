@@ -16,6 +16,7 @@ import           Lib.Server.Handler.PostTabs
 import           Lib.Server.Handler.PostPhotographers
 
 import           Lib.Server.Handler.GetDump
+import           Lib.Server.Handler.StreamDump
 import           Lib.Server.Handler.PostDump
 
 import           Lib.Server.Handler.GetLocation
@@ -50,6 +51,7 @@ import          qualified Lib.Server.Error               as Err
 siteServer :: Site AppServer
 siteServer = Site { publicSite    = genericServerT publicServer
                   , protectedSite = genericServerT protectedServer
+                  , streamDump = serveStreamDump
                   }
 
 publicServer :: PublicSite AppServer
@@ -122,6 +124,7 @@ dumpServer :: DumpSite AppServer
 dumpServer = DumpSite
     { getDump = withAuthResultAndPermission Simple serveGetDump
     , postDump = withAuthResultAndPermission Simple servePostDump
+    , streamDump = serveStreamDump
     }
 
 
@@ -147,16 +150,16 @@ class WithError a where
     throwError :: Err.ServerAppErrorType -> a
 
 instance WithError b => WithError (a -> b) where
-    throwError e = const $ throwError e
+    throwError e = const $ throwError (traceShow e e)
 
 instance WithError (ServerApp a) where
-    throwError e = Err.throwError e
+    throwError e = Err.throwError (traceShow e e)
 
 
 withAuthResult
     :: WithError a => (AuthCookie -> a) -> (AuthResult AuthCookie -> a)
-withAuthResult func ar = case ar of
-    Authenticated ac -> func ac
+withAuthResult func ar = case traceShow ar ar of
+    Authenticated ac -> traceShow "did" (func ac)
     _                -> throwError $ Err.ServerError "servantErr"
 
 withAuthResultAndPermission
@@ -165,7 +168,7 @@ withAuthResultAndPermission
     -> (AuthCookie -> a)
     -> (AuthResult AuthCookie -> a)
 withAuthResultAndPermission p func =
-    withAuthResult (\ac -> withPermission (permissions ac) p (func ac))
+    withAuthResult (\ac -> traceShow "he" (withPermission (permissions ac) p (func ac)))
 
 withPermission :: WithError a => [Permission] -> Permission -> a -> a
 withPermission ps p func = 

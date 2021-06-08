@@ -5,6 +5,18 @@
 
 module Lib.Client where
 
+import           Servant.Types.SourceT          ( foreach
+                                                , source
+                                                )
+
+
+import qualified Servant.Client.Streaming      as S
+
+import Control.Concurrent
+import Conduit
+import Servant.Conduit
+
+import Servant.Types.SourceT
 
 import           Data.Generics.Labels
 import           Data.Generics.Product.Fields
@@ -13,6 +25,8 @@ import           GHC.OverloadedLabels         (IsLabel (..))
 import           Options.Generic 
 import           Data.Generics.Labels
 
+
+import qualified Lib.Api as API
 
 import qualified Lib.Client.FilePicker         as FilePicker
 import qualified Lib.Client.Select             as Select
@@ -610,7 +624,54 @@ initial = do
     _ <- getSessionsClient
     _ <- getLocationClient
     _ <- getGradesClient
+
+    traceShowM "loL"
+    _ <- streamDumpClient
+    traceShowM "loL2"
+
     return ()
+
+streamDumpClient :: ClientApp ()
+streamDumpClient = withToken $ \t -> do
+    (StreamDump streamDump) <- grab @StreamDump
+    (GetDump getDump) <- grab @GetDump
+    (HDump   hDump ) <- grab @HDump
+    traceShowM "gg"
+    --createStream <- streamDump t
+    traceShowM "gg2"
+
+  --  let helpMEEEEEEEEEEEEEEE = createStream :: SourceIO String
+---    liftIO $ foreach fail print helpMEEEEEEEEEEEEEEE
+
+    let serverPort = 8080
+    let baseUrl' = Servant.BaseUrl Servant.Http "localhost" serverPort ""
+    manager' <- liftIO $ newManager defaultManagerSettings
+    let cenv = Servant.mkClientEnv manager' baseUrl'
+
+    _ <- liftIO $ forkIO $ printSourceIO cenv photographersStream
+
+    --
+    --let help = fromSourceIO $ createStream :: ConduitT i String IO ()
+    --_ <- liftIO $ forkIO $ runConduit $ help .| mapM_C print
+
+    return ()
+
+photographersStream :: S.ClientM (SourceIO String)
+photographersStream = S.client streamAPI
+
+streamAPI :: Proxy API.StreamDump
+streamAPI = Proxy
+
+printSourceIO :: Show a => Servant.ClientEnv -> S.ClientM (SourceIO a) -> IO ()
+printSourceIO env c = S.withClientM c env $ \e -> case e of
+    Left  err -> putStrLn $ "Error: " ++ show err
+    Right rs  -> do
+        traceShowM "WTTTTTTTTTTTTTTF"
+        foreach fail (\z -> do
+            traceShowM "zzzzzzzzzzzzzzzzzz"
+            traceShowM z
+            return ())rs
+
 
 getGradesClient :: ClientApp ()
 getGradesClient = withToken $ \t -> do

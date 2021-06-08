@@ -71,6 +71,7 @@ dependencies:
 - name: servant-auth-server
 - name: servant-auth-client
 - name: servant-auth-docs
+- name: servant-conduit
 - name: http-client
 - name: warp
 - name: uuid
@@ -87,6 +88,10 @@ dependencies:
 - name: servant-blaze
 - name: markdown
 - name: cookie
+- name: conduit
+- name: fsnotify-conduit
+- name: fsnotify
+- name: resourcet
 
 
 library:
