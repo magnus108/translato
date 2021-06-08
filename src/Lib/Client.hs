@@ -69,6 +69,7 @@ import qualified Lib.Data.Shooting             as Shooting
 import qualified Lib.Data.Dump                 as Dump
 import qualified Lib.Data.Camera               as Camera
 import qualified Lib.Data.Doneshooting         as Doneshooting
+import qualified Lib.Data.Photographee         as Photographee
 import qualified Lib.Data.Dagsdato             as Dagsdato
 import qualified Lib.Data.DagsdatoBackup       as DagsdatoBackup
 import           Control.Comonad         hiding ( (<@)
@@ -250,6 +251,81 @@ mkLocationTab = mdo
 
     return (item, fmap Location.Location <$> eLocation, fmap Grade.Grades <$> eGradeSwitch, eGradeIdentifier, eGradeInsert, eGradeDelete, eGradePrev, eGradeNext)
 
+mkInsertPhotographeeTab :: ClientApp (Element
+    , Event (Maybe Grade.Grades),Event (Maybe Grade.Grades),Event (Maybe Grade.Grades), Event (Maybe Grade.Grades), Event (Maybe Grade.Grades), Event (Maybe Grade.Grades)
+    , Event (Maybe Grade.Grades),Event (Maybe Grade.Grades),Event (Maybe Grade.Grades), Event (Maybe Grade.Grades), Event (Maybe Grade.Grades), Event (Maybe Grade.Grades))
+mkInsertPhotographeeTab = mdo
+    (BGrades bGrades) <- grab @BGrades
+    let showGradeIdentifier x = UI.string $ T.unpack $ Grade.identifier x
+
+    (grades, eGradeSwitch) <- liftUI
+        $ Select.mkSelect (fmap Grade.unGrades <$> bGrades) showGradeIdentifier
+
+    modify <- liftUI $ Text.entry $ do
+        grades <- bGrades
+        return $ maybe
+            ""
+            (T.unpack . Grade.identifier . extract . Grade.unGrades)
+            grades
+
+    let eGradeIdentifier =
+            liftOp
+                    (\grades identifier -> Lens.set (#unGrades . ListZipper.zipperL . #identifier) (T.pack identifier) grades )
+                <$> bGrades
+                <@> (rumors (Text.userTE modify))
+
+
+    (elemControl, elemControlMove, eInsert, eDelete, ePrev, eNext) <- Control.mkControls Grade.sempty (fmap Grade.unGrades <$> bGrades)
+
+    let eGradeInsert = liftOp (\grades content -> Lens.set #unGrades content grades) <$> bGrades <@> filterJust eInsert
+    let eGradeDelete = liftOp (\grades content -> Lens.set #unGrades content grades) <$> bGrades <@> filterJust eDelete
+    let eGradePrev = liftOp (\grades content -> Lens.set #unGrades content grades) <$> bGrades <@> filterJust ePrev
+    let eGradeNext  = liftOp (\grades content -> Lens.set #unGrades content grades) <$> bGrades <@> filterJust eNext
+
+
+
+
+
+    let showPhotographeeName x = UI.string $ T.unpack $ Photographee.name x
+
+    (photographees, ePhotographeeSwitch) <- liftUI
+        $ Select.mkSelect (fmap (Photographee.unPhotographees . Grade.photographees . extract . Grade.unGrades) <$> bGrades) showPhotographeeName
+
+
+    modify2 <- liftUI $ Text.entry $ do
+        grades <- bGrades
+        return $ maybe
+            ""
+            (T.unpack . Photographee.name . extract . Photographee.unPhotographees . Grade.photographees . extract . Grade.unGrades)
+            grades
+
+    let ePhotographeeIdentifier =
+            liftOp
+                    (\grades identifier -> Lens.set (#unGrades . ListZipper.zipperL . #identifier) (T.pack identifier) grades )
+                <$> bGrades
+                <@> (rumors (Text.userTE modify))
+
+
+    (elemControl2, elemControlMove2, eInsert2, eDelete2, ePrev2, eNext2) <- Control.mkControls Photographee.sempty (fmap (Photographee.unPhotographees . Grade.photographees . extract . Grade.unGrades) <$> bGrades)
+
+    let ePhotographeeInsert = liftOp (\grades content -> Lens.set (#unGrades . ListZipper.zipperL . #photographees . #unPhotographees ) content grades) <$> bGrades <@> filterJust eInsert2
+    let ePhotographeeDelete = liftOp (\grades content -> Lens.set (#unGrades . ListZipper.zipperL . #photographees . #unPhotographees ) content grades) <$> bGrades <@> filterJust eDelete2
+    let ePhotographeePrev = liftOp (\grades content -> Lens.set (#unGrades . ListZipper.zipperL . #photographees . #unPhotographees ) content grades) <$> bGrades <@> filterJust ePrev2
+    let ePhotographeeNext  = liftOp (\grades content -> Lens.set (#unGrades . ListZipper.zipperL . #photographees . #unPhotographees) content grades) <$> bGrades <@> filterJust eNext2
+
+    let ePhotographeeSwitch' = liftOp (\grades content -> Lens.set (#unGrades . ListZipper.zipperL . #photographees . #unPhotographees) content grades) <$> bGrades <@> filterJust ePhotographeeSwitch
+
+    item <- liftUI $ UI.div # set children
+                                  [ grades, Text.elementTE modify, elemControl, elemControlMove
+                                  , photographees, Text.elementTE modify2, elemControl2, elemControlMove2
+                                  ]
+
+    return (item, 
+            fmap Grade.Grades <$> eGradeSwitch, eGradeIdentifier, eGradeInsert, eGradeDelete, eGradePrev, eGradeNext,
+            ePhotographeeSwitch', ePhotographeeIdentifier, ePhotographeeInsert, ePhotographeeDelete, ePhotographeePrev, ePhotographeeNext
+           )
+
+
 
 mkContent
     :: ClientApp
@@ -276,6 +352,10 @@ mkContent = do
     (sessionsContent      , eSessions      ) <- mkSessionsTab
     (locationContent      , eLocation, eGradesSwitch, eGradesIdentifier, eGradeInsert, eGradeDelete, eGradePrev, eGradeNext) <- mkLocationTab
 
+    (insertPhotographeeContent, eGradesSwitch, eGradesIdentifier, eGradeInsert, eGradeDelete, eGradePrev, eGradeNext
+            , ePhotographeesSwitch, ePhotographeesName, ePhotographeeInsert, ePhotographeeDelete, ePhotographeePrev, ePhotographeeNext
+            ) <- mkInsertPhotographeeTab
+
     elseContent                              <- liftUI $ UI.string "fuck2"
     elseContent2                             <- liftUI $ UI.string "fuck2nodATA"
 
@@ -296,6 +376,7 @@ mkContent = do
                                 Tab.ShootingsTab    -> [shootingsContent]
                                 Tab.SessionsTab     -> [sessionsContent]
                                 Tab.LocationTab     -> [locationContent]
+                                Tab.InsertPhotographeeTab     -> [insertPhotographeeContent]
                                 _                   -> [elseContent]
                     )
                 <$> bTabs
