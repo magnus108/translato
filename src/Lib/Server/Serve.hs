@@ -51,7 +51,6 @@ import          qualified Lib.Server.Error               as Err
 siteServer :: Site AppServer
 siteServer = Site { publicSite    = genericServerT publicServer
                   , protectedSite = genericServerT protectedServer
-                  , streamDump = serveStreamDump
                   }
 
 publicServer :: PublicSite AppServer
@@ -150,16 +149,16 @@ class WithError a where
     throwError :: Err.ServerAppErrorType -> a
 
 instance WithError b => WithError (a -> b) where
-    throwError e = const $ throwError (traceShow e e)
+    throwError e = const $ throwError e
 
 instance WithError (ServerApp a) where
-    throwError e = Err.throwError (traceShow e e)
+    throwError e = Err.throwError e
 
 
 withAuthResult
     :: WithError a => (AuthCookie -> a) -> (AuthResult AuthCookie -> a)
-withAuthResult func ar = case traceShow ar ar of
-    Authenticated ac -> traceShow "did" (func ac)
+withAuthResult func ar = case ar of
+    Authenticated ac -> (func ac)
     _                -> throwError $ Err.ServerError "servantErr"
 
 withAuthResultAndPermission
@@ -168,7 +167,7 @@ withAuthResultAndPermission
     -> (AuthCookie -> a)
     -> (AuthResult AuthCookie -> a)
 withAuthResultAndPermission p func =
-    withAuthResult (\ac -> traceShow "he" (withPermission (permissions ac) p (func ac)))
+    withAuthResult (\ac -> withPermission (permissions ac) p (func ac))
 
 withPermission :: WithError a => [Permission] -> Permission -> a -> a
 withPermission ps p func = 

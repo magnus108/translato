@@ -119,7 +119,11 @@ data ClientEnv (m :: Type -> Type) = ClientEnv
     , hGrades :: HGrades
 
     , eDialog :: EDialog
+
+    , baseUrl :: BaseUrl
     }
+
+newtype BaseUrl = BaseUrl { unBaseUrl :: Servant.BaseUrl }
 
 newtype EDialog = EDialog { unEDialog :: [String] -> JS.JSObject -> UI () }
 
@@ -159,40 +163,43 @@ newtype HDoneshooting = HDoneshooting { unHDoneshooting :: Handler (Maybe Donesh
 newtype BDagsdatoBackup = BDagsdatoBackup { unBDagsdatoBackup :: Behavior (Maybe DagsdatoBackup) }
 newtype HDagsdatoBackup = HDagsdatoBackup { unHDagsdatoBackup :: Handler (Maybe DagsdatoBackup) }
 
-newtype GetPhotographers = GetPhotographers { unGetPhotographers :: Token -> ClientApp Photographers }
-newtype GetTabs = GetTabs { unGetTabs :: Token -> ClientApp Tabs }
-newtype PostTabs = PostTabs { unPosTabs :: Token -> Tabs -> ClientApp NoContent }
-newtype PostPhotographers = PostPhotographers { unPosPhotographers :: Token -> Photographers -> ClientApp NoContent }
+newtype GetPhotographers = GetPhotographers { unGetPhotographers :: Token -> S.ClientM Photographers }
+newtype GetTabs = GetTabs { unGetTabs :: Token -> S.ClientM Tabs }
+newtype PostTabs = PostTabs { unPosTabs :: Token -> Tabs -> S.ClientM NoContent }
+newtype PostPhotographers = PostPhotographers { unPosPhotographers :: Token -> Photographers -> S.ClientM NoContent }
 
-newtype GetSessions = GetSessions { unGetSessions :: Token -> ClientApp Sessions }
-newtype PostSessions = PostSessions { unPosSessions :: Token -> Sessions -> ClientApp NoContent }
+newtype GetSessions = GetSessions { unGetSessions :: Token -> S.ClientM Sessions }
+newtype PostSessions = PostSessions { unPosSessions :: Token -> Sessions -> S.ClientM NoContent }
 
-newtype GetShootings = GetShootings { unGetShootings :: Token -> ClientApp Shootings }
-newtype PostShootings = PostShootings { unPosShootings :: Token -> Shootings -> ClientApp NoContent }
+newtype GetShootings = GetShootings { unGetShootings :: Token -> S.ClientM Shootings }
+newtype PostShootings = PostShootings { unPosShootings :: Token -> Shootings -> S.ClientM NoContent }
 
-newtype GetDump = GetDump { unGetDump :: Token -> ClientApp Dump }
-newtype StreamDump = StreamDump { unStreamDump :: ClientApp (SourceIO String)}
-newtype PostDump = PostDump { unPosDump :: Token -> Dump -> ClientApp NoContent }
+newtype GetDump = GetDump { unGetDump :: Token -> S.ClientM Dump }
+newtype StreamDump = StreamDump { unStreamDump :: S.ClientM (SourceIO String)}
+newtype PostDump = PostDump { unPosDump :: Token -> Dump -> S.ClientM NoContent }
 
-newtype GetCameras = GetCameras { unGetCameras :: Token -> ClientApp Cameras }
-newtype PostCameras = PostCameras { unPosCameras :: Token -> Cameras -> ClientApp NoContent }
+newtype GetCameras = GetCameras { unGetCameras :: Token -> S.ClientM Cameras }
+newtype PostCameras = PostCameras { unPosCameras :: Token -> Cameras -> S.ClientM NoContent }
 
-newtype GetDagsdato = GetDagsdato { unGetDagsdato :: Token -> ClientApp Dagsdato }
-newtype PostDagsdato = PostDagsdato { unPosDagsdato :: Token -> Dagsdato -> ClientApp NoContent }
+newtype GetDagsdato = GetDagsdato { unGetDagsdato :: Token -> S.ClientM Dagsdato }
+newtype PostDagsdato = PostDagsdato { unPosDagsdato :: Token -> Dagsdato -> S.ClientM NoContent }
 
-newtype GetDoneshooting = GetDoneshooting { unGetDoneshooting :: Token -> ClientApp Doneshooting }
-newtype PostDoneshooting = PostDoneshooting { unPostDoneshooting :: Token -> Doneshooting -> ClientApp NoContent }
+newtype GetDoneshooting = GetDoneshooting { unGetDoneshooting :: Token -> S.ClientM Doneshooting }
+newtype PostDoneshooting = PostDoneshooting { unPostDoneshooting :: Token -> Doneshooting -> S.ClientM NoContent }
 
-newtype GetDagsdatoBackup = GetDagsdatoBackup { unGetDagsdatoBackup :: Token -> ClientApp DagsdatoBackup }
-newtype PostDagsdatoBackup = PostDagsdatoBackup { unPosDagsdatoBackup :: Token -> DagsdatoBackup -> ClientApp NoContent }
+newtype GetDagsdatoBackup = GetDagsdatoBackup { unGetDagsdatoBackup :: Token -> S.ClientM DagsdatoBackup }
+newtype PostDagsdatoBackup = PostDagsdatoBackup { unPosDagsdatoBackup :: Token -> DagsdatoBackup -> S.ClientM NoContent }
 
-newtype GetLocation = GetLocation { unGetLocation :: Token -> ClientApp Location }
-newtype PostLocation = PostLocation { unPostLocation :: Token -> Location -> ClientApp NoContent }
+newtype GetLocation = GetLocation { unGetLocation :: Token -> S.ClientM Location }
+newtype PostLocation = PostLocation { unPostLocation :: Token -> Location -> S.ClientM NoContent }
 
-newtype GetGrades = GetGrades { unGetGrades :: Token -> ClientApp Grades }
-newtype PostGrades = PostGrades { unPostGrades :: Token -> Grades -> ClientApp NoContent }
+newtype GetGrades = GetGrades { unGetGrades :: Token -> S.ClientM Grades }
+newtype PostGrades = PostGrades { unPostGrades :: Token -> Grades -> S.ClientM NoContent }
 
-newtype Login = Login { unLogin :: LoginForm -> ClientApp (Headers '[Header "Set-Cookie" Text] NoContent) }
+newtype Login = Login { unLogin :: LoginForm -> S.ClientM (Headers '[Header "Set-Cookie" Text] NoContent) }
+
+instance Has BaseUrl              (ClientEnv m) where
+    obtain = baseUrl
 
 instance Has EDialog              (ClientEnv m) where
     obtain = eDialog
@@ -399,13 +406,10 @@ electronDialog options callback = ffi
     options
 
 
-clients :: Servant.ClientEnv -> IO ClientAppEnv
-clients cenv = do
-    let
-        api = S.hoistClient siteAPI
-                                  (runClientM cenv)
-                                  (S.client siteAPI)
-    let public :<|> protected :<|> bu = api
+clients :: IO ClientAppEnv
+clients = do
+    let api = S.client siteAPI
+    let public :<|> protected = api
     let postLogin :<|> docs   = public
     let
         ((photographers :<|> tabs) :<|> dump :<|> dagsdato :<|> dagsdatoBackup) :<|> fixthis
@@ -510,12 +514,15 @@ clients cenv = do
 
     let eDialog = EDialog $ \xs cb -> runFunction $ electronDialog xs cb
 
+
+
+    let serverPort = 8080
+    let baseUrl = BaseUrl $ Servant.BaseUrl Servant.Http "localhost" serverPort ""
+    --manager' <- newManager defaultManagerSettings
+    --let cenv = Servant.mkClientEnv manager' baseUrl'
+
     pure $ ClientEnv { .. }
 
 mkClientAppEnv :: IO ClientAppEnv
 mkClientAppEnv = do
-    let serverPort = 8080
-    let baseUrl' = Servant.BaseUrl Servant.Http "localhost" serverPort ""
-    manager' <- newManager defaultManagerSettings
-    let cenv = Servant.mkClientEnv manager' baseUrl'
-    clients cenv
+    clients

@@ -15,7 +15,6 @@ type SiteApi = ToApi Site
 data Site route = Site
       { publicSite :: !(route :- PublicAPI)
       , protectedSite :: !(route :- ProtectedAPI)
-      , streamDump :: !(route :- StreamDump)
       }
   deriving (Generic)
 

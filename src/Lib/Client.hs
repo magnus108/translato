@@ -2,11 +2,17 @@
 {-# LANGUAGE RecursiveDo #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ApplicativeDo #-}
+{-# LANGUAGE BangPatterns  #-}
 
 module Lib.Client where
 
+import qualified Servant.Types.SourceT as SO
 import           Servant.Types.SourceT          ( foreach
                                                 , source
+                                                )
+import           Control.Exception              ( catch
+                                                , throwIO
+                                                , try
                                                 )
 
 
@@ -430,7 +436,7 @@ setup win = do
         case token of
             Nothing -> liftIO $ die "Missing token"
             Just t  -> void $ do
-                res <- postGrades (Token $ setCookieValue t) e
+                res <- runSingleClientOrErr $ postGrades (Token $ setCookieValue t) e
                 liftIO $ hGrades (Just e)
 
     onEvent' (filterJust ePhotographeeNext) $ \e -> do
@@ -441,7 +447,7 @@ setup win = do
         case token of
             Nothing -> liftIO $ die "Missing token"
             Just t  -> void $ do
-                res <- postGrades (Token $ setCookieValue t) e
+                res <- runSingleClientOrErr $ postGrades (Token $ setCookieValue t) e
                 liftIO $ hGrades (Just e)
 
     onEvent' (filterJust ePhotographeeDelete) $ \e -> do
@@ -452,7 +458,7 @@ setup win = do
         case token of
             Nothing -> liftIO $ die "Missing token"
             Just t  -> void $ do
-                res <- postGrades (Token $ setCookieValue t) e
+                res <- runSingleClientOrErr $ postGrades (Token $ setCookieValue t) e
                 liftIO $ hGrades (Just e)
 
     onEvent' (filterJust ePhotographeeInsert) $ \e -> do
@@ -463,7 +469,7 @@ setup win = do
         case token of
             Nothing -> liftIO $ die "Missing token"
             Just t  -> void $ do
-                res <- postGrades (Token $ setCookieValue t) e
+                res <- runSingleClientOrErr $ postGrades (Token $ setCookieValue t) e
                 liftIO $ hGrades (Just e)
 
     onEvent' (filterJust ePhotographeeName) $ \e -> do
@@ -474,7 +480,7 @@ setup win = do
         case token of
             Nothing -> liftIO $ die "Missing token"
             Just t  -> void $ do
-                res <- postGrades (Token $ setCookieValue t) e
+                res <- runSingleClientOrErr $ postGrades (Token $ setCookieValue t) e
                 liftIO $ hGrades (Just e)
 
     onEvent' (filterJust ePhotographeeSwitch) $ \e -> do
@@ -485,7 +491,7 @@ setup win = do
         case token of
             Nothing -> liftIO $ die "Missing token"
             Just t  -> void $ do
-                res <- postGrades (Token $ setCookieValue t) e
+                res <- runSingleClientOrErr $ postGrades (Token $ setCookieValue t) e
                 liftIO $ hGrades (Just e)
 
 
@@ -506,7 +512,7 @@ setup win = do
         case token of
             Nothing -> liftIO $ die "Missing token"
             Just t  -> void $ do
-                res <- postGrades (Token $ setCookieValue t) e
+                res <- runSingleClientOrErr $ postGrades (Token $ setCookieValue t) e
                 liftIO $ hGrades (Just e)
 
     onEvent' (filterJust eGradeNext) $ \e -> do
@@ -517,7 +523,7 @@ setup win = do
         case token of
             Nothing -> liftIO $ die "Missing token"
             Just t  -> void $ do
-                res <- postGrades (Token $ setCookieValue t) e
+                res <- runSingleClientOrErr $ postGrades (Token $ setCookieValue t) e
                 liftIO $ hGrades (Just e)
 
     onEvent' (filterJust eGradeDelete) $ \e -> do
@@ -528,7 +534,7 @@ setup win = do
         case token of
             Nothing -> liftIO $ die "Missing token"
             Just t  -> void $ do
-                res <- postGrades (Token $ setCookieValue t) e
+                res <- runSingleClientOrErr $ postGrades (Token $ setCookieValue t) e
                 liftIO $ hGrades (Just e)
 
     onEvent' (filterJust eGradeInsert) $ \e -> do
@@ -539,7 +545,7 @@ setup win = do
         case token of
             Nothing -> liftIO $ die "Missing token"
             Just t  -> void $ do
-                res <- postGrades (Token $ setCookieValue t) e
+                res <- runSingleClientOrErr $ postGrades (Token $ setCookieValue t) e
                 liftIO $ hGrades (Just e)
 
     onEvent' (filterJust eGradesIdentifier) $ \e -> do
@@ -550,7 +556,7 @@ setup win = do
         case token of
             Nothing -> liftIO $ die "Missing token"
             Just t  -> void $ do
-                res <- postGrades (Token $ setCookieValue t) e
+                res <- runSingleClientOrErr $ postGrades (Token $ setCookieValue t) e
                 liftIO $ hGrades (Just e)
 
     onEvent' (filterJust eGradesSwitch) $ \e -> do
@@ -561,7 +567,7 @@ setup win = do
         case token of
             Nothing -> liftIO $ die "Missing token"
             Just t  -> void $ do
-                res <- postGrades (Token $ setCookieValue t) e
+                res <- runSingleClientOrErr $ postGrades (Token $ setCookieValue t) e
                 liftIO $ hGrades (Just e)
 
 
@@ -573,7 +579,7 @@ setup win = do
         case token of
             Nothing -> liftIO $ die "Missing token"
             Just t  -> void $ do
-                res <- postTabs (Token $ setCookieValue t) e
+                res <- runSingleClientOrErr $ postTabs (Token $ setCookieValue t) e
                 liftIO $ hTabs (Just e)
 
     onEvent' (filterJust eLocation) $ \e -> do
@@ -584,7 +590,7 @@ setup win = do
         case token of
             Nothing -> liftIO $ die "Missing token"
             Just t  -> void $ do
-                res <- postLocation (Token $ setCookieValue t) e
+                res <- runSingleClientOrErr $ postLocation (Token $ setCookieValue t) e
                 liftIO $ hLocation (Just e)
 
     onEvent' (filterJust ePhotographers) $ \e -> do
@@ -595,7 +601,7 @@ setup win = do
         case token of
             Nothing -> liftIO $ die "Missing token"
             Just t  -> void $ do
-                res <- postPhotographers (Token $ setCookieValue t) e
+                res <- runSingleClientOrErr $ postPhotographers (Token $ setCookieValue t) e
                 liftIO $ hPhotographers (Just e)
 
     return ()
@@ -631,53 +637,72 @@ initial = do
 
     return ()
 
+
+
+runSingleClientOrErr :: S.ClientM a -> ClientApp a --(Maybe a)
+runSingleClientOrErr func = do
+    r <- runSingleClient func
+    pure r
+
+
+runSingleClient :: S.ClientM a -> ClientApp a
+runSingleClient func = do
+    (BaseUrl baseUrl) <- grab @BaseUrl
+    liftIO $ do
+        man <- newManager defaultManagerSettings
+        let cenv = Servant.mkClientEnv man baseUrl
+        S.withClientM func cenv $ \e ->
+                    case e of
+                        Left servantErr -> do
+                            traceShowM "FUCKKER"
+                            traceShowM servantErr
+                            ---- NOT SAFE
+                            throwIO servantErr
+                        Right a -> pure a
+
+runSingleClientStream func func2 = do
+    (BaseUrl baseUrl) <- grab @BaseUrl
+    liftIO $ forkIO $ do
+        man <- newManager defaultManagerSettings
+        let cenv = Servant.mkClientEnv man baseUrl
+        S.withClientM func cenv $ \e ->
+                    case e of
+                        Left servantErr -> do
+                            traceShowM "FUCKKER"
+                            traceShowM servantErr
+                            ---- NOT SAFE
+                            throwIO servantErr
+                        Right a -> do
+                            traceShowM "was here"
+                            func2 a
+
+
+
+
+
 streamDumpClient :: ClientApp ()
 streamDumpClient = withToken $ \t -> do
     (StreamDump streamDump) <- grab @StreamDump
     (GetDump getDump) <- grab @GetDump
     (HDump   hDump ) <- grab @HDump
-    traceShowM "gg"
-    --createStream <- streamDump t
-    traceShowM "gg2"
 
-  --  let helpMEEEEEEEEEEEEEEE = createStream :: SourceIO String
----    liftIO $ foreach fail print helpMEEEEEEEEEEEEEEE
+    let go !acc SO.Stop        = return acc
+        go !acc (SO.Error err) = liftIO (print err) >> return acc
+        go !acc (SO.Skip s)    = go acc s
+        go !acc (SO.Effect ms) = ms >>= go acc
+        go !acc (SO.Yield _ s) = go (traceShow acc acc + 1) s
 
-    let serverPort = 8080
-    let baseUrl' = Servant.BaseUrl Servant.Http "localhost" serverPort ""
-    manager' <- liftIO $ newManager defaultManagerSettings
-    let cenv = Servant.mkClientEnv manager' baseUrl'
-
-    _ <- liftIO $ forkIO $ printSourceIO cenv photographersStream
-
-    --
-    --let help = fromSourceIO $ createStream :: ConduitT i String IO ()
-    --_ <- liftIO $ forkIO $ runConduit $ help .| mapM_C print
-
+    gg <- runSingleClientStream streamDump $ \gg -> do
+                                        SO.unSourceT gg (go (0 :: Int))
+                                        return ()
     return ()
-
-photographersStream :: S.ClientM (SourceIO String)
-photographersStream = S.client streamAPI
-
-streamAPI :: Proxy API.StreamDump
-streamAPI = Proxy
-
-printSourceIO :: Show a => Servant.ClientEnv -> S.ClientM (SourceIO a) -> IO ()
-printSourceIO env c = S.withClientM c env $ \e -> case e of
-    Left  err -> putStrLn $ "Error: " ++ show err
-    Right rs  -> do
-        traceShowM "WTTTTTTTTTTTTTTF"
-        foreach fail (\z -> do
-            traceShowM "zzzzzzzzzzzzzzzzzz"
-            traceShowM z
-            return ())rs
 
 
 getGradesClient :: ClientApp ()
 getGradesClient = withToken $ \t -> do
     (GetGrades getGrades) <- grab @GetGrades
     (HGrades   hGrades  ) <- grab @HGrades
-    res                   <- getGrades t
+    res                   <- runSingleClientOrErr $ getGrades t
     case res of
         _ -> liftIO $ hGrades (Just res)
 
@@ -685,7 +710,7 @@ getLocationClient :: ClientApp ()
 getLocationClient = withToken $ \t -> do
     (GetLocation getLocation) <- grab @GetLocation
     (HLocation   hLocation  ) <- grab @HLocation
-    res                       <- getLocation t
+    res                       <- runSingleClientOrErr $ getLocation t
     case res of
         _ -> liftIO $ hLocation (Just res)
 
@@ -694,7 +719,7 @@ getSessionsClient :: ClientApp ()
 getSessionsClient = withToken $ \t -> do
     (GetSessions getSessions) <- grab @GetSessions
     (HSessions   hSessions  ) <- grab @HSessions
-    res                       <- getSessions t
+    res                       <- runSingleClientOrErr $ getSessions t
     case res of
         _ -> liftIO $ hSessions (Just res)
 
@@ -703,7 +728,7 @@ getShootingsClient :: ClientApp ()
 getShootingsClient = withToken $ \t -> do
     (GetShootings getShootings) <- grab @GetShootings
     (HShootings   hShootings  ) <- grab @HShootings
-    res                         <- getShootings t
+    res                         <- runSingleClientOrErr $ getShootings t
     case res of
         _ -> liftIO $ hShootings (Just res)
 
@@ -711,7 +736,7 @@ getCamerasClient :: ClientApp ()
 getCamerasClient = withToken $ \t -> do
     (GetCameras getCameras) <- grab @GetCameras
     (HCameras   hCameras  ) <- grab @HCameras
-    res                     <- getCameras t
+    res                     <- runSingleClientOrErr $ getCameras t
     case res of
         _ -> liftIO $ hCameras (Just res)
 
@@ -719,7 +744,7 @@ getDoneshootingClient :: ClientApp ()
 getDoneshootingClient = withToken $ \t -> do
     (GetDoneshooting getDoneshooting) <- grab @GetDoneshooting
     (HDoneshooting   hDoneshooting  ) <- grab @HDoneshooting
-    res                               <- getDoneshooting t
+    res                               <- runSingleClientOrErr $ getDoneshooting t
     case res of
         _ -> liftIO $ hDoneshooting (Just res)
 
@@ -728,7 +753,7 @@ getDagsdatoClient :: ClientApp ()
 getDagsdatoClient = withToken $ \t -> do
     (GetDagsdato getDagsdato) <- grab @GetDagsdato
     (HDagsdato   hDagsdato  ) <- grab @HDagsdato
-    res                       <- getDagsdato t
+    res                       <- runSingleClientOrErr $ getDagsdato t
     case res of
         _ -> liftIO $ hDagsdato (Just res)
 
@@ -736,7 +761,7 @@ getDagsdatoBackupClient :: ClientApp ()
 getDagsdatoBackupClient = withToken $ \t -> do
     (GetDagsdatoBackup getDagsdatoBackup) <- grab @GetDagsdatoBackup
     (HDagsdatoBackup   hDagsdatoBackup  ) <- grab @HDagsdatoBackup
-    res <- getDagsdatoBackup t
+    res <- runSingleClientOrErr $ getDagsdatoBackup t
     case res of
         _ -> liftIO $ hDagsdatoBackup (Just res)
 
@@ -746,7 +771,7 @@ getDumpClient = do
     withToken $ \t -> do
         (GetDump getDump) <- grab @GetDump
         (HDump   hDump  ) <- grab @HDump
-        res               <- getDump t
+        res               <- runSingleClientOrErr $ getDump t
         case res of
             _ -> liftIO $ hDump (Just res)
 
@@ -756,7 +781,7 @@ getTabsClient = do
     withToken $ \t -> do
         (GetTabs getTabs) <- grab @GetTabs
         (HTabs   hTabs  ) <- grab @HTabs
-        res               <- getTabs t
+        res               <- runSingleClientOrErr $ getTabs t
         case res of
             _ -> liftIO $ hTabs (Just res)
 
@@ -766,7 +791,7 @@ getPhotographersClient = do
     withToken $ \t -> do
         (GetPhotographers getPhotographers) <- grab @GetPhotographers
         (HPhotographers   hPhotographers  ) <- grab @HPhotographers
-        res <- getPhotographers t
+        res <- runSingleClientOrErr $ getPhotographers t
         case res of
             _ -> liftIO $ hPhotographers (Just res)
 
@@ -774,7 +799,7 @@ getPhotographersClient = do
 loginClient :: ClientApp ()
 loginClient = do
     (Login login                       ) <- grab @Login
-    (Headers NoContent (HCons res HNil)) <- login LoginForm
+    (Headers NoContent (HCons res HNil)) <- runSingleClientOrErr $ login LoginForm
     (HToken hToken                     ) <- grab @HToken
     case res of
         MissingHeader ->
